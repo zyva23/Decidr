@@ -1,0 +1,194 @@
+import React, { useState, useRef, useEffect } from 'react';
+import { ChatMessage, CouncilResult, DecisionInput } from '../types';
+import { chatWithCouncil } from '../services/geminiService';
+
+interface CouncilChatProps {
+  isOpen: boolean;
+  onClose: () => void;
+  councilResult: CouncilResult;
+  input: DecisionInput;
+  chatHistory: ChatMessage[];
+  onUpdateHistory: (msgs: ChatMessage[]) => void;
+  onReAnalyze: (newContext: string) => void;
+}
+
+const CouncilChat: React.FC<CouncilChatProps> = ({ 
+  isOpen,
+  onClose,
+  councilResult, 
+  input, 
+  chatHistory, 
+  onUpdateHistory,
+  onReAnalyze
+}) => {
+  const [inputText, setInputText] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      setTimeout(scrollToBottom, 100);
+    }
+  }, [chatHistory, isOpen]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inputText.trim() || isLoading) return;
+
+    const userMsg: ChatMessage = {
+      role: 'user',
+      content: inputText,
+      timestamp: Date.now()
+    };
+
+    const newHistory = [...chatHistory, userMsg];
+    onUpdateHistory(newHistory);
+    setInputText('');
+    setIsLoading(true);
+
+    try {
+      const response = await chatWithCouncil(chatHistory, inputText, councilResult, input);
+      
+      const aiMsg: ChatMessage = {
+        role: 'assistant',
+        content: response,
+        timestamp: Date.now()
+      };
+      
+      onUpdateHistory([...newHistory, aiMsg]);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleUpdatePerspectives = () => {
+    // Collect recent user inputs to form new context
+    const userInputs = chatHistory
+        .filter(m => m.role === 'user')
+        .map(m => m.content)
+        .join("\n");
+    
+    if (confirm("Re-convene the Council? This will run a new analysis including your chat points as new context.")) {
+        onReAnalyze(`\n\n[UPDATED INFO FROM CHAT]:\n${userInputs}`);
+        onClose();
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+      {/* Backdrop */}
+      <div 
+        className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm animate-fade-in"
+        onClick={onClose}
+      />
+
+      {/* Modal Container */}
+      <div className="relative w-full max-w-2xl bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden flex flex-col h-[80vh] animate-fade-in">
+        
+        {/* Header */}
+        <div className="p-4 bg-slate-900 border-b border-slate-800 flex justify-between items-center shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg ring-2 ring-slate-800">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+            </div>
+            <div>
+              <h3 className="font-bold text-white text-base">Council Session</h3>
+              <p className="text-xs text-slate-400">Interrogate the verdict or provide new data</p>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-3">
+            {chatHistory.length > 2 && (
+                <button 
+                  onClick={handleUpdatePerspectives}
+                  className="text-xs bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-lg transition-colors border border-indigo-500/50 shadow-sm flex items-center gap-2"
+                  title="Run analysis again with this chat history included"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.5 2v6h-6M21.34 5.5A10 10 0 1 1 6.88 6.88L2 12"/></svg>
+                  <span className="hidden sm:inline">Update Perspectives</span>
+                </button>
+            )}
+            <button 
+              onClick={onClose}
+              className="p-2 rounded-full hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+          </div>
+        </div>
+
+        {/* Messages */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar bg-slate-950/30 scroll-smooth">
+          {chatHistory.length === 0 && (
+            <div className="text-center py-20 text-slate-500">
+              <div className="w-16 h-16 bg-slate-800/50 rounded-full flex items-center justify-center mx-auto mb-4">
+                 <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+              </div>
+              <p className="text-sm font-medium text-slate-400">The Council is seated.</p>
+              <p className="text-xs mt-2 max-w-xs mx-auto">Ask the Chairperson about specific risks, request clarification on the ROI, or introduce new constraints.</p>
+            </div>
+          )}
+          
+          {chatHistory.map((msg, idx) => (
+            <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+              <div className={`max-w-[85%] rounded-2xl p-4 text-sm leading-relaxed shadow-sm relative ${
+                msg.role === 'user' 
+                  ? 'bg-indigo-600/20 text-indigo-100 border border-indigo-500/20 rounded-tr-none' 
+                  : 'bg-slate-800 text-slate-200 border border-slate-700 rounded-tl-none'
+              }`}>
+                {msg.role === 'assistant' && (
+                  <div className="text-[10px] font-bold uppercase text-slate-500 mb-1 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span> Chairperson
+                  </div>
+                )}
+                <div className="whitespace-pre-wrap">{msg.content}</div>
+              </div>
+            </div>
+          ))}
+          {isLoading && (
+            <div className="flex justify-start">
+              <div className="bg-slate-800 border border-slate-700 rounded-2xl rounded-tl-none p-4 flex items-center gap-2">
+                <span className="w-1.5 h-1.5 bg-slate-500 rounded-full animate-bounce"></span>
+                <span className="w-1.5 h-1.5 bg-slate-500 rounded-full animate-bounce delay-75"></span>
+                <span className="w-1.5 h-1.5 bg-slate-500 rounded-full animate-bounce delay-150"></span>
+              </div>
+            </div>
+          )}
+          <div ref={messagesEndRef} />
+        </div>
+
+        {/* Input */}
+        <form onSubmit={handleSubmit} className="p-4 bg-slate-900 border-t border-slate-800 shrink-0">
+          <div className="relative">
+            <input
+              type="text"
+              value={inputText}
+              onChange={(e) => setInputText(e.target.value)}
+              placeholder="Question the verdict or add new info..."
+              className="w-full bg-slate-950 border border-slate-700 rounded-xl py-4 pl-5 pr-14 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50 shadow-inner"
+              disabled={isLoading}
+              autoFocus
+            />
+            <button 
+              type="submit" 
+              disabled={!inputText.trim() || isLoading}
+              className="absolute right-2 top-2 p-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-500 disabled:opacity-50 disabled:hover:bg-indigo-600 transition-colors shadow-lg shadow-indigo-500/20"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+export default CouncilChat;

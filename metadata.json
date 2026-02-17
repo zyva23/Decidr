@@ -1,0 +1,7 @@
+{
+  "name": "Decision Council AI",
+  "description": "An agentic Multi-Model Decision Support System (DSS) that evaluates problems through distinct mental lenses (Analyst, Strategist, Skeptic, Mediator) and synthesizes a strategic recommendation.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
