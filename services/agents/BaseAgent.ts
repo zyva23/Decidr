@@ -1,6 +1,12 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
 import { DecisionInput, AgentResponse } from "../../types";
 
+/**
+ * SHARED AGENT SCHEMA
+ * Defined here so all specific agents (Analyst, Strategist, etc.) return
+ * uniform data structures that the UI can render predictably.
+ */
 export const agentResponseSchemaObj = {
   type: Type.OBJECT,
   properties: {
@@ -52,6 +58,13 @@ export const agentResponseSchemaObj = {
   required: ["analysis", "keyPoints", "score", "sequence", "chartLabel", "chartData", "alternativeScenarios"]
 };
 
+/**
+ * BASE AGENT CLASS
+ * Provides core utilities for LLM interaction, including:
+ * - Exponential backoff for rate limiting.
+ * - Robust JSON cleaning for LLM outputs.
+ * - Unified grounding source extraction.
+ */
 export abstract class BaseAgent {
   protected ai: GoogleGenAI;
   protected modelName: string = "gemini-3-flash-preview";
@@ -60,6 +73,9 @@ export abstract class BaseAgent {
     this.ai = new GoogleGenAI({ apiKey });
   }
 
+  /**
+   * Helper to handle transient API errors (like 429 quota limits)
+   */
   protected async withRetry<T>(fn: () => Promise<T>, retries = 3, delay = 1000): Promise<T> {
     try {
       return await fn();
@@ -72,9 +88,14 @@ export abstract class BaseAgent {
     }
   }
 
+  /**
+   * Cleans LLM text output by stripping markdown code blocks and 
+   * attempting multiple parsing strategies to recover a valid JSON object.
+   */
   protected cleanAndParseJSON(text: string): any {
     if (!text) return null;
     let cleanText = text.trim();
+    // Strip ```json ... ``` blocks if present
     const markdownMatch = cleanText.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
     if (markdownMatch) {
       cleanText = markdownMatch[1].trim();
@@ -86,6 +107,7 @@ export abstract class BaseAgent {
         const sanitized = cleanText.replace(/\n/g, "\\n");
         return JSON.parse(sanitized);
       } catch (e2) {
+        // Find first { and last } as a last resort
         const start = text.indexOf('{');
         const end = text.lastIndexOf('}');
         if (start !== -1 && end !== -1) {
@@ -100,6 +122,10 @@ export abstract class BaseAgent {
 
   abstract run(input: DecisionInput): Promise<AgentResponse>;
 
+  /**
+   * Centralizes the actual call to the Gemini API.
+   * Handles tool injection and metadata (grounding) extraction.
+   */
   protected async executeCall(
     systemPrompt: string, 
     userPrompt: string, 
@@ -125,6 +151,7 @@ export abstract class BaseAgent {
 
       const text = response.text || "";
       let sources: string[] = [];
+      // Extract Google Search grounding URLs if they exist
       if (response.candidates?.[0]?.groundingMetadata?.groundingChunks) {
          const chunks = response.candidates[0].groundingMetadata.groundingChunks;
          chunks.forEach((chunk: any) => {

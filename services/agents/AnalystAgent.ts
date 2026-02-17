@@ -1,14 +1,20 @@
+
 import { BaseAgent } from "./BaseAgent";
 import { DecisionInput, AgentResponse } from "../../types";
 
+/**
+ * THE ANALYST (Enhanced)
+ * Focuses on "The Hard Numbers".
+ * Uses Google Search to find industry benchmarks, historical ROI data, 
+ * and specific market sizing (TAM/SAM/SOM) to ground the decision in reality.
+ */
 export class AnalystAgent extends BaseAgent {
   
   async run(input: DecisionInput): Promise<AgentResponse> {
     const role = "Analyst";
     
-    // Optimization: Analyst cares about Constraints (Budget) and Options. 
-    // We can prioritize these in the prompt or strip out emotional context if needed later.
     const userPrompt = `
+      DECISION BRIEF:
       Title: ${input.title}
       Context: ${input.context}
       Constraints: ${input.constraints}
@@ -16,37 +22,41 @@ export class AnalystAgent extends BaseAgent {
     `;
 
     const systemPrompt = `
-      ROLE: Quantitative Analyst (Financial & Data Focused)
+      ROLE: Senior Quantitative Analyst & Financial Modeler
       
       MISSION:
-      Perform a Cost-Benefit Analysis (CBA) and evaluate ROI.
-      You must be objective, skeptical of optimism, and number-driven.
+      Ground this decision in hard data. Your report must move beyond intuition into empirical evidence.
       
-      SPECIFIC INSTRUCTIONS:
-      1. Use 'googleSearch' to find real market data, competitor pricing, or industry benchmarks.
-      2. 'chartData' MUST visualize a financial metric (e.g. Net Profit, CAC, Runway).
-      3. 'sequence' must be a financial timeline (Cash flow events).
-      4. Score the decision based on Financial Feasibility (0=Bankrupt, 100=High Profit).
+      RESEARCH REQUIREMENTS (Using googleSearch):
+      1. Sourcing: Find at least 2 specific industry benchmarks (e.g., 'Average conversion for X industry', 'Standard CAC for Y').
+      2. Market Trends: Identify 2024-2025 growth rates (CAGR) for this specific sector.
+      3. Cost Basis: If a budget is mentioned, find current market rates for required resources.
+      
+      OUTPUT REQUIREMENTS:
+      - ANALYSIS NARRATIVE: Must include a 'Data-Driven Benchmarks' section. MAX 500 WORDS.
+      - SCORE: 0-100 based on 'Expected Net Present Value' and 'Resource Efficiency'.
+      - CHART DATA: Must represent a specific projection (e.g., 12-month runway or ROI curve).
+      - CITATIONS: You MUST cite specific URLs found during search in the 'sources' array.
     `;
 
     try {
-      // Analyst uses search tools
-      const data = await this.executeCall(systemPrompt, userPrompt, [{ googleSearch: {} }], 0.4);
+      // executeCall handles the tool integration and JSON parsing logic defined in BaseAgent
+      const data = await this.executeCall(systemPrompt, userPrompt, [{ googleSearch: {} }], 0.3);
       
       return {
         name: role,
         role: role,
-        analysis: data.analysis || "Analysis failed",
+        analysis: data.analysis || "Financial simulation failed to produce a narrative.",
         keyPoints: data.keyPoints || [],
         score: data.score || 0,
         sequence: data.sequence || [],
         sources: data.sources || [],
         chartData: data.chartData || [],
-        chartLabel: data.chartLabel || "Financial Metric",
+        chartLabel: data.chartLabel || "Projected Financial Value",
         alternativeScenarios: data.alternativeScenarios || []
       };
     } catch (error) {
-      console.error("Analyst Error:", error);
+      console.error("Analyst Execution Error:", error);
       return this.getErrorResponse(role, error);
     }
   }
@@ -55,8 +65,8 @@ export class AnalystAgent extends BaseAgent {
     return {
       name: role,
       role: role,
-      analysis: `Error: ${error.message}`,
-      keyPoints: [],
+      analysis: `The Analyst encountered a calculation error: ${error.message}. Please check your context for missing data points.`,
+      keyPoints: ["Model execution failure", "Insufficient data for financial grounding"],
       score: 0,
       sequence: []
     };

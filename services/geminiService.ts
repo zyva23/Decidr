@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
 import { DecisionInput, CouncilResult, BrainstormResult, ChatMessage, ActionPlan } from "../types";
 import { AnalystAgent } from "./agents/AnalystAgent";
@@ -5,9 +6,14 @@ import { StrategistAgent } from "./agents/StrategistAgent";
 import { SkepticAgent } from "./agents/SkepticAgent";
 import { MediatorAgent } from "./agents/MediatorAgent";
 
-// --- Service Configuration ---
+/**
+ * CORE SERVICE: Decision Council Orchestrator
+ * This service handles the distribution of user inputs to multiple specialized agents
+ * and synthesizes their disparate perspectives into a cohesive strategic verdict.
+ */
+
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
-const MASTER_MODEL = "gemini-3-flash-preview"; // Using Flash for all to preserve quota
+const MASTER_MODEL = "gemini-3-flash-preview"; 
 
 const truncateContext = (text: string, maxChars: number = 2000): string => {
   if (text.length <= maxChars) return text;
@@ -16,7 +22,12 @@ const truncateContext = (text: string, maxChars: number = 2000): string => {
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-// --- Orchestrator Function ---
+/**
+ * Orchestrates the "Council Deliberation".
+ * 1. Initializes four distinct specialized agents.
+ * 2. Runs them in sequence with slight delays to respect API rate limits.
+ * 3. Feeds the four reports into a master model for synthesis.
+ */
 export async function analyzeDecision(input: DecisionInput): Promise<CouncilResult> {
   const optimizedInput: DecisionInput = {
     ...input,
@@ -28,7 +39,7 @@ export async function analyzeDecision(input: DecisionInput): Promise<CouncilResu
   const skepticAgent = new SkepticAgent(process.env.API_KEY as string);
   const mediatorAgent = new MediatorAgent(process.env.API_KEY as string);
 
-  // Staggering calls to avoid burst limit hits
+  // Parallel-staggered execution to avoid "429 Too Many Requests"
   const analyst = await analystAgent.run(optimizedInput);
   await delay(800);
   const strategist = await strategistAgent.run(optimizedInput);
@@ -68,6 +79,10 @@ export async function analyzeDecision(input: DecisionInput): Promise<CouncilResu
   }
 }
 
+/**
+ * Lightweight helper to assist the user in filling out the form.
+ * Provides suggestions based on the partial input.
+ */
 export async function exploreBrainstorm(field: 'constraints' | 'options' | 'context', title: string, context: string): Promise<BrainstormResult> {
   const fieldName = field === 'constraints' ? 'Constraint' : 'Option';
   const prompt = `Decision: ${title}. ${field === 'context' ? 'Help flesh out background.' : 'Suggest ' + fieldName + 's.'}`;
@@ -84,6 +99,10 @@ export async function exploreBrainstorm(field: 'constraints' | 'options' | 'cont
   }
 }
 
+/**
+ * Chat interface acting as the "Chairperson" of the council.
+ * Uses history to maintain context.
+ */
 export async function chatWithCouncil(history: ChatMessage[], newMessage: string, councilResult: CouncilResult, input: DecisionInput): Promise<string> {
   const contextPrompt = `You are the Chairperson of the Decision Council. Verdict: ${councilResult.synthesis.verdict}.`;
   const chatHistoryGemini = [

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Tooltip } from 'recharts';
 import { RadarMetrics } from '../types';
@@ -15,8 +16,8 @@ const RadarViz: React.FC<RadarVizProps> = ({ metrics }) => {
   ];
 
   return (
-    <div className="h-64 w-full relative p-2">
-        <h4 className="text-slate-400 text-xs font-bold uppercase tracking-wider absolute top-0 left-0">Decision Profile</h4>
+    <div id="decision-radar-chart" className="h-64 w-full relative p-2 bg-slate-900/40 rounded-xl">
+        <h4 className="text-slate-400 text-xs font-bold uppercase tracking-wider absolute top-0 left-0 p-2">Decision Profile</h4>
       <ResponsiveContainer width="100%" height="100%">
         <RadarChart cx="50%" cy="55%" outerRadius="65%" data={data}>
           <PolarGrid stroke="#475569" />

@@ -11,15 +11,23 @@ import Auth from './components/Auth';
 import { analyzeDecision } from './services/geminiService';
 import { saveSession, getSessions, deleteSession } from './services/storageService';
 import { auth, logActivity, onAuthStateChanged, signOut, isGCPConfigured } from './services/googleCloud';
+import { generateDecisionPDF } from './services/pdfService';
 import { DecisionInput, CouncilResult, AnalysisStatus, DecisionSession, ChatMessage, UserProfile } from './types';
+
+/**
+ * MAIN APPLICATION COMPONENT
+ * Coordinates Authentication, Storage, AI Analysis, and Visual Results.
+ */
 
 const MAX_FREE_CREDITS = 5;
 
 const App: React.FC = () => {
+  // --- AUTH STATE ---
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isAuthChecking, setIsAuthChecking] = useState(true);
   const [isGuestMode, setIsGuestMode] = useState(false);
 
+  // --- DATA STATE ---
   const [sessions, setSessions] = useState<DecisionSession[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [inputValues, setInputValues] = useState<DecisionInput>({ title: '', context: '', constraints: '', options: '' });
@@ -28,11 +36,16 @@ const App: React.FC = () => {
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [credits, setCredits] = useState(0);
 
+  // --- UI STATE ---
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [showWaitlist, setShowWaitlist] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
+  /**
+   * Listen for Firebase Auth changes on mount.
+   */
   useEffect(() => {
     if (!isGCPConfigured || !auth) {
       setIsAuthChecking(false);
@@ -50,12 +63,18 @@ const App: React.FC = () => {
     return () => unsubscribe();
   }, []);
 
+  /**
+   * Load history and local quota info on mount.
+   */
   useEffect(() => {
     setSessions(getSessions());
     const used = localStorage.getItem('dc_credits_used');
     setCredits(used ? parseInt(used, 10) : 0);
   }, []);
 
+  /**
+   * Handles user sentiment feedback on the verdict.
+   */
   const handleFeedback = (type: 'helpful' | 'not-helpful') => {
     if (!result) return;
     const newResult = { ...result, feedback: type };
@@ -67,6 +86,9 @@ const App: React.FC = () => {
     }
   };
 
+  /**
+   * Resets form to a blank state for a fresh analysis.
+   */
   const startNewSession = () => {
     setCurrentSessionId(null);
     setInputValues({ title: '', context: '', constraints: '', options: '' });
@@ -76,6 +98,9 @@ const App: React.FC = () => {
     setIsChatOpen(false);
   };
 
+  /**
+   * Restores an existing session from the history sidebar.
+   */
   const loadSession = (session: DecisionSession) => {
     setCurrentSessionId(session.id);
     setInputValues(session.input);
@@ -85,6 +110,10 @@ const App: React.FC = () => {
     setIsChatOpen(false);
   };
 
+  /**
+   * PRIMARY ACTION: Trigger AI Deliberation
+   * Checks credits, triggers geminiService, and persists results.
+   */
   const handleAnalysis = async (input: DecisionInput) => {
     if (credits >= MAX_FREE_CREDITS) {
       setShowWaitlist(true);
@@ -122,12 +151,26 @@ const App: React.FC = () => {
     }
   };
 
+  const handleExportPDF = async () => {
+    if (!result || !inputValues) return;
+    setIsExporting(true);
+    try {
+        await generateDecisionPDF(inputValues, result);
+    } catch (e) {
+        console.error("PDF Export failed", e);
+    } finally {
+        setIsExporting(false);
+    }
+  };
+
   const handleSignOut = async () => {
     if (user) logActivity(user.id, 'logout');
     if (auth) await signOut(auth);
     setIsGuestMode(false);
     setUser(null);
   };
+
+  // --- RENDERING LOGIC ---
 
   if (isAuthChecking) {
     return (
@@ -152,8 +195,11 @@ const App: React.FC = () => {
         onClose={() => setIsHistoryOpen(false)}
         onDeleteSession={(id) => { deleteSession(id); setSessions(getSessions()); }}
       />
+      
+      {/* Documentation modal for the lenses */}
       <FrameworkLibrary isOpen={isLibraryOpen} onClose={() => setIsLibraryOpen(false)} />
 
+      {/* Credit limit / Paywall simulation */}
       {showWaitlist && (
         <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
           <div className="bg-slate-900 border border-slate-800 p-10 rounded-3xl max-w-md text-center shadow-2xl animate-fade-in">
@@ -166,6 +212,7 @@ const App: React.FC = () => {
         </div>
       )}
 
+      {/* Main Header */}
       <header className="flex-shrink-0 h-16 border-b border-slate-800 bg-slate-900/50 backdrop-blur-md flex items-center justify-between px-4 lg:px-6 z-30">
         <div className="flex items-center gap-4">
           <button onClick={() => setIsHistoryOpen(true)} className="p-2 -ml-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg">
@@ -184,6 +231,7 @@ const App: React.FC = () => {
         </div>
       </header>
 
+      {/* Multi-Pane Layout */}
       <main className="flex-1 overflow-hidden relative p-4 lg:p-6">
         <ResizableSplitPane 
           left={<InputForm initialValues={inputValues} onSubmit={handleAnalysis} isLoading={status === AnalysisStatus.ANALYZING} />}
@@ -192,12 +240,25 @@ const App: React.FC = () => {
               {status === AnalysisStatus.COMPLETE && result && (
                 <div className="space-y-6 animate-fade-in pb-12">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {/* Final Verdict Synthesis */}
                     <div className="md:col-span-2 bg-gradient-to-br from-indigo-900/40 to-slate-900/40 border border-indigo-500/30 rounded-xl p-8 flex flex-col shadow-2xl">
                       <h2 className="text-indigo-300 text-xs font-bold uppercase tracking-widest mb-4">Final Verdict</h2>
                       <h3 className="text-3xl font-black text-white mb-4 leading-tight">{result.synthesis.verdict}</h3>
                       <p className="text-slate-300 leading-relaxed text-lg mb-8">{result.synthesis.recommendation}</p>
                       <div className="flex flex-wrap gap-4 mt-auto">
                         <button onClick={() => setIsChatOpen(true)} className="px-6 py-3 bg-white text-slate-950 font-bold rounded-xl active:scale-95">Consult Council</button>
+                        <button 
+                            onClick={handleExportPDF} 
+                            disabled={isExporting}
+                            className="px-6 py-3 border border-indigo-500/50 text-indigo-300 hover:bg-indigo-500/10 font-bold rounded-xl active:scale-95 flex items-center gap-2 transition-colors disabled:opacity-50"
+                        >
+                            {isExporting ? (
+                                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                            ) : (
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                            )}
+                            Export Report
+                        </button>
                         <div className="ml-auto flex items-center gap-2">
                            <button onClick={() => handleFeedback('helpful')} className={`p-3 rounded-xl border ${result.feedback === 'helpful' ? 'bg-emerald-500 border-emerald-400 text-white' : 'bg-slate-800 border-slate-700 text-slate-500'}`}>
                              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M7 10v12"></path><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2h0a3.13 3.13 0 0 1 3 3.88Z"></path></svg>
@@ -208,10 +269,12 @@ const App: React.FC = () => {
                         </div>
                       </div>
                     </div>
+                    {/* Visual Data Radar */}
                     <div className="bg-slate-900/40 border border-slate-800 rounded-xl p-6 flex items-center justify-center">
                       <RadarViz metrics={result.synthesis.metrics} />
                     </div>
                   </div>
+                  {/* Detailed Agent Cards */}
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                     <AgentCard agent={result.analyst} color="blue" />
                     <AgentCard agent={result.strategist} color="purple" />
@@ -232,6 +295,7 @@ const App: React.FC = () => {
         />
       </main>
       
+      {/* Interactive Council Chat Modal */}
       {isChatOpen && result && <CouncilChat isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} councilResult={result} input={inputValues} chatHistory={chatHistory} onUpdateHistory={setChatHistory} onReAnalyze={(newCtx) => handleAnalysis({...inputValues, context: inputValues.context + newCtx})} />}
     </div>
   );
