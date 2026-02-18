@@ -7,8 +7,10 @@ import ResizableSplitPane from './components/ResizableSplitPane';
 import SessionHistory from './components/SessionHistory';
 import FrameworkLibrary from './components/FrameworkLibrary';
 import CouncilChat from './components/CouncilChat';
+import VerdictElaboration from './components/VerdictElaboration';
+import ActionPlanModal from './components/ActionPlanModal';
 import Auth from './components/Auth';
-import { analyzeDecision } from './services/geminiService';
+import { analyzeDecision, generateActionPlan } from './services/geminiService';
 import { saveSession, getSessions, deleteSession } from './services/storageService';
 import { auth, logActivity, onAuthStateChanged, signOut, isGCPConfigured } from './services/googleCloud';
 import { generateDecisionPDF } from './services/pdfService';
@@ -40,6 +42,10 @@ const App: React.FC = () => {
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isElaborationOpen, setIsElaborationOpen] = useState(false);
+  const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
+  const [currentPlan, setCurrentPlan] = useState<ActionPlan | null>(null);
+  const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
   const [showWaitlist, setShowWaitlist] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
 
@@ -67,22 +73,62 @@ const App: React.FC = () => {
    * Load history and local quota info on mount.
    */
   useEffect(() => {
-    setSessions(getSessions());
+    const loadInitialData = async () => {
+      const initialSessions = await getSessions(user?.id);
+      setSessions(initialSessions);
+    };
+    loadInitialData();
+    
     const used = localStorage.getItem('dc_credits_used');
     setCredits(used ? parseInt(used, 10) : 0);
-  }, []);
+  }, [user]);
 
   /**
    * Handles user sentiment feedback on the verdict.
    */
-  const handleFeedback = (type: 'helpful' | 'not-helpful') => {
+  const handleFeedback = async (type: 'helpful' | 'not-helpful') => {
     if (!result) return;
     const newResult = { ...result, feedback: type };
     setResult(newResult);
     if (user) logActivity(user.id, 'feedback', { verdict: result.synthesis.verdict, type });
     if (currentSessionId) {
       const session = sessions.find(s => s.id === currentSessionId);
-      if (session) saveSession({ ...session, result: newResult });
+      if (session) {
+        await saveSession({ ...session, result: newResult });
+      }
+    }
+  };
+
+  const handleDevelopPlan = async () => {
+    if (!result || !inputValues) return;
+    
+    // If we already have a plan for this session, just open it
+    const existingSession = sessions.find(s => s.id === currentSessionId);
+    if (existingSession?.actionPlan) {
+      setCurrentPlan(existingSession.actionPlan);
+      setIsPlanModalOpen(true);
+      return;
+    }
+
+    setIsGeneratingPlan(true);
+    try {
+      const plan = await generateActionPlan(inputValues, result);
+      setCurrentPlan(plan);
+      setIsPlanModalOpen(true);
+      
+      // Save the plan to the session
+      if (currentSessionId) {
+        const session = sessions.find(s => s.id === currentSessionId);
+        if (session) {
+          const updatedSession = { ...session, actionPlan: plan };
+          await saveSession(updatedSession);
+          setSessions(await getSessions(user?.id));
+        }
+      }
+    } catch (e) {
+      console.error("Failed to generate plan", e);
+    } finally {
+      setIsGeneratingPlan(false);
     }
   };
 
@@ -96,6 +142,8 @@ const App: React.FC = () => {
     setChatHistory([]);
     setStatus(AnalysisStatus.IDLE);
     setIsChatOpen(false);
+    setIsElaborationOpen(false);
+    setCurrentPlan(null);
   };
 
   /**
@@ -108,6 +156,8 @@ const App: React.FC = () => {
     setChatHistory(session.chatHistory || []);
     setStatus(session.status);
     setIsChatOpen(false);
+    setIsElaborationOpen(false);
+    setCurrentPlan(session.actionPlan || null);
   };
 
   /**
@@ -141,9 +191,10 @@ const App: React.FC = () => {
         status: AnalysisStatus.COMPLETE,
         chatHistory: []
       };
-      saveSession(newSession);
+      await saveSession(newSession);
       setCurrentSessionId(newSession.id);
-      setSessions(getSessions());
+      const updatedSessions = await getSessions(user?.id);
+      setSessions(updatedSessions);
       setChatHistory([]);
     } catch (error: any) {
       setStatus(AnalysisStatus.ERROR);
@@ -193,7 +244,11 @@ const App: React.FC = () => {
         onSelectSession={loadSession}
         onNewSession={startNewSession}
         onClose={() => setIsHistoryOpen(false)}
-        onDeleteSession={(id) => { deleteSession(id); setSessions(getSessions()); }}
+        onDeleteSession={async (id) => { 
+          await deleteSession(id); 
+          const updated = await getSessions(user?.id);
+          setSessions(updated); 
+        }}
       />
       
       {/* Documentation modal for the lenses */}
@@ -245,19 +300,51 @@ const App: React.FC = () => {
                       <h2 className="text-indigo-300 text-xs font-bold uppercase tracking-widest mb-4">Final Verdict</h2>
                       <h3 className="text-3xl font-black text-white mb-4 leading-tight">{result.synthesis.verdict}</h3>
                       <p className="text-slate-300 leading-relaxed text-lg mb-8">{result.synthesis.recommendation}</p>
-                      <div className="flex flex-wrap gap-4 mt-auto">
-                        <button onClick={() => setIsChatOpen(true)} className="px-6 py-3 bg-white text-slate-950 font-bold rounded-xl active:scale-95">Consult Council</button>
+                      <div className="flex flex-wrap gap-3 mt-auto">
                         <button 
-                            onClick={handleExportPDF} 
-                            disabled={isExporting}
-                            className="px-6 py-3 border border-indigo-500/50 text-indigo-300 hover:bg-indigo-500/10 font-bold rounded-xl active:scale-95 flex items-center gap-2 transition-colors disabled:opacity-50"
+                          onClick={() => setIsChatOpen(true)} 
+                          title="Consult Council"
+                          className="p-3 bg-white text-slate-950 rounded-xl active:scale-95 transition-all hover:bg-slate-100 flex items-center justify-center group"
                         >
-                            {isExporting ? (
-                                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
-                            ) : (
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                            )}
-                            Export Report
+                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 21 1.9-5.7a8.5 8.5 0 1 1 3.8 3.8z"/></svg>
+                          <span className="max-w-0 overflow-hidden group-hover:max-w-xs group-hover:ml-2 transition-all duration-300 font-bold whitespace-nowrap">Consult Council</span>
+                        </button>
+
+                        <button 
+                          onClick={() => setIsElaborationOpen(!isElaborationOpen)} 
+                          title={isElaborationOpen ? 'Hide Elaboration' : 'View Elaboration'}
+                          className={`p-3 border rounded-xl active:scale-95 transition-all flex items-center justify-center group ${isElaborationOpen ? 'bg-indigo-600 border-indigo-400 text-white' : 'border-indigo-500/50 text-indigo-300 hover:bg-indigo-500/10'}`}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                          <span className="max-w-0 overflow-hidden group-hover:max-w-xs group-hover:ml-2 transition-all duration-300 font-bold whitespace-nowrap">{isElaborationOpen ? 'Hide' : 'Elaboration'}</span>
+                        </button>
+
+                        <button 
+                          onClick={handleDevelopPlan} 
+                          disabled={isGeneratingPlan}
+                          title="Develop Action Plan"
+                          className="p-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl active:scale-95 flex items-center justify-center transition-all disabled:opacity-50 group"
+                        >
+                          {isGeneratingPlan ? (
+                            <svg className="animate-spin h-6 w-6" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                          ) : (
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line><path d="m9 16 2 2 4-4"/></svg>
+                          )}
+                          <span className="max-w-0 overflow-hidden group-hover:max-w-xs group-hover:ml-2 transition-all duration-300 font-bold whitespace-nowrap">Planning</span>
+                        </button>
+
+                        <button 
+                          onClick={handleExportPDF} 
+                          disabled={isExporting}
+                          title="Export Report"
+                          className="p-3 border border-indigo-500/50 text-indigo-300 hover:bg-indigo-500/10 rounded-xl active:scale-95 flex items-center justify-center transition-all disabled:opacity-50 group"
+                        >
+                          {isExporting ? (
+                            <svg className="animate-spin h-6 w-6" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                          ) : (
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                          )}
+                          <span className="max-w-0 overflow-hidden group-hover:max-w-xs group-hover:ml-2 transition-all duration-300 font-bold whitespace-nowrap">Export</span>
                         </button>
                         <div className="ml-auto flex items-center gap-2">
                            <button onClick={() => handleFeedback('helpful')} className={`p-3 rounded-xl border ${result.feedback === 'helpful' ? 'bg-emerald-500 border-emerald-400 text-white' : 'bg-slate-800 border-slate-700 text-slate-500'}`}>
@@ -274,6 +361,9 @@ const App: React.FC = () => {
                       <RadarViz metrics={result.synthesis.metrics} />
                     </div>
                   </div>
+
+                  {isElaborationOpen && <VerdictElaboration result={result} />}
+
                   {/* Detailed Agent Cards */}
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                     <AgentCard agent={result.analyst} color="blue" />
@@ -297,6 +387,9 @@ const App: React.FC = () => {
       
       {/* Interactive Council Chat Modal */}
       {isChatOpen && result && <CouncilChat isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} councilResult={result} input={inputValues} chatHistory={chatHistory} onUpdateHistory={setChatHistory} onReAnalyze={(newCtx) => handleAnalysis({...inputValues, context: inputValues.context + newCtx})} />}
+      
+      {/* Action Plan Modal */}
+      {currentPlan && <ActionPlanModal isOpen={isPlanModalOpen} onClose={() => setIsPlanModalOpen(false)} plan={currentPlan} />}
     </div>
   );
 };

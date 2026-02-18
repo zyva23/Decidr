@@ -64,9 +64,24 @@ const VerdictElaboration: React.FC<VerdictElaborationProps> = ({ result }) => {
 
       {/* Section 2: Multi-Track Timeline */}
       <div className="bg-slate-900/40 border border-slate-800 rounded-xl p-6 overflow-x-auto">
-        <h3 className="text-lg font-bold text-white mb-6">Consolidated Council Timeline</h3>
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-lg font-bold text-white">Consolidated Council Timeline</h3>
+          <div className="flex gap-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+            <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-slate-700"></span> Immediate</span>
+            <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-slate-700"></span> Mid-Term</span>
+            <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-slate-700"></span> Long-Term</span>
+          </div>
+        </div>
         
-        <div className="relative min-w-[600px] space-y-8">
+        <div className="relative min-w-[700px] space-y-8">
+          {/* Timeline Header Labels */}
+          <div className="flex justify-between px-12 pb-4 border-b border-slate-800/50 mb-2 ml-24 relative">
+            <span className="text-[9px] font-black text-slate-600 uppercase tracking-tighter absolute left-12 -bottom-px">Day 0</span>
+            <span className="text-[9px] font-black text-slate-600 uppercase tracking-tighter">Q1 Milestone</span>
+            <span className="text-[9px] font-black text-slate-600 uppercase tracking-tighter">Q2 Mid-Point</span>
+            <span className="text-[9px] font-black text-slate-600 uppercase tracking-tighter absolute right-12 -bottom-px">Long-Term View</span>
+          </div>
+
           {/* Vertical Grid Lines (Cosmetic) */}
           <div className="absolute inset-0 flex justify-between pointer-events-none px-12">
             <div className="w-px h-full bg-slate-800/50 dashed"></div>

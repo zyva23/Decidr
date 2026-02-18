@@ -35,7 +35,9 @@ export class AnalystAgent extends BaseAgent {
       OUTPUT REQUIREMENTS:
       - ANALYSIS NARRATIVE: Must include a 'Data-Driven Benchmarks' section. MAX 500 WORDS.
       - SCORE: 0-100 based on 'Expected Net Present Value' and 'Resource Efficiency'.
-      - CHART DATA: Must represent a specific projection (e.g., 12-month runway or ROI curve).
+      - CHART DATA: Must represent a 12-month ROI projection. Labels MUST be 'Month 1', 'Month 2', etc.
+      - CHART LABEL: Use 'Projected Monthly Cash Balance' or 'Cumulative ROI (%)'.
+      - SEQUENCE: Map 4 critical financial milestones. Each 'step' MUST include a time marker (e.g., 'Q1:', 'Month 6:').
       - CITATIONS: You MUST cite specific URLs found during search in the 'sources' array.
     `;
 

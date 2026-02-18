@@ -80,7 +80,9 @@ export abstract class BaseAgent {
     try {
       return await fn();
     } catch (error: any) {
-      if (retries > 0 && (error.message?.includes('429') || error.status === 429)) {
+      const isTransient = error.message?.includes('429') || error.status === 429 || 
+                          error.message?.includes('503') || error.status === 503;
+      if (retries > 0 && isTransient) {
         await new Promise(resolve => setTimeout(resolve, delay));
         return this.withRetry(fn, retries - 1, delay * 2);
       }
@@ -132,12 +134,13 @@ export abstract class BaseAgent {
     tools: any[] = [],
     temperature: number = 0.7
   ): Promise<any> {
-    const config: any = { temperature };
+    const config: any = { 
+      temperature,
+      responseMimeType: "application/json",
+      responseSchema: agentResponseSchemaObj as any
+    };
     if (tools.length > 0) {
       config.tools = tools;
-    } else {
-      config.responseMimeType = "application/json";
-      config.responseSchema = agentResponseSchemaObj as any;
     }
 
     const contents = `${systemPrompt}\n\nUSER INPUT:\n${userPrompt}\n\nOUTPUT INSTRUCTIONS:\nReturn valid JSON adhering to schema. Analysis max 500 words.`;

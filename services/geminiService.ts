@@ -12,7 +12,18 @@ import { MediatorAgent } from "./agents/MediatorAgent";
  * and synthesizes their disparate perspectives into a cohesive strategic verdict.
  */
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+let aiInstance: GoogleGenAI | null = null;
+const getAI = () => {
+  const apiKey = process.env.API_KEY || (import.meta as any).env?.VITE_GEMINI_API_KEY;
+  if (!apiKey || apiKey === 'undefined') {
+    throw new Error("Gemini API Key is missing. Please set VITE_GEMINI_API_KEY in your environment.");
+  }
+  if (!aiInstance) {
+    aiInstance = new GoogleGenAI({ apiKey });
+  }
+  return aiInstance;
+};
+
 const MASTER_MODEL = "gemini-3-flash-preview"; 
 
 const truncateContext = (text: string, maxChars: number = 2000): string => {
@@ -34,10 +45,15 @@ export async function analyzeDecision(input: DecisionInput): Promise<CouncilResu
     context: truncateContext(input.context)
   };
 
-  const analystAgent = new AnalystAgent(process.env.API_KEY as string);
-  const strategistAgent = new StrategistAgent(process.env.API_KEY as string);
-  const skepticAgent = new SkepticAgent(process.env.API_KEY as string);
-  const mediatorAgent = new MediatorAgent(process.env.API_KEY as string);
+  const apiKey = process.env.API_KEY || (import.meta as any).env?.VITE_GEMINI_API_KEY;
+  if (!apiKey || apiKey === 'undefined') {
+     throw new Error("Gemini API Key is missing.");
+  }
+
+  const analystAgent = new AnalystAgent(apiKey as string);
+  const strategistAgent = new StrategistAgent(apiKey as string);
+  const skepticAgent = new SkepticAgent(apiKey as string);
+  const mediatorAgent = new MediatorAgent(apiKey as string);
 
   // Parallel-staggered execution to avoid "429 Too Many Requests"
   const analyst = await analystAgent.run(optimizedInput);
@@ -58,9 +74,16 @@ export async function analyzeDecision(input: DecisionInput): Promise<CouncilResu
     4. Mediator: ${mediator.analysis} (Score: ${mediator.score})
 
     Synthesize into a final recommendation.
+    For the 'metrics' section, provide scores between 0 and 100:
+    - risk: High risk = 100, Low risk = 0
+    - speed: Fast execution = 100, Slow = 0
+    - cost: High financial burden = 100, Low cost = 0
+    - impact: High positive change = 100, Low = 0
+    - feasibility: Easy to implement = 100, Difficult = 0
   `;
 
   try {
+    const ai = getAI();
     const response = await ai.models.generateContent({
       model: MASTER_MODEL,
       contents: prompt,
@@ -88,6 +111,7 @@ export async function exploreBrainstorm(field: 'constraints' | 'options' | 'cont
   const prompt = `Decision: ${title}. ${field === 'context' ? 'Help flesh out background.' : 'Suggest ' + fieldName + 's.'}`;
   
   try {
+    const ai = getAI();
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview", 
       contents: prompt,
@@ -111,6 +135,7 @@ export async function chatWithCouncil(history: ChatMessage[], newMessage: string
   ];
 
   try {
+    const ai = getAI();
     const chat = ai.chats.create({ model: "gemini-3-flash-preview", history: chatHistoryGemini });
     const result = await chat.sendMessage({ message: newMessage });
     return result.text || "";
@@ -120,8 +145,31 @@ export async function chatWithCouncil(history: ChatMessage[], newMessage: string
 }
 
 export async function generateActionPlan(input: DecisionInput, councilResult: CouncilResult): Promise<ActionPlan> {
-  const prompt = `Plan for: ${input.title}. Recommendation: ${councilResult.synthesis.recommendation}.`;
+  const prompt = `
+    You are a Senior Project Manager and Strategic Consultant.
+    Develop a comprehensive, tactical implementation roadmap for the following decision:
+    
+    TITLE: "${input.title}"
+    DECISION CONTEXT: ${input.context}
+    FINAL RECOMMENDATION: ${councilResult.synthesis.recommendation}
+    
+    AGENT PERSPECTIVES:
+    - Analyst: ${councilResult.analyst.analysis}
+    - Strategist: ${councilResult.strategist.analysis}
+    - Skeptic: ${councilResult.skeptic.analysis}
+    - Mediator: ${councilResult.mediator.analysis}
+
+    REQUIREMENTS:
+    1. METHODOLOGY: Use a hybrid of Agile (for execution) and OKRs (for measurement).
+    2. STRUCTURE: Break the plan into 3-4 distinct chronological phases (e.g., Preparation, Pilot, Scale, Optimization).
+    3. TASKS: For each phase, provide 3-4 specific, granular tasks.
+    4. MEASUREMENT: Each task MUST have a clear KPI (Key Performance Indicator).
+    5. TRIPWIRES: Suggest 3 strategic 'Pivot Points' - specific conditions (market changes, technical failures, cost overruns) that should trigger a re-evaluation of the strategy.
+    
+    Output the plan in the requested JSON format.
+  `;
   try {
+    const ai = getAI();
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: prompt,
@@ -129,7 +177,8 @@ export async function generateActionPlan(input: DecisionInput, councilResult: Co
     });
     return JSON.parse(response.text || "{}");
   } catch (error) {
-    return { executiveSummary: "Failed.", phases: [], pivotPoints: [] };
+    console.error("Action Plan Error:", error);
+    return { executiveSummary: "Failed to generate tactical plan.", phases: [], pivotPoints: [] };
   }
 }
 
@@ -140,8 +189,14 @@ const synthesisSchema = {
     recommendation: { type: Type.STRING },
     metrics: {
       type: Type.OBJECT,
-      properties: { risk: { type: Type.NUMBER }, speed: { type: Type.NUMBER }, cost: { type: Type.NUMBER }, impact: { type: Type.NUMBER } },
-      required: ["risk", "speed", "cost", "impact"]
+      properties: { 
+        risk: { type: Type.NUMBER }, 
+        speed: { type: Type.NUMBER }, 
+        cost: { type: Type.NUMBER }, 
+        impact: { type: Type.NUMBER },
+        feasibility: { type: Type.NUMBER }
+      },
+      required: ["risk", "speed", "cost", "impact", "feasibility"]
     }
   },
   required: ["verdict", "recommendation", "metrics"]

@@ -43,6 +43,7 @@ export interface RadarMetrics {
   speed: number;
   cost: number;
   impact: number;
+  feasibility: number;
 }
 
 export interface SynthesisResult {

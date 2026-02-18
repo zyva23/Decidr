@@ -21,7 +21,7 @@ export class MediatorAgent extends BaseAgent {
       SPECIFIC INSTRUCTIONS:
       1. Focus on emotional intelligence and ethics.
       2. 'chartData' should visualize Stakeholder Buy-in or Team Morale.
-      3. 'sequence' should be a Change Management timeline.
+      3. 'sequence' should be a Change Management timeline. Each 'step' MUST include a time marker (e.g., 'Kickoff:', 'Month 1:', 'Steady State:').
       4. Score based on Alignment/Ethics.
     `;
 

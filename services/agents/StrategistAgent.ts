@@ -34,7 +34,7 @@ export class StrategistAgent extends BaseAgent {
       OUTPUT REQUIREMENTS:
       - ANALYSIS NARRATIVE: Must include sections for 'Competitive Counter-Moves' and 'Case Study Reference'. MAX 500 WORDS.
       - SCORE: 0-100 based on 'Defensibility' and 'Long-term Market Positioning'.
-      - SEQUENCE: Map the 'Move' (Decision) followed by 2 'Counter-moves' (Competitor reactions).
+      - SEQUENCE: Map the 'Move' (Decision) followed by 2 'Counter-moves' (Competitor reactions). Each 'step' MUST include a relative time marker (e.g., 'Immediate:', 'Month 3:', 'Year 1:').
     `;
 
     try {

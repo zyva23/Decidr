@@ -24,7 +24,7 @@ export class SkepticAgent extends BaseAgent {
       SPECIFIC INSTRUCTIONS:
       1. Do NOT look for upsides. Look for cracks in the plan.
       2. 'chartData' should visualize Risk Probability or Severity.
-      3. 'sequence' should be the "Chain of Failure".
+      3. 'sequence' should be the "Chain of Failure". Each 'step' MUST include a time marker (e.g., 'Day 1:', 'Week 2:', 'Month 6:').
       4. Score based on Safety/Risk (0=Extremely Risky, 100=Safe).
     `;
 
