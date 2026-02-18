@@ -14,7 +14,7 @@ import { analyzeDecision, generateActionPlan } from './services/geminiService';
 import { saveSession, getSessions, deleteSession } from './services/storageService';
 import { auth, logActivity, onAuthStateChanged, signOut, isGCPConfigured } from './services/googleCloud';
 import { generateDecisionPDF } from './services/pdfService';
-import { DecisionInput, CouncilResult, AnalysisStatus, DecisionSession, ChatMessage, UserProfile } from './types';
+import { DecisionInput, CouncilResult, AnalysisStatus, DecisionSession, ChatMessage, UserProfile, ActionPlan } from './types';
 
 /**
  * MAIN APPLICATION COMPONENT
