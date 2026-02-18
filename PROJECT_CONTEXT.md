@@ -16,14 +16,18 @@ An agentic Decision Support System (DSS) that uses Google Gemini (Gemini 3 Flash
    - **Strategist**: Competitive/Game Theory lens.
    - **Skeptic**: Pre-mortem/Risk lens.
    - **Mediator**: Stakeholder/Ethical lens.
-3. **Synthesis Phase**: A master model (`gemini-3-flash-preview`) evaluates all agent reports and provides a final verdict and radar metrics.
-4. **Persistence**: Sessions are saved to `localStorage` (Guest) or Firestore (Auth).
+3. **Synthesis Phase**: A master model (`gemini-3-flash-preview`) evaluates all agent reports and provides a final verdict and a 5-point radar metric (Risk, Speed, Cost, Impact, Feasibility).
+4. **Planning Phase (Optional)**: If the user approves, a PM agent generates a tactical roadmap (Agile/OKR hybrid) with specific tasks, KPIs, and strategic pivot points.
+5. **Persistence**: Sessions are synced between `localStorage` and Firebase Firestore (if authenticated).
 
 ## Key Logic Locations
 - **Orchestration**: `src/services/geminiService.ts`
-- **Structured AI Output**: `src/services/agents/BaseAgent.ts` (Handles JSON parsing and retries).
-- **Visualization Mapping**: `src/components/RadarViz.tsx` and `src/components/AgentCard.tsx`.
+- **Structured AI Output**: `src/services/agents/BaseAgent.ts` (Handles JSON parsing and 429/503 retries).
+- **Visualization Mapping**: `src/components/RadarViz.tsx` (5-point pentagon) and `src/components/VerdictElaboration.tsx` (Multi-track timeline and ROI chart).
+- **Tactical Roadmap**: `src/components/ActionPlanModal.tsx` and `generateActionPlan` service.
+- **Reporting**: `src/services/pdfService.ts` (A4 export with automatic alignment and citations page).
+- **Storage**: `src/services/storageService.ts` (Hybrid Firestore/Local sync).
 
 ## Critical Environment Variables
-- `API_KEY`: Gemini API Key.
+- `VITE_GEMINI_API_KEY`: Gemini API Key.
 - `VITE_FIREBASE_*`: Firebase configuration keys.
