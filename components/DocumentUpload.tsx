@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import Tesseract from 'tesseract.js';
 import { extractTextFromPDF } from '../services/pdfService';
 
 interface DocumentUploadProps {
@@ -7,6 +8,7 @@ interface DocumentUploadProps {
 
 const DocumentUpload: React.FC<DocumentUploadProps> = ({ onTextExtracted }) => {
   const [isUploading, setIsUploading] = useState(false);
+  const [progress, setProgress] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -14,23 +16,35 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ onTextExtracted }) => {
     if (!file) return;
 
     setIsUploading(true);
+    setProgress('Initializing...');
     try {
       if (file.type === 'application/pdf') {
         const text = await extractTextFromPDF(file);
-        onTextExtracted(`[Extracted from ${file.name}]:
-${text}`);
+        onTextExtracted(`[Extracted from PDF: ${file.name}]:\n${text}`);
       } else if (file.type === 'text/plain') {
         const text = await file.text();
-        onTextExtracted(`[Content of ${file.name}]:
-${text}`);
+        onTextExtracted(`[Content of ${file.name}]:\n${text}`);
+      } else if (file.type.startsWith('image/')) {
+        setProgress('Reading Image (OCR)...');
+        const result = await Tesseract.recognize(
+          file,
+          'eng',
+          { logger: m => {
+            if (m.status === 'recognizing text') {
+              setProgress(`OCR: ${Math.round(m.progress * 100)}%`);
+            }
+          }}
+        );
+        onTextExtracted(`[OCR Extracted from ${file.name}]:\n${result.data.text}`);
       } else {
-        alert('Unsupported file type. Please upload a PDF or .txt file.');
+        alert('Unsupported file type. Please upload a PDF, Image, or .txt file.');
       }
     } catch (error) {
       console.error('File processing error:', error);
       alert('Failed to process the document.');
     } finally {
       setIsUploading(false);
+      setProgress('');
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
@@ -41,7 +55,7 @@ ${text}`);
         type="file"
         ref={fileInputRef}
         onChange={handleFileChange}
-        accept=".pdf,.txt"
+        accept=".pdf,.txt,.png,.jpg,.jpeg"
         className="hidden"
       />
       <button
@@ -57,16 +71,16 @@ ${text}`);
         {isUploading ? (
           <>
             <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
-            <span>Processing Document...</span>
+            <span>{progress || 'Processing...'}</span>
           </>
         ) : (
           <>
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-            <span>Upload Document (CV, Case Study, Brief)</span>
+            <span>Upload Document or Photo (CV, Brief, Image)</span>
           </>
         )}
       </button>
-      <p className="text-[10px] text-slate-500 mt-2 text-center">Supports PDF and Text files</p>
+      <p className="text-[10px] text-slate-500 mt-2 text-center">Supports PDF, TXT, PNG, and JPG (OCR)</p>
     </div>
   );
 };
