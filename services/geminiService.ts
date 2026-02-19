@@ -24,7 +24,7 @@ const getAI = () => {
   return aiInstance;
 };
 
-const MASTER_MODEL = "gemini-2.0-flash"; 
+const MASTER_MODEL = "gemini-3-flash-preview"; 
 
 const truncateContext = (text: string, maxChars: number = 2000): string => {
   if (text.length <= maxChars) return text;
