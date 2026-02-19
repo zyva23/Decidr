@@ -24,20 +24,16 @@ const getAI = () => {
   return aiInstance;
 };
 
-const MASTER_MODEL = "gemini-3-flash-preview"; 
+const MASTER_MODEL = "gemini-2.0-flash"; 
 
 const truncateContext = (text: string, maxChars: number = 2000): string => {
   if (text.length <= maxChars) return text;
   return text.substring(0, maxChars) + "... [Context truncated for efficiency]";
 };
 
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
 /**
  * Orchestrates the "Council Deliberation".
- * 1. Initializes four distinct specialized agents.
- * 2. Runs them in sequence with slight delays to respect API rate limits.
- * 3. Feeds the four reports into a master model for synthesis.
+ * Runs four specialized agents in parallel for maximum speed.
  */
 export async function analyzeDecision(input: DecisionInput): Promise<CouncilResult> {
   const optimizedInput: DecisionInput = {
@@ -55,15 +51,13 @@ export async function analyzeDecision(input: DecisionInput): Promise<CouncilResu
   const skepticAgent = new SkepticAgent(apiKey as string);
   const mediatorAgent = new MediatorAgent(apiKey as string);
 
-  // Parallel-staggered execution to avoid "429 Too Many Requests"
-  const analyst = await analystAgent.run(optimizedInput);
-  await delay(800);
-  const strategist = await strategistAgent.run(optimizedInput);
-  await delay(800);
-  const skeptic = await skepticAgent.run(optimizedInput);
-  await delay(800);
-  const mediator = await mediatorAgent.run(optimizedInput);
-  await delay(800);
+  // Parallel execution for maximum performance
+  const [analyst, strategist, skeptic, mediator] = await Promise.all([
+    analystAgent.run(optimizedInput),
+    strategistAgent.run(optimizedInput),
+    skepticAgent.run(optimizedInput),
+    mediatorAgent.run(optimizedInput)
+  ]);
 
   const prompt = `
     DECISION: "${optimizedInput.title}"

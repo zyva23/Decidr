@@ -67,7 +67,7 @@ export const agentResponseSchemaObj = {
  */
 export abstract class BaseAgent {
   protected ai: GoogleGenAI;
-  protected modelName: string = "gemini-3-flash-preview";
+  protected modelName: string = "gemini-2.0-flash";
 
   constructor(apiKey: string) {
     this.ai = new GoogleGenAI({ apiKey });
