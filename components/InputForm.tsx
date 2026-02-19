@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { DecisionInput, BrainstormResult } from '../types';
 import { exploreBrainstorm } from '../services/geminiService';
+import DocumentUpload from './DocumentUpload';
 
 interface InputFormProps {
   initialValues: DecisionInput;
@@ -31,6 +32,14 @@ const InputForm: React.FC<InputFormProps> = ({ initialValues, onSubmit, isLoadin
   const isContextReady = isTitleReady && input.context.trim().length > 10;
 
   const [loadingStage, setLoadingStage] = useState(0);
+
+  const handleDocumentUpload = (extractedText: string) => {
+    setInput(prev => ({
+      ...prev,
+      context: prev.context ? `${prev.context}\n\n${extractedText}` : extractedText
+    }));
+  };
+
   const stages = [
     "Convening the Council...",
     "Analyzing Financials (Analyst)...",
@@ -331,6 +340,8 @@ const InputForm: React.FC<InputFormProps> = ({ initialValues, onSubmit, isLoadin
             required
           />
         )}
+
+        <DocumentUpload onTextExtracted={handleDocumentUpload} />
 
         {renderInputWrapper(
           'context',

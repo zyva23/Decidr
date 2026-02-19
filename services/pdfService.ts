@@ -1,12 +1,31 @@
-
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
+import * as pdfjsLib from 'pdfjs-dist';
 import { CouncilResult, DecisionInput } from '../types';
+
+// Configure worker for pdfjs
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 /**
  * PDF SERVICE
- * Generates a high-fidelity strategic briefing PDF.
+ * Generates and parses strategic briefing documents.
  */
+
+export async function extractTextFromPDF(file: File): Promise<string> {
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  let fullText = '';
+
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const textContent = await page.getTextContent();
+    const pageText = textContent.items.map((item: any) => item.str).join(' ');
+    fullText += pageText + '\n';
+  }
+
+  return fullText;
+}
+
 export async function generateDecisionPDF(input: DecisionInput, result: CouncilResult) {
   // Create a new PDF document (A4 size)
   const doc = new jsPDF({
