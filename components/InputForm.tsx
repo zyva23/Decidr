@@ -390,8 +390,6 @@ const InputForm: React.FC<InputFormProps> = ({ initialValues, onSubmit, isLoadin
           />
         )}
 
-        <DocumentUpload onTextExtracted={handleDocumentUpload} />
-
         {renderInputWrapper(
           'context',
           'Context & Background',
@@ -437,6 +435,10 @@ const InputForm: React.FC<InputFormProps> = ({ initialValues, onSubmit, isLoadin
             />,
             true
           )}
+        </div>
+
+        <div className="pt-2">
+          <DocumentUpload onTextExtracted={handleDocumentUpload} />
         </div>
 
         <button

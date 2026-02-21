@@ -50,7 +50,7 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ onTextExtracted }) => {
   };
 
   return (
-    <div className="mb-4">
+    <div className="">
       <input
         type="file"
         ref={fileInputRef}
@@ -62,25 +62,24 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ onTextExtracted }) => {
         type="button"
         onClick={() => fileInputRef.current?.click()}
         disabled={isUploading}
-        className={`w-full py-3 px-4 border-2 border-dashed rounded-xl flex items-center justify-center gap-2 transition-all ${
+        className={`w-full py-2 px-3 border border-dashed rounded-lg flex items-center justify-center gap-2 transition-all text-xs ${
           isUploading 
             ? 'bg-slate-800 border-slate-700 text-slate-500 cursor-not-allowed' 
-            : 'bg-slate-900/40 border-slate-800 hover:border-indigo-500/50 text-slate-400 hover:text-indigo-300'
+            : 'bg-slate-900/40 border-slate-800 hover:border-indigo-500/50 text-slate-500 hover:text-indigo-300'
         }`}
       >
         {isUploading ? (
           <>
-            <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+            <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
             <span>{progress || 'Processing...'}</span>
           </>
         ) : (
           <>
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-            <span>Upload Document or Photo (CV, Brief, Image)</span>
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <span>Attach Brief, CV, or Photo</span>
           </>
         )}
       </button>
-      <p className="text-[10px] text-slate-500 mt-2 text-center">Supports PDF, TXT, PNG, and JPG (OCR)</p>
     </div>
   );
 };
