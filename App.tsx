@@ -10,6 +10,7 @@ import CouncilChat from './components/CouncilChat';
 import VerdictElaboration from './components/VerdictElaboration';
 import ActionPlanModal from './components/ActionPlanModal';
 import GamifiedHeader from './components/GamifiedHeader';
+import CommitmentPanel from './components/CommitmentPanel';
 import Auth from './components/Auth';
 import { analyzeDecision, generateActionPlan } from './services/geminiService';
 import { saveSession, getSessions, deleteSession } from './services/storageService';
@@ -114,6 +115,43 @@ const App: React.FC = () => {
         await saveSession({ ...session, result: newResult });
       }
     }
+  };
+
+  const handleCommitment = async (selected: string, why: string) => {
+    if (!currentSessionId) return;
+    
+    const session = sessions.find(s => s.id === currentSessionId);
+    if (!session) return;
+
+    const commitment = { selectedOption: selected, justification: why, timestamp: Date.now() };
+    const updatedSession = { ...session, commitment };
+    
+    // XP Reward for commitment
+    const newXp = xp + 150;
+    const newLevel = Math.floor(newXp / 500) + 1;
+    setXp(newXp);
+    if (newLevel > level) {
+       setLevel(newLevel);
+       setShowLevelUp(true);
+       setTimeout(() => setShowLevelUp(false), 5000);
+    }
+    
+    localStorage.setItem(user ? `dc_xp_${user.id}` : 'dc_xp_guest', newXp.toString());
+    localStorage.setItem(user ? `dc_level_${user.id}` : 'dc_level_guest', newLevel.toString());
+    
+    await saveSession(updatedSession);
+    setSessions(await getSessions(user?.id));
+    if (user) logActivity(user.id, 'commitment_made', { selected, title: session.input.title });
+  };
+
+  const handleBranch = (newContext: string) => {
+    startNewSession();
+    setInputValues(prev => ({ 
+      title: `Step 2: Following ${prev.title}`, 
+      context: `${newContext} `,
+      constraints: prev.constraints,
+      options: '' 
+    }));
   };
 
   const handleDevelopPlan = async () => {
@@ -417,6 +455,16 @@ const App: React.FC = () => {
                     <AgentCard agent={result.strategist} color="purple" />
                     <AgentCard agent={result.skeptic} color="red" />
                     <AgentCard agent={result.mediator} color="emerald" />
+                  </div>
+
+                  {/* The Commitment Protocol */}
+                  <div className="pt-8 pb-20 border-t border-slate-800/50 mt-12">
+                     <CommitmentPanel 
+                        options={inputValues.options}
+                        onCommit={handleCommitment}
+                        onBranch={handleBranch}
+                        existingCommitment={sessions.find(s => s.id === currentSessionId)?.commitment}
+                     />
                   </div>
                 </div>
               )}
