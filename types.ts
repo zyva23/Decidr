@@ -121,6 +121,8 @@ export interface PivotPoint {
 export interface UserProfile {
   id: string;
   email: string;
+  xp?: number;
+  level?: number;
 }
 
 export interface ActivityLog {

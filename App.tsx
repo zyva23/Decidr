@@ -9,6 +9,7 @@ import FrameworkLibrary from './components/FrameworkLibrary';
 import CouncilChat from './components/CouncilChat';
 import VerdictElaboration from './components/VerdictElaboration';
 import ActionPlanModal from './components/ActionPlanModal';
+import GamifiedHeader from './components/GamifiedHeader';
 import Auth from './components/Auth';
 import { analyzeDecision, generateActionPlan } from './services/geminiService';
 import { saveSession, getSessions, deleteSession } from './services/storageService';
@@ -37,6 +38,11 @@ const App: React.FC = () => {
   const [result, setResult] = useState<CouncilResult | null>(null);
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [credits, setCredits] = useState(0);
+  
+  // --- GAMIFICATION STATE ---
+  const [xp, setXp] = useState(0);
+  const [level, setLevel] = useState(1);
+  const [showLevelUp, setShowLevelUp] = useState(false);
 
   // --- UI STATE ---
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
@@ -59,7 +65,12 @@ const App: React.FC = () => {
     }
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
-        setUser({ id: firebaseUser.uid, email: firebaseUser.email || "User" });
+        setUser({ 
+           id: firebaseUser.uid, 
+           email: firebaseUser.email || "User",
+           xp: parseInt(localStorage.getItem(`dc_xp_${firebaseUser.uid}`) || '0', 10),
+           level: parseInt(localStorage.getItem(`dc_level_${firebaseUser.uid}`) || '1', 10)
+        });
         logActivity(firebaseUser.uid, 'login');
       } else {
         setUser(null);
@@ -81,6 +92,12 @@ const App: React.FC = () => {
     
     const used = localStorage.getItem('dc_credits_used');
     setCredits(used ? parseInt(used, 10) : 0);
+
+    // Load Gamification Data
+    const storedXp = localStorage.getItem(user ? `dc_xp_${user.id}` : 'dc_xp_guest');
+    const storedLevel = localStorage.getItem(user ? `dc_level_${user.id}` : 'dc_level_guest');
+    setXp(storedXp ? parseInt(storedXp, 10) : 0);
+    setLevel(storedLevel ? parseInt(storedLevel, 10) : 1);
   }, [user]);
 
   /**
@@ -182,6 +199,19 @@ const App: React.FC = () => {
       setCredits(newCredits);
       localStorage.setItem('dc_credits_used', newCredits.toString());
 
+      // Gamification Reward: 100 XP per deliberation
+      const newXp = xp + 100;
+      const newLevel = Math.floor(newXp / 500) + 1;
+      setXp(newXp);
+      if (newLevel > level) {
+         setLevel(newLevel);
+         setShowLevelUp(true);
+         setTimeout(() => setShowLevelUp(false), 5000);
+      }
+      
+      localStorage.setItem(user ? `dc_xp_${user.id}` : 'dc_xp_guest', newXp.toString());
+      localStorage.setItem(user ? `dc_level_${user.id}` : 'dc_level_guest', newLevel.toString());
+
       const newSession: DecisionSession = {
         id: currentSessionId || crypto.randomUUID(),
         user_id: user?.id,
@@ -266,6 +296,18 @@ const App: React.FC = () => {
           </div>
         </div>
       )}
+      
+      {/* Level Up Celebration Toast */}
+      {showLevelUp && (
+         <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[400] animate-bounce">
+            <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 p-1 rounded-2xl shadow-2xl shadow-indigo-500/50">
+               <div className="bg-slate-900 px-8 py-4 rounded-[14px] flex flex-col items-center">
+                  <div className="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-400 mb-1">New Strategic Rank</div>
+                  <div className="text-2xl font-black text-white">LEVEL {level} UNLOCKED</div>
+               </div>
+            </div>
+         </div>
+      )}
 
       {/* Main Header */}
       <header className="flex-shrink-0 h-16 border-b border-slate-800 bg-slate-900/50 backdrop-blur-md flex items-center justify-between px-4 lg:px-6 z-30">
@@ -275,14 +317,19 @@ const App: React.FC = () => {
           </button>
           <h1 className="text-lg font-bold text-white tracking-tight">Decision Council AI</h1>
         </div>
-        <div className="flex items-center gap-4">
-          <div className={`hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs ${isGuestMode ? 'bg-amber-950/20 border-amber-900/40 text-amber-500/70' : 'bg-slate-900/80 border-slate-700 text-slate-400'}`}>
-             <span className={`w-2 h-2 rounded-full ${isGuestMode ? 'bg-amber-500' : 'bg-indigo-500 animate-pulse'}`}></span>
-             {user?.email || "Guest Session"}
+        
+        <div className="flex items-center gap-6">
+          <GamifiedHeader xp={xp} level={level} />
+          <div className="h-8 w-[1px] bg-slate-800"></div>
+          <div className="flex items-center gap-4">
+            <div className={`hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs ${isGuestMode ? 'bg-amber-950/20 border-amber-900/40 text-amber-500/70' : 'bg-slate-900/80 border-slate-700 text-slate-400'}`}>
+               <span className={`w-2 h-2 rounded-full ${isGuestMode ? 'bg-amber-500' : 'bg-indigo-500 animate-pulse'}`}></span>
+               {user?.email || "Guest Session"}
+            </div>
+            <button onClick={handleSignOut} className="p-2 text-slate-500 hover:text-red-400" title="Sign Out">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            </button>
           </div>
-          <button onClick={handleSignOut} className="p-2 text-slate-500 hover:text-red-400" title="Sign Out">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-          </button>
         </div>
       </header>
 
