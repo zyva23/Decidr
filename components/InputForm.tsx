@@ -313,6 +313,27 @@ const InputForm: React.FC<InputFormProps> = ({ initialValues, onSubmit, isLoadin
 
   const templates = [
     { 
+      label: 'New Role', 
+      title: 'Accepting a Senior PM Offer at a Stealth Startup', 
+      context: 'Currently at a Big Tech firm with stability. The startup offers more equity and ownership but has higher risk and longer hours.',
+      constraints: 'Need to decide by Friday. Financial runway: 12 months.',
+      options: 'A: Stay at current job. B: Accept the startup offer. C: Negotiate for a 4-day week at current job.'
+    },
+    { 
+      label: 'New Friends', 
+      title: 'Joining a High-Intensity Run Club', 
+      context: 'I want to expand my social circle and get fitter, but I am worried about the time commitment and my current fitness level.',
+      constraints: 'Meets at 6 AM, 3 times a week. I am not a morning person.',
+      options: 'A: Join the club and commit. B: Look for a more casual group. C: Start solo training first.'
+    },
+    { 
+      label: 'Ask Out', 
+      title: 'Asking a Long-time Friend on a Date', 
+      context: 'We have been friends for 2 years. I have developed feelings, but I do not want to ruin the friendship if it is not mutual.',
+      constraints: 'We are in the same tight-knit friend group. High social stakes.',
+      options: 'A: Be direct and ask them out. B: Test the waters with more flirting. C: Keep the status quo.'
+    },
+    { 
       label: 'Hiring', 
       title: 'Hiring a VP of Engineering', 
       context: 'We are a Series A startup scaling from 10 to 50 engineers. We need someone with high-growth experience who can maintain culture.',
