@@ -12,8 +12,7 @@ const CommitmentPanel: React.FC<CommitmentPanelProps> = ({ options, onCommit, on
   const [why, setWhy] = useState(existingCommitment?.justification || '');
   const [isCommitted, setIsCommitted] = useState(!!existingCommitment);
 
-  const optionList = options.split('
-').filter(o => o.trim().length > 0);
+  const optionList = options.split('\n').filter(o => o.trim().length > 0);
 
   const handleCommit = () => {
     if (!selected || !why) return;
