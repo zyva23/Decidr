@@ -311,18 +311,67 @@ const InputForm: React.FC<InputFormProps> = ({ initialValues, onSubmit, isLoadin
     );
   };
 
+  const templates = [
+    { 
+      label: 'Hiring', 
+      title: 'Hiring a VP of Engineering', 
+      context: 'We are a Series A startup scaling from 10 to 50 engineers. We need someone with high-growth experience who can maintain culture.',
+      constraints: 'Budget: $250k total comp. Time: Need someone in 3 months.',
+      options: 'A: Promote from within. B: Hire an external veteran. C: Use a fractional leader.'
+    },
+    { 
+      label: 'Tech Stack', 
+      title: 'Switching to Microservices', 
+      context: 'Current monolith is becoming hard to maintain. Deployments are slow and risky.',
+      constraints: 'Team size: 12 devs. Existing debt: High.',
+      options: 'A: Incremental migration. B: Complete rewrite. C: Optimize existing monolith.'
+    },
+    { 
+      label: 'Strategy', 
+      title: 'Entering the EU Market', 
+      context: 'Strong growth in US/UK. Seeing organic traffic from Germany and France.',
+      constraints: 'GDPR compliance is mandatory. Limited local support staff.',
+      options: 'A: Direct entry (Berlin office). B: Partnership with local distributor. C: Remote digital-only approach.'
+    }
+  ];
+
+  const applyTemplate = (t: any) => {
+    setInput({
+      title: t.title,
+      context: t.context,
+      constraints: t.constraints,
+      options: t.options
+    });
+  };
+
   return (
     <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 shadow-2xl backdrop-blur-xl">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-bold text-white flex items-center gap-2">
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-500"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="12" x2="12" y1="18" y2="12"/><line x1="9" x2="15" y1="15" y2="15"/></svg>
-          Decision Brief
-        </h2>
-        {isContextReady && (
-           <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded border border-emerald-400/20">
-             Ready
-           </span>
-        )}
+      <div className="flex flex-col mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold text-white flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-500"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="12" x2="12" y1="18" y2="12"/><line x1="9" x2="15" y1="15" y2="15"/></svg>
+            Decision Brief
+          </h2>
+          {isContextReady && (
+            <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded border border-emerald-400/20">
+              Ready
+            </span>
+          )}
+        </div>
+        
+        <div className="flex flex-wrap gap-2">
+          <span className="text-[10px] font-bold uppercase text-slate-500 mr-1 mt-1.5">Examples:</span>
+          {templates.map(t => (
+            <button
+              key={t.label}
+              type="button"
+              onClick={() => applyTemplate(t)}
+              className="text-[10px] bg-slate-800 hover:bg-indigo-600 border border-slate-700 hover:border-indigo-500 text-slate-300 px-2.5 py-1 rounded-full transition-all"
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">

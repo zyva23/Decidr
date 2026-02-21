@@ -374,10 +374,45 @@ const App: React.FC = () => {
                 </div>
               )}
               {status === AnalysisStatus.IDLE && (
-                <div className="h-full flex flex-col items-center justify-center p-20 text-center text-slate-500">
-                  <svg className="w-16 h-16 mb-4 opacity-20" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M19 11H5m14 0a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-6a2 2 0 0 1 2-2m14 0V9a2 2 0 0 0-2-2M5 11V9a2 2 0 0 1 2-2m0 0V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v2M7 7h10" /></svg>
-                  <p className="text-xl font-medium">Ready for Deliberation</p>
-                  <p className="mt-2 text-sm max-w-xs">Enter your decision brief to convene the strategic council.</p>
+                <div className="h-full flex flex-col items-center justify-center p-8 lg:p-20 text-center animate-fade-in">
+                  <div className="relative mb-12">
+                     <div className="absolute inset-0 bg-indigo-500/20 blur-[100px] rounded-full"></div>
+                     <div className="relative bg-slate-900 border border-slate-800 p-8 rounded-3xl shadow-2xl flex items-center justify-center gap-6">
+                        <div className="flex -space-x-4">
+                           <div className="w-16 h-16 rounded-full border-4 border-slate-900 bg-blue-900/20 flex items-center justify-center text-blue-400 shadow-lg z-40">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
+                           </div>
+                           <div className="w-16 h-16 rounded-full border-4 border-slate-900 bg-purple-900/20 flex items-center justify-center text-purple-400 shadow-lg z-30">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+                           </div>
+                           <div className="w-16 h-16 rounded-full border-4 border-slate-900 bg-red-900/20 flex items-center justify-center text-red-400 shadow-lg z-20">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                           </div>
+                           <div className="w-16 h-16 rounded-full border-4 border-slate-900 bg-emerald-900/20 flex items-center justify-center text-emerald-400 shadow-lg z-10">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                           </div>
+                        </div>
+                     </div>
+                  </div>
+                  
+                  <h2 className="text-4xl font-black text-white mb-6 tracking-tight">The Council Awaits.</h2>
+                  <p className="text-lg text-slate-400 max-w-lg mx-auto leading-relaxed mb-12">
+                    Submit your decision brief to receive a multi-dimensional analysis from our specialized strategic agents.
+                  </p>
+
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 w-full max-w-4xl">
+                     {[
+                       { name: 'Analyst', color: 'text-blue-400', desc: 'Financial ROI & Market Data' },
+                       { name: 'Strategist', color: 'text-purple-400', desc: 'Game Theory & Competition' },
+                       { name: 'Skeptic', color: 'text-red-400', desc: 'Risk & Failure Modes' },
+                       { name: 'Mediator', color: 'text-emerald-400', desc: 'Ethics & Stakeholders' }
+                     ].map(agent => (
+                       <div key={agent.name} className="p-4 rounded-2xl bg-slate-900/40 border border-slate-800/50 text-left">
+                          <div className={`text-xs font-black uppercase tracking-widest mb-1 ${agent.color}`}>{agent.name}</div>
+                          <div className="text-[10px] text-slate-500 font-medium">{agent.desc}</div>
+                       </div>
+                     ))}
+                  </div>
                 </div>
               )}
             </div>
