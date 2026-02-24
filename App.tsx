@@ -394,6 +394,7 @@ const App: React.FC = () => {
       {/* Multi-Pane Layout */}
       <main className="flex-1 overflow-hidden relative p-4 lg:p-6">
         <ResizableSplitPane 
+          isResultReady={status === AnalysisStatus.COMPLETE}
           left={<InputForm initialValues={inputValues} onSubmit={handleAnalysis} isLoading={status === AnalysisStatus.ANALYZING} />}
           right={
             <div className="h-full">
