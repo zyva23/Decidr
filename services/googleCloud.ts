@@ -46,4 +46,19 @@ export const logActivity = async (userId: string, actionType: string, details: a
   }
 };
 
+export const saveDetailedFeedback = async (userId: string | undefined, sessionId: string, type: string, comment: string) => {
+  if (!db) return;
+  try {
+    await addDoc(collection(db, "feedback_responses"), {
+      userId: userId || 'guest',
+      sessionId,
+      feedbackType: type,
+      comment,
+      timestamp: serverTimestamp()
+    });
+  } catch (e) {
+    console.error("Firebase Feedback Error:", e);
+  }
+};
+
 export { signInWithPopup, signOut, onAuthStateChanged };

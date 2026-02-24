@@ -14,7 +14,7 @@ import CommitmentPanel from './components/CommitmentPanel';
 import Auth from './components/Auth';
 import { analyzeDecision, generateActionPlan } from './services/geminiService';
 import { saveSession, getSessions, deleteSession } from './services/storageService';
-import { auth, logActivity, onAuthStateChanged, signOut, isGCPConfigured } from './services/googleCloud';
+import { auth, logActivity, onAuthStateChanged, signOut, isGCPConfigured, saveDetailedFeedback } from './services/googleCloud';
 import { generateDecisionPDF } from './services/pdfService';
 import { DecisionInput, CouncilResult, AnalysisStatus, DecisionSession, ChatMessage, UserProfile, ActionPlan } from './types';
 
@@ -55,6 +55,11 @@ const App: React.FC = () => {
   const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
   const [showWaitlist, setShowWaitlist] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  
+  // --- FEEDBACK STATE ---
+  const [feedbackComment, setFeedbackComment] = useState('');
+  const [showFeedbackForm, setShowFeedbackForm] = useState(false);
+  const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
 
   /**
    * Listen for Firebase Auth changes on mount.
@@ -108,13 +113,24 @@ const App: React.FC = () => {
     if (!result) return;
     const newResult = { ...result, feedback: type };
     setResult(newResult);
-    if (user) logActivity(user.id, 'feedback', { verdict: result.synthesis.verdict, type });
+    setShowFeedbackForm(true);
+    setFeedbackSubmitted(false);
+    
+    if (user) logActivity(user.id, 'feedback_click', { verdict: result.synthesis.verdict, type });
     if (currentSessionId) {
       const session = sessions.find(s => s.id === currentSessionId);
       if (session) {
         await saveSession({ ...session, result: newResult });
       }
     }
+  };
+
+  const submitDetailedFeedback = async () => {
+     if (!currentSessionId || !result?.feedback) return;
+     await saveDetailedFeedback(user?.id, currentSessionId, result.feedback, feedbackComment);
+     setFeedbackSubmitted(true);
+     setTimeout(() => setShowFeedbackForm(false), 2000);
+     setFeedbackComment('');
   };
 
   const handleCommitment = async (selected: string, why: string) => {
@@ -440,6 +456,37 @@ const App: React.FC = () => {
                            </button>
                         </div>
                       </div>
+
+                      {showFeedbackForm && (
+                        <div className="mt-6 p-6 bg-slate-900/50 border border-slate-800 rounded-xl animate-fade-in">
+                          {feedbackSubmitted ? (
+                            <div className="text-emerald-400 font-bold flex items-center gap-2">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                              Thank you for your feedback!
+                            </div>
+                          ) : (
+                            <>
+                              <h4 className="text-sm font-bold text-slate-400 mb-3 uppercase tracking-widest">Help us improve the Council</h4>
+                              <textarea 
+                                value={feedbackComment}
+                                onChange={(e) => setFeedbackComment(e.target.value)}
+                                placeholder="What could have been better? Be as specific as possible..."
+                                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white placeholder-slate-600 focus:ring-1 focus:ring-indigo-500 outline-none transition-all h-24 resize-none mb-3 text-sm"
+                              />
+                              <div className="flex justify-end gap-3">
+                                 <button onClick={() => setShowFeedbackForm(false)} className="text-xs font-bold text-slate-500 uppercase px-4 py-2">Cancel</button>
+                                 <button 
+                                  onClick={submitDetailedFeedback}
+                                  disabled={!feedbackComment.trim()}
+                                  className="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-bold rounded-lg uppercase tracking-widest transition-all"
+                                 >
+                                   Submit Feedback
+                                 </button>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      )}
                     </div>
                     {/* Visual Data Radar */}
                     <div className="bg-slate-900/40 border border-slate-800 rounded-xl p-6 flex items-center justify-center">
