@@ -39,7 +39,7 @@ const Auth: React.FC<AuthProps> = ({ onContinueAsGuest }) => {
         </div>
         
         <h2 className="text-3xl font-black text-white mb-2 tracking-tight">Decision Council</h2>
-        <p className="text-slate-400 mb-10 text-sm">Strategic multi-model analysis engine</p>
+        <p className="text-slate-400 mb-10 text-sm">{UI_CONTENT.APP_TAGLINE}</p>
 
         {error && (
           <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-xs text-left">

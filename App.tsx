@@ -474,25 +474,25 @@ const App: React.FC = () => {
                           {feedbackSubmitted ? (
                             <div className="text-emerald-400 font-bold flex items-center gap-2">
                               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                              Thank you for your feedback!
+                              {UI_CONTENT.FEEDBACK.SUCCESS}
                             </div>
                           ) : (
                             <>
-                              <h4 className="text-sm font-bold text-slate-400 mb-3 uppercase tracking-widest">Help us improve the Council</h4>
+                              <h4 className="text-sm font-bold text-slate-400 mb-3 uppercase tracking-widest">{UI_CONTENT.FEEDBACK.TITLE}</h4>
                               <textarea 
                                 value={feedbackComment}
                                 onChange={(e) => setFeedbackComment(e.target.value)}
-                                placeholder="What could have been better? Be as specific as possible..."
+                                placeholder={UI_CONTENT.FEEDBACK.PLACEHOLDER}
                                 className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white placeholder-slate-600 focus:ring-1 focus:ring-indigo-500 outline-none transition-all h-24 resize-none mb-3 text-sm"
                               />
                               <div className="flex justify-end gap-3">
-                                 <button onClick={() => setShowFeedbackForm(false)} className="text-xs font-bold text-slate-500 uppercase px-4 py-2">Cancel</button>
+                                 <button onClick={() => setShowFeedbackForm(false)} className="text-xs font-bold text-slate-500 uppercase px-4 py-2">{UI_CONTENT.FEEDBACK.BUTTON_CANCEL}</button>
                                  <button 
                                   onClick={submitDetailedFeedback}
                                   disabled={!feedbackComment.trim()}
                                   className="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-bold rounded-lg uppercase tracking-widest transition-all"
                                  >
-                                   Submit Feedback
+                                   {UI_CONTENT.FEEDBACK.BUTTON_SUBMIT}
                                  </button>
                               </div>
                             </>
@@ -549,18 +549,13 @@ const App: React.FC = () => {
                      </div>
                   </div>
                   
-                  <h2 className="text-4xl font-black text-white mb-6 tracking-tight">The Council Awaits.</h2>
+                  <h2 className="text-4xl font-black text-white mb-6 tracking-tight">{UI_CONTENT.IDLE.TITLE}</h2>
                   <p className="text-lg text-slate-400 max-w-lg mx-auto leading-relaxed mb-12">
-                    Submit your decision brief to receive a multi-dimensional analysis from our specialized strategic agents.
+                    {UI_CONTENT.IDLE.DESCRIPTION}
                   </p>
 
                   <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 w-full max-w-4xl">
-                     {[
-                       { name: 'Analyst', color: 'text-blue-400', desc: 'Financial ROI & Market Data' },
-                       { name: 'Strategist', color: 'text-purple-400', desc: 'Game Theory & Competition' },
-                       { name: 'Skeptic', color: 'text-red-400', desc: 'Risk & Failure Modes' },
-                       { name: 'Mediator', color: 'text-emerald-400', desc: 'Ethics & Stakeholders' }
-                     ].map(agent => (
+                     {UI_CONTENT.IDLE.AGENTS.map(agent => (
                        <div key={agent.name} className="p-4 rounded-2xl bg-slate-900/40 border border-slate-800/50 text-left">
                           <div className={`text-xs font-black uppercase tracking-widest mb-1 ${agent.color}`}>{agent.name}</div>
                           <div className="text-[10px] text-slate-500 font-medium">{agent.desc}</div>

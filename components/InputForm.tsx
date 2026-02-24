@@ -3,6 +3,7 @@ import { DecisionInput, BrainstormResult } from '../types';
 import { exploreBrainstorm } from '../services/geminiService';
 import DocumentUpload from './DocumentUpload';
 import { Attachment } from '../types';
+import { UI_CONTENT } from '../src/constants/uiContent';
 
 interface InputFormProps {
   initialValues: DecisionInput;
@@ -39,14 +40,7 @@ const InputForm: React.FC<InputFormProps> = ({ initialValues, onSubmit, isLoadin
     setAttachments(newAttachments);
   };
 
-  const stages = [
-    "Convening the Council...",
-    "Analyzing Financials (Analyst)...",
-    "Mapping Strategy (Strategist)...",
-    "Evaluating Risks (Skeptic)...",
-    "Reviewing Ethics (Mediator)...",
-    "Synthesizing Verdict..."
-  ];
+  const stages = UI_CONTENT.LOADING_STAGES;
 
   useEffect(() => {
     let interval: any;
@@ -85,7 +79,7 @@ const InputForm: React.FC<InputFormProps> = ({ initialValues, onSubmit, isLoadin
   // --- Voice Input Logic ---
   const handleVoiceInput = (field: keyof DecisionInput) => {
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-      alert("Your browser does not support voice input.");
+      alert(UI_CONTENT.FORM.MESSAGES.VOICE_NOT_SUPPORTED);
       return;
     }
 
@@ -193,8 +187,8 @@ const InputForm: React.FC<InputFormProps> = ({ initialValues, onSubmit, isLoadin
     // Determine if AI button should be enabled
     const isAiEnabled = field === 'context' ? isTitleReady : isContextReady;
     const aiTooltip = isAiEnabled 
-      ? (field === 'context' ? "Ask AI for clarifying questions" : "Explore ideas with AI")
-      : (field === 'context' ? "Enter a Title to enable AI help" : "Fill Title & Context to enable AI");
+      ? (field === 'context' ? UI_CONTENT.FORM.TOOLTIPS.AI_CONTEXT : UI_CONTENT.FORM.TOOLTIPS.AI_GENERAL)
+      : (field === 'context' ? UI_CONTENT.FORM.TOOLTIPS.AI_DISABLED_TITLE : UI_CONTENT.FORM.TOOLTIPS.AI_DISABLED_GENERAL);
 
     return (
       <div className="relative group w-full">
@@ -380,17 +374,17 @@ const InputForm: React.FC<InputFormProps> = ({ initialValues, onSubmit, isLoadin
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold text-white flex items-center gap-2">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-500"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="12" x2="12" y1="18" y2="12"/><line x1="9" x2="15" y1="15" y2="15"/></svg>
-            Decision Brief
+            {UI_CONTENT.FORM.TITLE}
           </h2>
           {isContextReady && (
             <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded border border-emerald-400/20">
-              Ready
+              {UI_CONTENT.FORM.MESSAGES.READY}
             </span>
           )}
         </div>
         
         <div className="flex flex-wrap gap-2">
-          <span className="text-[10px] font-bold uppercase text-slate-500 mr-1 mt-1.5">Examples:</span>
+          <span className="text-[10px] font-bold uppercase text-slate-500 mr-1 mt-1.5">{UI_CONTENT.FORM.EXAMPLES_LABEL}</span>
           {templates.map(t => (
             <button
               key={t.label}
@@ -408,13 +402,13 @@ const InputForm: React.FC<InputFormProps> = ({ initialValues, onSubmit, isLoadin
         
         {renderInputWrapper(
           'title',
-          'Decision Title',
+          UI_CONTENT.FORM.LABELS.TITLE,
           <input
             type="text"
             name="title"
             value={input.title}
             onChange={handleChange}
-            placeholder="What is the core question?"
+            placeholder={UI_CONTENT.FORM.PLACEHOLDERS.TITLE}
             className="w-full bg-slate-950/50 border border-slate-700/60 rounded-xl p-4 pr-16 text-white placeholder-slate-500 focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 outline-none transition-all shadow-inner font-medium text-lg"
             required
           />
@@ -422,13 +416,13 @@ const InputForm: React.FC<InputFormProps> = ({ initialValues, onSubmit, isLoadin
 
         {renderInputWrapper(
           'context',
-          'Context & Background',
+          UI_CONTENT.FORM.LABELS.CONTEXT,
           <textarea
             name="context"
             value={input.context}
             onChange={handleChange}
             rows={5}
-            placeholder="Describe the situation, stakeholders, and urgency..."
+            placeholder={UI_CONTENT.FORM.PLACEHOLDERS.CONTEXT}
             className="w-full bg-slate-950/50 border border-slate-700/60 rounded-xl p-4 pb-14 pr-4 text-white placeholder-slate-500 focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 outline-none transition-all shadow-inner resize-none leading-relaxed custom-scrollbar"
             required
           />,
@@ -440,13 +434,13 @@ const InputForm: React.FC<InputFormProps> = ({ initialValues, onSubmit, isLoadin
         <div className="grid grid-cols-1 gap-6">
           {renderInputWrapper(
             'constraints',
-            'Constraints',
+            UI_CONTENT.FORM.LABELS.CONSTRAINTS,
             <textarea
               name="constraints"
               value={input.constraints}
               onChange={handleChange}
               rows={4}
-              placeholder="Budget, timeline, legal..."
+              placeholder={UI_CONTENT.FORM.PLACEHOLDERS.CONSTRAINTS}
               className="w-full bg-slate-950/50 border border-slate-700/60 rounded-xl p-4 pb-14 pr-4 text-white placeholder-slate-500 focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 outline-none transition-all shadow-inner resize-none text-sm custom-scrollbar"
             />,
             true
@@ -454,13 +448,13 @@ const InputForm: React.FC<InputFormProps> = ({ initialValues, onSubmit, isLoadin
 
           {renderInputWrapper(
             'options',
-            'Options',
+            UI_CONTENT.FORM.LABELS.OPTIONS,
             <textarea
               name="options"
               value={input.options}
               onChange={handleChange}
               rows={4}
-              placeholder="Option A, Option B..."
+              placeholder={UI_CONTENT.FORM.PLACEHOLDERS.OPTIONS}
               className="w-full bg-slate-950/50 border border-slate-700/60 rounded-xl p-4 pb-14 pr-4 text-white placeholder-slate-500 focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 outline-none transition-all shadow-inner resize-none text-sm custom-scrollbar"
             />,
             true
@@ -491,7 +485,7 @@ const InputForm: React.FC<InputFormProps> = ({ initialValues, onSubmit, isLoadin
               <span className="animate-pulse">{stages[loadingStage]}</span>
             </span>
           ) : (
-            'Analyze Decision'
+            UI_CONTENT.FORM.BUTTONS.ANALYZE
           )}
         </button>
       </form>

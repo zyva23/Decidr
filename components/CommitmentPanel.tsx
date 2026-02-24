@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { UI_CONTENT } from '../src/constants/uiContent';
 
 interface CommitmentPanelProps {
   options: string;
@@ -27,16 +28,16 @@ const CommitmentPanel: React.FC<CommitmentPanelProps> = ({ options, onCommit, on
       </div>
 
       <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-3">
-        The Commitment Protocol
+        {UI_CONTENT.COMMITMENT.TITLE}
       </h3>
       <p className="text-sm text-slate-400 mb-8 max-w-xl">
-        Deliberation is over. To lock in your results and earn a Strategic Commitment Badge (+150 XP), you must choose your path.
+        {UI_CONTENT.COMMITMENT.DESCRIPTION}
       </p>
 
       {!isCommitted ? (
         <div className="space-y-6">
           <div>
-            <label className="block text-xs font-bold text-indigo-400 uppercase tracking-widest mb-3">Choose Your Path</label>
+            <label className="block text-xs font-bold text-indigo-400 uppercase tracking-widest mb-3">{UI_CONTENT.COMMITMENT.LABEL_PATH}</label>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {optionList.map((opt, i) => (
                 <button
@@ -56,11 +57,11 @@ const CommitmentPanel: React.FC<CommitmentPanelProps> = ({ options, onCommit, on
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-indigo-400 uppercase tracking-widest mb-3">Why are you choosing this?</label>
+            <label className="block text-xs font-bold text-indigo-400 uppercase tracking-widest mb-3">{UI_CONTENT.COMMITMENT.LABEL_WHY}</label>
             <textarea
               value={why}
               onChange={(e) => setWhy(e.target.value)}
-              placeholder="State your reasoning. This enhances psychological commitment."
+              placeholder={UI_CONTENT.COMMITMENT.PLACEHOLDER_WHY}
               className="w-full bg-slate-950/50 border border-slate-800 rounded-xl p-4 text-white placeholder-slate-600 focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all h-32 resize-none"
             />
           </div>
@@ -70,7 +71,7 @@ const CommitmentPanel: React.FC<CommitmentPanelProps> = ({ options, onCommit, on
             disabled={!selected || why.length < 10}
             className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl shadow-xl shadow-indigo-500/20 transition-all active:scale-95"
           >
-            I Commit to this Decision
+            {UI_CONTENT.COMMITMENT.BUTTON_COMMIT}
           </button>
         </div>
       ) : (
@@ -80,7 +81,7 @@ const CommitmentPanel: React.FC<CommitmentPanelProps> = ({ options, onCommit, on
                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
               </div>
               <div>
-                 <h4 className="text-emerald-400 font-bold mb-1">Decision Locked</h4>
+                 <h4 className="text-emerald-400 font-bold mb-1">{UI_CONTENT.COMMITMENT.LOCKED_TITLE}</h4>
                  <p className="text-sm text-slate-300 italic">"I have chosen: {selected.replace(/^[A-Z]:\s*/i, '')}"</p>
                  <p className="text-xs text-slate-500 mt-2">Reasoning: {why}</p>
               </div>
@@ -92,14 +93,14 @@ const CommitmentPanel: React.FC<CommitmentPanelProps> = ({ options, onCommit, on
                 className="flex-1 py-4 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-3 border border-slate-700"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-400"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 3.5 1 8.8a7 7 0 0 1-9 9.2z"/><path d="M22 22l-5-5"/><path d="M17 22l5-5"/></svg>
-                Branch to Next Step
+                {UI_CONTENT.COMMITMENT.BUTTON_BRANCH}
               </button>
               
               <button
                 onClick={() => setIsCommitted(false)}
                 className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest hover:text-slate-300 transition-colors"
               >
-                Re-evaluate Path
+                {UI_CONTENT.COMMITMENT.BUTTON_REEVALUATE}
               </button>
            </div>
         </div>

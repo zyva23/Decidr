@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import Tesseract from 'tesseract.js';
 import { extractTextFromPDF } from '../services/pdfService';
 import { Attachment } from '../types';
+import { UI_CONTENT } from '../src/constants/uiContent';
 
 interface DocumentUploadProps {
   onDocumentsChange: (attachments: Attachment[]) => void;
@@ -39,7 +40,7 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ onDocumentsChange }) =>
         );
         text = result.data.text;
       } else {
-        alert('Unsupported file type.');
+        alert(UI_CONTENT.FORM.MESSAGES.UNSUPPORTED_FILE);
         return;
       }
 
@@ -54,7 +55,7 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ onDocumentsChange }) =>
       onDocumentsChange(updated);
     } catch (error) {
       console.error('File processing error:', error);
-      alert('Failed to process document. Please try a different file.');
+      alert(UI_CONTENT.FORM.MESSAGES.FILE_ERROR);
     } finally {
       setIsUploading(false);
       setProgress('');
@@ -114,7 +115,7 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ onDocumentsChange }) =>
         ) : (
           <>
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-            <span>Attach Brief, CV, or Photo</span>
+            <span>{UI_CONTENT.FORM.BUTTONS.ATTACH}</span>
           </>
         )}
       </button>
