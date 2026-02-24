@@ -1,24 +1,28 @@
 import React from 'react';
-import { DecisionSession } from '../types';
+import { DecisionSession, UserProfile } from '../types';
 
 interface Props {
   isOpen: boolean;
   sessions: DecisionSession[];
   currentSessionId: string | null;
+  user: UserProfile | null;
   onSelectSession: (session: DecisionSession) => void;
   onNewSession: () => void;
   onClose: () => void;
   onDeleteSession: (id: string, e: React.MouseEvent) => void;
+  onSignOut: () => void;
 }
 
 const SessionHistory: React.FC<Props> = ({ 
   isOpen, 
   sessions, 
   currentSessionId, 
+  user,
   onSelectSession, 
   onNewSession,
   onClose,
-  onDeleteSession
+  onDeleteSession,
+  onSignOut
 }) => {
   return (
     <>
@@ -120,20 +124,30 @@ const SessionHistory: React.FC<Props> = ({
           )}
         </div>
 
-        {/* User Profile Footer - Neutralized as per guidelines */}
+        {/* User Profile Footer */}
         <div className="p-4 border-t border-slate-800 bg-slate-900/80 backdrop-blur-md">
-          <div className="flex items-center gap-3 p-2 rounded-xl transition-colors group">
-             <div className="relative">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-500 to-violet-500 flex items-center justify-center text-white font-bold shadow-lg shadow-indigo-500/20">
-                  AI
+          <div className="flex items-center justify-between gap-3 p-2 rounded-xl transition-colors group">
+             <div className="flex items-center gap-3 overflow-hidden">
+                <div className="relative shrink-0">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-500 to-violet-500 flex items-center justify-center text-white font-black text-sm shadow-lg shadow-indigo-500/20">
+                    {user?.email?.[0].toUpperCase() || "G"}
+                    </div>
+                    <div className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-slate-900 rounded-full"></div>
                 </div>
-                <div className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-slate-900 rounded-full"></div>
+                
+                <div className="min-w-0">
+                <h4 className="text-xs font-bold text-white truncate">{user?.email || "Guest Session"}</h4>
+                <p className="text-[10px] text-slate-500 truncate uppercase tracking-tighter font-black">Strategic Observer</p>
+                </div>
              </div>
-             
-             <div className="flex-1 min-w-0">
-               <h4 className="text-sm font-bold text-white truncate">Decision Strategist</h4>
-               <p className="text-xs text-slate-500 truncate">System Active</p>
-             </div>
+
+             <button 
+                onClick={onSignOut}
+                className="p-2 text-slate-500 hover:text-red-400 transition-colors"
+                title="Sign Out"
+             >
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+             </button>
           </div>
         </div>
 

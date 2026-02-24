@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import InputForm from './components/InputForm';
 import AgentCard from './components/AgentCard';
@@ -338,6 +337,7 @@ const App: React.FC = () => {
         isOpen={isHistoryOpen}
         sessions={sessions}
         currentSessionId={currentSessionId}
+        user={user}
         onSelectSession={loadSession}
         onNewSession={startNewSession}
         onClose={() => setIsHistoryOpen(false)}
@@ -346,6 +346,7 @@ const App: React.FC = () => {
           const updated = await getSessions(user?.id);
           setSessions(updated); 
         }}
+        onSignOut={handleSignOut}
       />
       
       {/* Documentation modal for the lenses */}
@@ -382,21 +383,11 @@ const App: React.FC = () => {
           <button onClick={() => setIsHistoryOpen(true)} className="p-2 -ml-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
           </button>
-          <h1 className="text-lg font-bold text-white tracking-tight">Decision Council AI</h1>
+          <h1 className="text-lg font-bold text-white tracking-tight">{UI_CONTENT.APP_NAME}</h1>
         </div>
         
         <div className="flex items-center gap-6">
           <GamifiedHeader xp={xp} level={level} />
-          <div className="h-8 w-[1px] bg-slate-800"></div>
-          <div className="flex items-center gap-4">
-            <div className={`hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs ${isGuestMode ? 'bg-amber-950/20 border-amber-900/40 text-amber-500/70' : 'bg-slate-900/80 border-slate-700 text-slate-400'}`}>
-               <span className={`w-2 h-2 rounded-full ${isGuestMode ? 'bg-amber-500' : 'bg-indigo-500 animate-pulse'}`}></span>
-               {user?.email || "Guest Session"}
-            </div>
-            <button onClick={handleSignOut} className="p-2 text-slate-500 hover:text-red-400" title="Sign Out">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-            </button>
-          </div>
         </div>
       </header>
 
@@ -411,32 +402,32 @@ const App: React.FC = () => {
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     {/* Final Verdict Synthesis */}
                     <div className="md:col-span-2 bg-gradient-to-br from-indigo-900/40 to-slate-900/40 border border-indigo-500/30 rounded-xl p-8 flex flex-col shadow-2xl">
-                      <h2 className="text-indigo-300 text-xs font-bold uppercase tracking-widest mb-4">Final Verdict</h2>
+                      <h2 className="text-indigo-300 text-xs font-bold uppercase tracking-widest mb-4">{UI_CONTENT.RESULTS.FINAL_VERDICT}</h2>
                       <h3 className="text-3xl font-black text-white mb-4 leading-tight">{result.synthesis.verdict}</h3>
                       <p className="text-slate-300 leading-relaxed text-lg mb-8">{result.synthesis.recommendation}</p>
                       <div className="flex flex-wrap gap-3 mt-auto">
                         <button 
                           onClick={() => setIsChatOpen(true)} 
-                          title="Consult Council"
+                          title={UI_CONTENT.RESULTS.CONSULT_COUNCIL}
                           className="p-3 bg-white text-slate-950 rounded-xl active:scale-95 transition-all hover:bg-slate-100 flex items-center justify-center group"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 21 1.9-5.7a8.5 8.5 0 1 1 3.8 3.8z"/></svg>
-                          <span className="max-w-0 overflow-hidden group-hover:max-w-xs group-hover:ml-2 transition-all duration-300 font-bold whitespace-nowrap">Consult Council</span>
+                          <span className="max-w-0 overflow-hidden group-hover:max-w-xs group-hover:ml-2 transition-all duration-300 font-bold whitespace-nowrap">{UI_CONTENT.RESULTS.CONSULT_COUNCIL}</span>
                         </button>
 
                         <button 
                           onClick={() => setIsElaborationOpen(!isElaborationOpen)} 
-                          title={isElaborationOpen ? 'Hide Elaboration' : 'View Elaboration'}
+                          title={isElaborationOpen ? `Hide ${UI_CONTENT.RESULTS.ELABORATION}` : `View ${UI_CONTENT.RESULTS.ELABORATION}`}
                           className={`p-3 border rounded-xl active:scale-95 transition-all flex items-center justify-center group ${isElaborationOpen ? 'bg-indigo-600 border-indigo-400 text-white' : 'border-indigo-500/50 text-indigo-300 hover:bg-indigo-500/10'}`}
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
-                          <span className="max-w-0 overflow-hidden group-hover:max-w-xs group-hover:ml-2 transition-all duration-300 font-bold whitespace-nowrap">{isElaborationOpen ? 'Hide' : 'Elaboration'}</span>
+                          <span className="max-w-0 overflow-hidden group-hover:max-w-xs group-hover:ml-2 transition-all duration-300 font-bold whitespace-nowrap">{isElaborationOpen ? UI_CONTENT.RESULTS.HIDE : UI_CONTENT.RESULTS.ELABORATION}</span>
                         </button>
 
                         <button 
                           onClick={handleDevelopPlan} 
                           disabled={isGeneratingPlan}
-                          title="Develop Action Plan"
+                          title={`Develop ${UI_CONTENT.RESULTS.PLANNING} Plan`}
                           className="p-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl active:scale-95 flex items-center justify-center transition-all disabled:opacity-50 group"
                         >
                           {isGeneratingPlan ? (
@@ -444,21 +435,24 @@ const App: React.FC = () => {
                           ) : (
                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line><path d="m9 16 2 2 4-4"/></svg>
                           )}
-                          <span className="max-w-0 overflow-hidden group-hover:max-w-xs group-hover:ml-2 transition-all duration-300 font-bold whitespace-nowrap">Planning</span>
+                          <span className="max-w-0 overflow-hidden group-hover:max-w-xs group-hover:ml-2 transition-all duration-300 font-bold whitespace-nowrap">{UI_CONTENT.RESULTS.PLANNING}</span>
                         </button>
 
                         <button 
                           onClick={handleExportPDF} 
                           disabled={isExporting}
-                          title="Export Report"
+                          title={UI_CONTENT.RESULTS.EXPORT}
                           className="p-3 border border-indigo-500/50 text-indigo-300 hover:bg-indigo-500/10 rounded-xl active:scale-95 flex items-center justify-center transition-all disabled:opacity-50 group"
                         >
                           {isExporting ? (
-                            <svg className="animate-spin h-6 w-6" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                            <svg className="animate-spin h-5 w-5 text-indigo-300" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
                           ) : (
                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                           )}
-                          <span className="max-w-0 overflow-hidden group-hover:max-w-xs group-hover:ml-2 transition-all duration-300 font-bold whitespace-nowrap">Export</span>
+                          <span className="max-w-0 overflow-hidden group-hover:max-w-xs group-hover:ml-2 transition-all duration-300 font-bold whitespace-nowrap">{UI_CONTENT.RESULTS.EXPORT}</span>
                         </button>
                         <div className="ml-auto flex items-center gap-2">
                            <button onClick={() => handleFeedback('helpful')} className={`p-3 rounded-xl border ${result.feedback === 'helpful' ? 'bg-emerald-500 border-emerald-400 text-white' : 'bg-slate-800 border-slate-700 text-slate-500'}`}>
