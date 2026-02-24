@@ -4,7 +4,7 @@ import * as pdfjsLib from 'pdfjs-dist';
 import { CouncilResult, DecisionInput } from '../types';
 
 // Configure worker for pdfjs
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.js`;
 
 /**
  * PDF SERVICE

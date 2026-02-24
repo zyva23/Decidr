@@ -89,6 +89,11 @@ export interface DecisionSession {
   status: AnalysisStatus;
   chatHistory?: ChatMessage[];
   actionPlan?: ActionPlan;
+  commitment?: {
+    selectedOption: string;
+    justification: string;
+    timestamp: number;
+  };
 }
 
 export interface ActionPlan {
@@ -123,6 +128,12 @@ export interface UserProfile {
   email: string;
   xp?: number;
   level?: number;
+}
+
+export interface Attachment {
+  name: string;
+  type: string;
+  extractedText: string;
 }
 
 export interface ActivityLog {

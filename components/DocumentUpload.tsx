@@ -1,14 +1,16 @@
 import React, { useState, useRef } from 'react';
 import Tesseract from 'tesseract.js';
 import { extractTextFromPDF } from '../services/pdfService';
+import { Attachment } from '../types';
 
 interface DocumentUploadProps {
-  onTextExtracted: (text: string) => void;
+  onDocumentsChange: (attachments: Attachment[]) => void;
 }
 
-const DocumentUpload: React.FC<DocumentUploadProps> = ({ onTextExtracted }) => {
+const DocumentUpload: React.FC<DocumentUploadProps> = ({ onDocumentsChange }) => {
   const [isUploading, setIsUploading] = useState(false);
   const [progress, setProgress] = useState<string>('');
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -18,12 +20,12 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ onTextExtracted }) => {
     setIsUploading(true);
     setProgress('Initializing...');
     try {
+      let text = '';
       if (file.type === 'application/pdf') {
-        const text = await extractTextFromPDF(file);
-        onTextExtracted(`[Extracted from PDF: ${file.name}]:\n${text}`);
+        setProgress('Reading PDF...');
+        text = await extractTextFromPDF(file);
       } else if (file.type === 'text/plain') {
-        const text = await file.text();
-        onTextExtracted(`[Content of ${file.name}]:\n${text}`);
+        text = await file.text();
       } else if (file.type.startsWith('image/')) {
         setProgress('Reading Image (OCR)...');
         const result = await Tesseract.recognize(
@@ -35,13 +37,24 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ onTextExtracted }) => {
             }
           }}
         );
-        onTextExtracted(`[OCR Extracted from ${file.name}]:\n${result.data.text}`);
+        text = result.data.text;
       } else {
-        alert('Unsupported file type. Please upload a PDF, Image, or .txt file.');
+        alert('Unsupported file type.');
+        return;
       }
+
+      const newAttachment: Attachment = {
+        name: file.name,
+        type: file.type,
+        extractedText: text
+      };
+
+      const updated = [...attachments, newAttachment];
+      setAttachments(updated);
+      onDocumentsChange(updated);
     } catch (error) {
       console.error('File processing error:', error);
-      alert('Failed to process the document.');
+      alert('Failed to process document. Please try a different file.');
     } finally {
       setIsUploading(false);
       setProgress('');
@@ -49,8 +62,32 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ onTextExtracted }) => {
     }
   };
 
+  const removeAttachment = (index: number) => {
+    const updated = attachments.filter((_, i) => i !== index);
+    setAttachments(updated);
+    onDocumentsChange(updated);
+  };
+
   return (
-    <div className="">
+    <div className="space-y-3">
+      {/* List of Attachments */}
+      {attachments.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {attachments.map((att, i) => (
+            <div key={i} className="flex items-center gap-2 bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-lg group animate-fade-in">
+              <span className="text-[10px] text-slate-300 font-medium truncate max-w-[120px]">{att.name}</span>
+              <button 
+                type="button"
+                onClick={() => removeAttachment(i)}
+                className="text-slate-500 hover:text-red-400 transition-colors"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
       <input
         type="file"
         ref={fileInputRef}
@@ -58,6 +95,7 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ onTextExtracted }) => {
         accept=".pdf,.txt,.png,.jpg,.jpeg"
         className="hidden"
       />
+      
       <button
         type="button"
         onClick={() => fileInputRef.current?.click()}

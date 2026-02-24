@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { DecisionInput, BrainstormResult } from '../types';
 import { exploreBrainstorm } from '../services/geminiService';
 import DocumentUpload from './DocumentUpload';
+import { Attachment } from '../types';
 
 interface InputFormProps {
   initialValues: DecisionInput;
@@ -11,6 +12,7 @@ interface InputFormProps {
 
 const InputForm: React.FC<InputFormProps> = ({ initialValues, onSubmit, isLoading }) => {
   const [input, setInput] = useState<DecisionInput>(initialValues);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
 
   // Sync state when initialValues change (e.g. loading a history item)
   useEffect(() => {
@@ -33,11 +35,8 @@ const InputForm: React.FC<InputFormProps> = ({ initialValues, onSubmit, isLoadin
 
   const [loadingStage, setLoadingStage] = useState(0);
 
-  const handleDocumentUpload = (extractedText: string) => {
-    setInput(prev => ({
-      ...prev,
-      context: prev.context ? `${prev.context}\n\n${extractedText}` : extractedText
-    }));
+  const handleDocumentUpload = (newAttachments: Attachment[]) => {
+    setAttachments(newAttachments);
   };
 
   const stages = [
@@ -65,7 +64,17 @@ const InputForm: React.FC<InputFormProps> = ({ initialValues, onSubmit, isLoadin
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (input.title && input.context) {
-      onSubmit(input);
+      // Combine typed context with extracted document text for the AI
+      let finalContext = input.context;
+      if (attachments.length > 0) {
+        const docsText = attachments.map(a => `[Document: ${a.name}]\n${a.extractedText}`).join("\n\n");
+        finalContext = `${finalContext}\n\n--- ATTACHED DOCUMENTS ---\n${docsText}`;
+      }
+      
+      onSubmit({
+        ...input,
+        context: finalContext
+      });
     }
   };
 
@@ -459,7 +468,7 @@ const InputForm: React.FC<InputFormProps> = ({ initialValues, onSubmit, isLoadin
         </div>
 
         <div className="pt-2">
-          <DocumentUpload onTextExtracted={handleDocumentUpload} />
+          <DocumentUpload onDocumentsChange={handleDocumentUpload} />
         </div>
 
         <button
