@@ -12,6 +12,7 @@ import ActionPlanModal from './components/ActionPlanModal';
 import GamifiedHeader from './components/GamifiedHeader';
 import CommitmentPanel from './components/CommitmentPanel';
 import Auth from './components/Auth';
+import { UI_CONTENT } from './src/constants/uiContent';
 import { analyzeDecision, generateActionPlan } from './services/geminiService';
 import { saveSession, getSessions, deleteSession } from './services/storageService';
 import { auth, logActivity, onAuthStateChanged, signOut, isGCPConfigured, saveDetailedFeedback } from './services/googleCloud';

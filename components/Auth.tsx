@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { auth, googleProvider, signInWithPopup, isGCPConfigured } from '../services/googleCloud';
+import { UI_CONTENT } from '../src/constants/uiContent';
 
 interface AuthProps {
   onContinueAsGuest: () => void;
