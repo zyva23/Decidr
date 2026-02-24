@@ -42,7 +42,7 @@ const SourcesModal: React.FC<Props> = ({ isOpen, onClose, sources, role }) => {
                 <li key={i} className="flex gap-3 items-start group">
                   <span className="text-slate-600 font-mono text-xs mt-1">{i + 1}.</span>
                   <a 
-                    href={source.includes('http') ? source.split(': http')[1] || source : `https://www.google.com/search?q=${encodeURIComponent(source)}`} 
+                    href={source.includes('http') ? source.split(': http')[1] || source : `https://www.bing.com/search?q=${encodeURIComponent(source)}`} 
                     target="_blank" 
                     rel="noopener noreferrer" 
                     className="text-sm text-blue-400 hover:text-blue-300 hover:underline break-all leading-relaxed transition-colors"

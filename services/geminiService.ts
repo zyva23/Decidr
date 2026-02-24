@@ -16,7 +16,7 @@ let aiInstance: GoogleGenAI | null = null;
 const getAI = () => {
   const apiKey = process.env.API_KEY || (import.meta as any).env?.VITE_GEMINI_API_KEY;
   if (!apiKey || apiKey === 'undefined') {
-    throw new Error("Gemini API Key is missing. Please set VITE_GEMINI_API_KEY in your environment.");
+    throw new Error("Strategic API Key is missing. Please set VITE_GEMINI_API_KEY in your environment.");
   }
   if (!aiInstance) {
     aiInstance = new GoogleGenAI({ apiKey });
@@ -43,7 +43,7 @@ export async function analyzeDecision(input: DecisionInput): Promise<CouncilResu
 
   const apiKey = process.env.API_KEY || (import.meta as any).env?.VITE_GEMINI_API_KEY;
   if (!apiKey || apiKey === 'undefined') {
-     throw new Error("Gemini API Key is missing.");
+     throw new Error("Strategic API Key is missing.");
   }
 
   const analystAgent = new AnalystAgent(apiKey as string);

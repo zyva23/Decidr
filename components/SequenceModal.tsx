@@ -195,7 +195,7 @@ const SequenceModal: React.FC<SequenceModalProps> = ({ isOpen, onClose, agent, c
         
         {/* Footer */}
         <div className="p-4 border-t border-slate-800 bg-slate-900/50 flex justify-between items-center text-xs text-slate-500">
-           <span>Model: Gemini 3 Pro</span>
+           <span>Strategy Insight Engine</span>
            <span>Confidence Score: {agent.score}/100</span>
         </div>
       </div>
