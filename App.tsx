@@ -203,6 +203,18 @@ const App: React.FC = () => {
     }
   };
 
+  const handleSavePlan = async (updatedPlan: ActionPlan) => {
+    if (!currentSessionId) return;
+    
+    const session = sessions.find(s => s.id === currentSessionId);
+    if (session) {
+      const updatedSession = { ...session, actionPlan: updatedPlan };
+      await saveSession(updatedSession);
+      setCurrentPlan(updatedPlan);
+      setSessions(await getSessions(user?.id));
+    }
+  };
+
   /**
    * Resets form to a blank state for a fresh analysis.
    */
@@ -566,7 +578,14 @@ const App: React.FC = () => {
       {isChatOpen && result && <CouncilChat isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} councilResult={result} input={inputValues} chatHistory={chatHistory} onUpdateHistory={setChatHistory} onReAnalyze={(newCtx) => handleAnalysis({...inputValues, context: inputValues.context + newCtx})} />}
       
       {/* Action Plan Modal */}
-      {currentPlan && <ActionPlanModal isOpen={isPlanModalOpen} onClose={() => setIsPlanModalOpen(false)} plan={currentPlan} />}
+      {currentPlan && (
+        <ActionPlanModal 
+          isOpen={isPlanModalOpen} 
+          onClose={() => setIsPlanModalOpen(false)} 
+          onSave={handleSavePlan}
+          plan={currentPlan} 
+        />
+      )}
     </div>
   );
 };
