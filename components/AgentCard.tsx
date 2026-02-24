@@ -145,7 +145,12 @@ const AgentCard: React.FC<AgentCardProps> = ({ agent, color }) => {
             </div>
             <div>
               <h3 className={`font-black text-xl tracking-tight ${styles.title}`}>{agent.name}</h3>
-              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">{agent.role === 'Analyst' ? 'Quantitative Insights' : agent.role === 'Strategist' ? 'Strategic Foresight' : agent.role === 'Skeptic' ? 'Risk Counter-Analysis' : 'Stakeholder Alignment'}</p>
+              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">
+                {agent.role === 'Analyst' ? 'The Rationalist' : 
+                 agent.role === 'Strategist' ? 'The Architect' : 
+                 agent.role === 'Skeptic' ? 'The Realist' : 
+                 'The Ethicist'}
+              </p>
             </div>
           </div>
           <div className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-tighter ${styles.badge} shadow-inner`}>

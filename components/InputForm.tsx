@@ -316,46 +316,32 @@ const InputForm: React.FC<InputFormProps> = ({ initialValues, onSubmit, isLoadin
 
   const templates = [
     { 
-      label: 'New Role', 
-      title: 'Accepting a Senior PM Offer at a Stealth Startup', 
-      context: 'Currently at a Big Tech firm with stability. The startup offers more equity and ownership but has higher risk and longer hours.',
-      constraints: 'Need to decide by Friday. Financial runway: 12 months.',
-      options: 'A: Stay at current job. B: Accept the startup offer. C: Negotiate for a 4-day week at current job.'
+      label: 'Leadership', 
+      title: 'Succession Planning: Transitioning from Founder to Professional CEO', 
+      context: 'I have led this organization from inception to 200 employees. While we are profitable, I recognize that my "wartime" founder instincts are beginning to create friction with the "peacetime" operational excellence we now require. I worry that stepping back will dilute the original soul of the company, but staying in the CEO role may bottleneck our next stage of institutional maturity.',
+      constraints: 'Board of Directors expects a 12-month transition plan. I must maintain a majority stake to preserve long-term vision. High internal candidate sensitivity.',
+      options: 'Path A: Promote the current COO (Continuity). Path B: Launch an external search for a category-defining veteran (Disruption). Path C: Adopt a Co-CEO model for 18 months (Gradualism).'
     },
     { 
-      label: 'New Friends', 
-      title: 'Joining a High-Intensity Run Club', 
-      context: 'I want to expand my social circle and get fitter, but I am worried about the time commitment and my current fitness level.',
-      constraints: 'Meets at 6 AM, 3 times a week. I am not a morning person.',
-      options: 'A: Join the club and commit. B: Look for a more casual group. C: Start solo training first.'
+      label: 'Prestige vs. Purpose', 
+      title: 'Choosing Between a Big Tech VP Role and a Social Impact Lead Position', 
+      context: 'The Big Tech role offers immense leverage, a $1M+ compensation package, and the ability to influence products used by billions. However, the work feels ethically neutral at best. The Social Impact role, at a well-funded non-profit, offers the chance to fix a broken educational system, but with 40% of the pay and significantly more bureaucratic friction. I am navigating the tension between my desire for financial security and my existential need for meaningful contribution.',
+      constraints: 'Children starting college in 4 years. Living in a high-cost-of-living urban center. Personal burnout levels are currently moderate.',
+      options: 'A: Accept Big Tech (Leverage & Security). B: Accept Social Impact (Meaning & Legacy). C: Big Tech for 2 years, then transition (The "Sabbatical" Strategy).'
     },
     { 
-      label: 'Ask Out', 
-      title: 'Asking a Long-time Friend on a Date', 
-      context: 'We have been friends for 2 years. I have developed feelings, but I do not want to ruin the friendship if it is not mutual.',
-      constraints: 'We are in the same tight-knit friend group. High social stakes.',
-      options: 'A: Be direct and ask them out. B: Test the waters with more flirting. C: Keep the status quo.'
+      label: 'Vulnerability', 
+      title: 'The Risk of Emotional Disclosure in a Professional-Personal Hybrid Relationship', 
+      context: 'I have been collaborating with a creative partner for three years. Our professional synergy is the source of our success. I have developed deep feelings for them, but the stakes are high: if I disclose my feelings and they aren't reciprocated, the friction might destroy the creative engine we have built. If I remain silent, the repressed emotion may eventually lead to resentment or an artificial wall between us.',
+      constraints: 'We have a joint contract for a major exhibition in 6 months. We are part of a very small, niche professional community.',
+      options: 'A: Radical transparency (The Direct Ask). B: Subtle escalation of intimacy over time (The Test). C: Compartmentalization (Commitment to the Work).'
     },
     { 
-      label: 'Hiring', 
-      title: 'Hiring a VP of Engineering', 
-      context: 'We are a Series A startup scaling from 10 to 50 engineers. We need someone with high-growth experience who can maintain culture.',
-      constraints: 'Budget: $250k total comp. Time: Need someone in 3 months.',
-      options: 'A: Promote from within. B: Hire an external veteran. C: Use a fractional leader.'
-    },
-    { 
-      label: 'Tech Stack', 
-      title: 'Switching to Microservices', 
-      context: 'Current monolith is becoming hard to maintain. Deployments are slow and risky.',
-      constraints: 'Team size: 12 devs. Existing debt: High.',
-      options: 'A: Incremental migration. B: Complete rewrite. C: Optimize existing monolith.'
-    },
-    { 
-      label: 'Strategy', 
-      title: 'Entering the EU Market', 
-      context: 'Strong growth in US/UK. Seeing organic traffic from Germany and France.',
-      constraints: 'GDPR compliance is mandatory. Limited local support staff.',
-      options: 'A: Direct entry (Berlin office). B: Partnership with local distributor. C: Remote digital-only approach.'
+      label: 'Market Pivot', 
+      title: 'Pivoting from a Service Agency to a Product-Led SaaS Company', 
+      context: 'Our agency is healthy, but we are trading hours for dollars. We have built an internal tool that solves a recurring pain point for our clients. Pivoting to SaaS offers scalability and higher valuation, but it requires a total shift in DNA—from customer service to product engineering. It means "firing" our current revenue streams to chase a high-margin future that isn't guaranteed.',
+      constraints: 'Current cash runway: 8 months if we stop all agency work. 60% of the team has an agency mindset, not a product mindset.',
+      options: 'A: All-in pivot (The Burn the Boats Strategy). B: Run both in parallel (The Slow Transition). C: Sell the agency to fund the SaaS startup.'
     }
   ];
 

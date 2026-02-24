@@ -1,100 +1,99 @@
 /**
  * UI CONTENT CONSTANTS
- * Centralized file for all customer-facing strings.
- * Makes it easy to change placeholders, labels, and instructional text in one place.
+ * Sophisticated, intellectual tone for the educated decision-maker.
  */
 
 export const UI_CONTENT = {
-  APP_NAME: "Decision Council AI",
-  APP_TAGLINE: "Strategic multi-model analysis engine",
+  APP_NAME: "Decidr",
+  APP_TAGLINE: "A laboratory for high-stakes deliberation and cognitive clarity",
   
   // Input Form
   FORM: {
-    TITLE: "Decision Brief",
-    EXAMPLES_LABEL: "Examples:",
+    TITLE: "The Inquiry",
+    EXAMPLES_LABEL: "Foundational Scenarios:",
     LABELS: {
-      TITLE: "Decision Title",
-      CONTEXT: "Context & Background",
-      CONSTRAINTS: "Constraints",
-      OPTIONS: "Options",
+      TITLE: "The Core Inquiry",
+      CONTEXT: "Situational Nuance & Background",
+      CONSTRAINTS: "Frictional Realities (Constraints)",
+      OPTIONS: "Paths of Action",
     },
     PLACEHOLDERS: {
-      TITLE: "What is the core question?",
-      CONTEXT: "Describe the situation, stakeholders, and urgency...",
-      CONSTRAINTS: "Budget, timeline, legal...",
-      OPTIONS: "Option A, Option B...",
+      TITLE: "What fundamental question is driving this moment of choice?",
+      CONTEXT: "Describe the underlying dynamics, the human element, and the weight of the current moment...",
+      CONSTRAINTS: "Identify the boundaries: biological time, capital, ethical lines, or social physics...",
+      OPTIONS: "Delineate the distinct paths you are weighing...",
     },
     TOOLTIPS: {
-      AI_CONTEXT: "Ask AI for clarifying questions",
-      AI_GENERAL: "Explore ideas with AI",
-      AI_DISABLED_TITLE: "Enter a Title to enable AI help",
-      AI_DISABLED_GENERAL: "Fill Title & Context to enable AI",
+      AI_CONTEXT: "Extract deeper inquiry from the situational noise",
+      AI_GENERAL: "Invite the collective intelligence to expand the field",
+      AI_DISABLED_TITLE: "Define the inquiry to enable intellectual assistance",
+      AI_DISABLED_GENERAL: "Provide nuance to enable the generative engine",
     },
     BUTTONS: {
-      ANALYZE: "Analyze Decision",
-      RUNNING: "Running Simulations...",
-      ATTACH: "Attach Brief, CV, or Photo",
+      ANALYZE: "Begin Deliberation",
+      RUNNING: "Synthesizing Perspectives...",
+      ATTACH: "Incorporate External Briefs (PDF/OCR)",
     },
     MESSAGES: {
-      READY: "Ready",
-      VOICE_NOT_SUPPORTED: "Your browser does not support voice input.",
-      UNSUPPORTED_FILE: "Unsupported file type.",
-      FILE_ERROR: "Failed to process document. Please try a different file.",
+      READY: "Coherent",
+      VOICE_NOT_SUPPORTED: "Voice transcription is unavailable in this environment.",
+      UNSUPPORTED_FILE: "The format provided lies outside our current processing capability.",
+      FILE_ERROR: "The document resisted extraction. Please provide a standard legible file.",
     }
   },
 
   // Results Section
   RESULTS: {
-    FINAL_VERDICT: "Final Verdict",
-    CONSULT_COUNCIL: "Consult Council",
-    ELABORATION: "Elaboration",
-    HIDE: "Hide",
-    PLANNING: "Planning",
-    EXPORT: "Export",
-    HELP_IMPROVE: "Help us improve the Council",
+    FINAL_VERDICT: "The Synthesis",
+    CONSULT_COUNCIL: "Consult the Collective",
+    ELABORATION: "Intellectual Depth",
+    HIDE: "Condense",
+    PLANNING: "The Roadmap",
+    EXPORT: "Manifest Report",
+    HELP_IMPROVE: "Refine the Deliberative Engine",
   },
 
   // Idle State (Council Introduction)
   IDLE: {
-    TITLE: "The Council Awaits.",
-    DESCRIPTION: "Submit your decision brief to receive a multi-dimensional analysis from our specialized strategic agents.",
+    TITLE: "The Mind is a Council.",
+    DESCRIPTION: "Submit your inquiry to engage four distinct archetypes of reason in a parallel simulation of your future.",
     AGENTS: [
-      { name: 'Analyst', color: 'text-blue-400', desc: 'Financial ROI & Market Data' },
-      { name: 'Strategist', color: 'text-purple-400', desc: 'Game Theory & Competition' },
-      { name: 'Skeptic', color: 'text-red-400', desc: 'Risk & Failure Modes' },
-      { name: 'Mediator', color: 'text-emerald-400', desc: 'Ethics & Stakeholders' }
+      { name: 'The Rationalist', color: 'text-blue-400', desc: 'Quantitative logic, ROI, and empirical benchmarks' },
+      { name: 'The Architect', color: 'text-purple-400', desc: 'Systems thinking, competitive game theory, and long-term vision' },
+      { name: 'The Realist', color: 'text-red-400', desc: 'Pre-mortem analysis, friction points, and failure modes' },
+      { name: 'The Ethicist', color: 'text-emerald-400', desc: 'Human impact, values alignment, and stakeholder integrity' }
     ]
   },
 
   // Commitment Protocol
   COMMITMENT: {
-    TITLE: "The Commitment Protocol",
-    DESCRIPTION: "Deliberation is over. To lock in your results and earn a Strategic Commitment Badge (+150 XP), you must choose your path.",
-    LABEL_PATH: "Choose Your Path",
-    LABEL_WHY: "Why are you choosing this?",
-    PLACEHOLDER_WHY: "State your reasoning. This enhances psychological commitment.",
-    BUTTON_COMMIT: "I Commit to this Decision",
-    LOCKED_TITLE: "Decision Locked",
-    BUTTON_BRANCH: "Branch to Next Step",
-    BUTTON_REEVALUATE: "Re-evaluate Path",
+    TITLE: "The Act of Intent",
+    DESCRIPTION: "The period of observation has passed. To integrate these insights, you must now move from the abstract to the concrete through a formal declaration of intent.",
+    LABEL_PATH: "The Chosen Path",
+    LABEL_WHY: "The Justification of Will",
+    PLACEHOLDER_WHY: "Articulate the reasoning that bridges your values with this specific choice...",
+    BUTTON_COMMIT: "Lock My Intent",
+    LOCKED_TITLE: "Path Declared",
+    BUTTON_BRANCH: "Evolve to Next Inquiry",
+    BUTTON_REEVALUATE: "Re-examine the Synthesis",
   },
 
   // Feedback
   FEEDBACK: {
-    TITLE: "Help us improve the Council",
-    PLACEHOLDER: "What could have been better? Be as specific as possible...",
-    SUCCESS: "Thank you for your feedback!",
-    BUTTON_SUBMIT: "Submit Feedback",
-    BUTTON_CANCEL: "Cancel",
+    TITLE: "Refining the Deliberative Quality",
+    PLACEHOLDER: "In what way did this synthesis fail to capture the necessary nuance?",
+    SUCCESS: "Your critique has been integrated into the system's history.",
+    BUTTON_SUBMIT: "Transmit Critique",
+    BUTTON_CANCEL: "Dismiss",
   },
 
   // Loading Stages
   LOADING_STAGES: [
-    "Convening the Council...",
-    "Analyzing Financials (Analyst)...",
-    "Mapping Strategy (Strategist)...",
-    "Evaluating Risks (Skeptic)...",
-    "Reviewing Ethics (Mediator)...",
-    "Synthesizing Verdict..."
+    "Gathering cognitive archetypes...",
+    "Calculating rational benchmarks...",
+    "Modeling systemic second-order effects...",
+    "Inhabiting failure modes (Pre-mortem)...",
+    "Weighting human and ethical variables...",
+    "Distilling the divergent paths into synthesis..."
   ]
 };

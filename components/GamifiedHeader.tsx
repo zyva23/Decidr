@@ -9,11 +9,11 @@ const GamifiedHeader: React.FC<GamifiedHeaderProps> = ({ xp, level }) => {
   const progress = Math.min((xp % 500) / 500 * 100, 100);
   
   const getRank = (lvl: number) => {
-    if (lvl < 3) return "Observer";
-    if (lvl < 7) return "Analyst";
-    if (lvl < 12) return "Strategist";
-    if (lvl < 20) return "Councilor";
-    return "Chairperson";
+    if (lvl < 3) return "Novice";
+    if (lvl < 7) return "Dilettante";
+    if (lvl < 12) return "Philosopher";
+    if (lvl < 20) return "Master of Reason";
+    return "The Sage";
   };
 
   const rank = getRank(level);
