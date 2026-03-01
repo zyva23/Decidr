@@ -60,9 +60,13 @@ const CommitmentPanel: React.FC<CommitmentPanelProps> = ({ options, onCommit, on
             <label className="block text-xs font-bold text-indigo-400 uppercase tracking-widest mb-3">{UI_CONTENT.COMMITMENT.LABEL_WHY}</label>
             <textarea
               value={why}
-              onChange={(e) => setWhy(e.target.value)}
+              onChange={(e) => {
+                setWhy(e.target.value);
+                e.target.style.height = 'auto';
+                e.target.style.height = e.target.scrollHeight + 'px';
+              }}
               placeholder={UI_CONTENT.COMMITMENT.PLACEHOLDER_WHY}
-              className="w-full bg-slate-950/50 border border-slate-800 rounded-xl p-4 text-white placeholder-slate-600 focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all h-32 resize-none"
+              className="w-full bg-slate-950/50 border border-slate-800 rounded-xl p-4 text-white placeholder-slate-600 focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all min-h-[120px] resize-none overflow-hidden"
             />
           </div>
 

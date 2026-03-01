@@ -1,5 +1,35 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ActionPlan, PlanPhase, PivotPoint, PlanTask } from '../types';
+
+interface AutoExpandingTextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
+  value: string;
+}
+
+const AutoExpandingTextarea: React.FC<AutoExpandingTextareaProps> = ({ value, className, ...props }) => {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const adjustHeight = () => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      textarea.style.height = 'auto';
+      textarea.style.height = `${textarea.scrollHeight}px`;
+    }
+  };
+
+  useEffect(() => {
+    adjustHeight();
+  }, [value]);
+
+  return (
+    <textarea
+      ref={textareaRef}
+      value={value}
+      rows={1}
+      className={`resize-none overflow-hidden transition-all duration-200 ${className}`}
+      {...props}
+    />
+  );
+};
 
 interface Props {
   isOpen: boolean;
@@ -83,10 +113,10 @@ const ActionPlanModal: React.FC<Props> = ({ isOpen, onClose, onSave, plan }) => 
           
           <section>
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3 ml-1">Strategy Summary</h3>
-            <textarea 
+            <AutoExpandingTextarea 
               value={localPlan.executiveSummary}
               onChange={(e) => updateSummary(e.target.value)}
-              className="w-full bg-slate-800/40 border border-slate-700/50 rounded-xl p-6 text-slate-200 leading-relaxed text-lg focus:ring-1 focus:ring-emerald-500/50 outline-none transition-all resize-none h-32"
+              className="w-full bg-slate-800/40 border border-slate-700/50 rounded-xl p-6 text-slate-200 leading-relaxed text-lg focus:ring-1 focus:ring-emerald-500/50 outline-none transition-all"
             />
           </section>
 
@@ -97,29 +127,28 @@ const ActionPlanModal: React.FC<Props> = ({ isOpen, onClose, onSave, plan }) => 
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {localPlan.pivotPoints.map((pp, idx) => (
-                <div key={idx} className="bg-slate-900 border border-slate-800 rounded-xl p-5 relative overflow-hidden group hover:border-amber-500/30 transition-all">
+                <div key={idx} className="bg-slate-900 border border-slate-800 rounded-xl p-5 relative overflow-hidden group hover:border-amber-500/30 transition-all flex flex-col">
                   <div className="mb-3">
                     <span className="text-[10px] font-bold uppercase text-amber-500/80 tracking-wide block mb-1">Trigger Condition</span>
-                    <input 
+                    <AutoExpandingTextarea 
                       value={pp.trigger}
                       onChange={(e) => updatePivot(idx, 'trigger', e.target.value)}
                       className="w-full bg-transparent text-white font-medium outline-none border-b border-transparent focus:border-amber-500/30 pb-1"
                     />
                   </div>
-                  <div className="pt-3 border-t border-slate-800">
+                  <div className="pt-3 border-t border-slate-800 flex-1">
                     <span className="text-[10px] font-bold uppercase text-slate-500 tracking-wide block mb-1">Required Reaction</span>
-                    <textarea 
+                    <AutoExpandingTextarea 
                       value={pp.reaction}
                       onChange={(e) => updatePivot(idx, 'reaction', e.target.value)}
-                      className="w-full bg-transparent text-slate-300 text-sm outline-none border-b border-transparent focus:border-amber-500/30 pb-1 resize-none"
-                      rows={2}
+                      className="w-full bg-transparent text-slate-300 text-sm outline-none border-b border-transparent focus:border-amber-500/30 pb-1"
                     />
                   </div>
-                  <div className="mt-3 flex justify-end">
+                  <div className="mt-3 flex justify-end shrink-0">
                     <input 
                       value={pp.owner}
                       onChange={(e) => updatePivot(idx, 'owner', e.target.value)}
-                      className="text-[10px] bg-slate-800 text-slate-400 px-2 py-1 rounded border border-slate-700 outline-none w-24 text-right"
+                      className="text-[10px] bg-slate-800 text-slate-400 px-2 py-1 rounded border border-slate-700 outline-none w-full text-right max-w-[120px]"
                     />
                   </div>
                 </div>
@@ -142,12 +171,12 @@ const ActionPlanModal: React.FC<Props> = ({ isOpen, onClose, onSave, plan }) => 
                   <div className="bg-slate-800/30 border border-slate-700/60 rounded-xl overflow-hidden">
                     <div className="bg-slate-800/50 p-4 border-b border-slate-700/50 flex flex-wrap gap-4 justify-between items-center">
                       <div className="flex-1 min-w-[200px]">
-                        <input 
+                        <AutoExpandingTextarea 
                           value={phase.name}
                           onChange={(e) => updatePhase(idx, 'name', e.target.value)}
                           className="w-full bg-transparent text-lg font-bold text-white outline-none focus:ring-1 focus:ring-indigo-500/30 rounded px-1"
                         />
-                        <input 
+                        <AutoExpandingTextarea 
                           value={phase.objective}
                           onChange={(e) => updatePhase(idx, 'objective', e.target.value)}
                           className="w-full bg-transparent text-sm text-indigo-300 font-medium outline-none focus:ring-1 focus:ring-indigo-500/30 rounded px-1 mt-1"
@@ -166,7 +195,7 @@ const ActionPlanModal: React.FC<Props> = ({ isOpen, onClose, onSave, plan }) => 
                            <div className="flex items-start gap-3 flex-1">
                               <div className="mt-1 w-4 h-4 rounded border border-slate-600 flex items-center justify-center shrink-0"></div>
                               <div className="flex-1">
-                                <input 
+                                <AutoExpandingTextarea 
                                   value={task.description}
                                   onChange={(e) => updateTask(idx, tIdx, 'description', e.target.value)}
                                   className="w-full bg-transparent text-slate-200 text-sm font-medium outline-none focus:border-b focus:border-indigo-500/30"
@@ -184,10 +213,10 @@ const ActionPlanModal: React.FC<Props> = ({ isOpen, onClose, onSave, plan }) => 
                            <div className="pl-7 md:pl-0">
                              <div className="flex items-center gap-2 bg-emerald-500/5 px-2 py-1 rounded border border-emerald-500/10">
                                 <span className="text-[10px] text-emerald-500/50 font-bold uppercase">KPI:</span>
-                                <input 
+                                <AutoExpandingTextarea 
                                   value={task.kpi}
                                   onChange={(e) => updateTask(idx, tIdx, 'kpi', e.target.value)}
-                                  className="bg-transparent text-xs font-mono text-emerald-400 outline-none min-w-[100px]"
+                                  className="bg-transparent text-xs font-mono text-emerald-400 outline-none min-w-[150px]"
                                 />
                              </div>
                            </div>

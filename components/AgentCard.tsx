@@ -159,7 +159,7 @@ const AgentCard: React.FC<AgentCardProps> = ({ agent, color }) => {
         </div>
 
         {/* Analysis Body */}
-        <div className="mb-6 text-slate-300 text-sm leading-relaxed flex-grow z-10 relative pl-1 whitespace-pre-wrap font-medium">
+        <div className="mb-6 text-slate-300 text-sm leading-relaxed flex-grow z-10 relative pl-1 whitespace-pre-wrap font-medium h-auto min-h-[100px]">
           {agent.analysis}
         </div>
 
