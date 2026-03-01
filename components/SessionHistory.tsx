@@ -96,13 +96,19 @@ const SessionHistory: React.FC<Props> = ({
                      <h3 className={`text-sm font-medium truncate mb-1 ${currentSessionId === session.id ? 'text-indigo-300' : 'text-slate-300 group-hover:text-white'}`}>
                       {session.input.title || "Untitled Decision"}
                      </h3>
-                     <div className="flex items-center gap-2">
+                     <div className="flex flex-wrap items-center gap-2">
                        <span className={`text-[10px] ${currentSessionId === session.id ? 'text-slate-400' : 'text-slate-500'}`}>
                          {new Date(session.timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                        </span>
-                       {session.status === 'COMPLETE' && (
+                       {session.commitment && (
+                         <span className="flex items-center gap-1 text-[10px] text-indigo-400 bg-indigo-500/10 px-1.5 rounded-sm font-bold border border-indigo-500/20">
+                           <svg xmlns="http://www.w3.org/2000/svg" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                           Intent Locked
+                         </span>
+                       )}
+                       {session.status === 'COMPLETE' && !session.commitment && (
                          <span className="flex items-center gap-1 text-[10px] text-emerald-500/80 bg-emerald-500/10 px-1.5 rounded-sm">
-                           Completed
+                           Analyzed
                          </span>
                        )}
                      </div>

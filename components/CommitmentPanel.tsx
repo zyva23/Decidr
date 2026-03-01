@@ -10,14 +10,16 @@ interface CommitmentPanelProps {
 
 const CommitmentPanel: React.FC<CommitmentPanelProps> = ({ options, onCommit, onBranch, existingCommitment }) => {
   const [selected, setSelected] = useState(existingCommitment?.selectedOption || '');
+  const [customPath, setCustomPath] = useState('');
   const [why, setWhy] = useState(existingCommitment?.justification || '');
   const [isCommitted, setIsCommitted] = useState(!!existingCommitment);
 
   const optionList = options.split('\n').filter(o => o.trim().length > 0);
 
   const handleCommit = () => {
-    if (!selected || !why) return;
-    onCommit(selected, why);
+    const finalChoice = selected === 'CUSTOM' ? customPath : selected;
+    if (!finalChoice || !why) return;
+    onCommit(finalChoice, why);
     setIsCommitted(true);
   };
 
@@ -53,7 +55,31 @@ const CommitmentPanel: React.FC<CommitmentPanelProps> = ({ options, onCommit, on
                   <div className="text-sm font-medium">{opt.replace(/^[A-Z]:\s*/i, '')}</div>
                 </button>
               ))}
+              
+              <button
+                onClick={() => setSelected('CUSTOM')}
+                className={`p-4 text-left rounded-xl border transition-all ${
+                  selected === 'CUSTOM' 
+                    ? 'bg-indigo-600 border-indigo-400 text-white shadow-lg' 
+                    : 'bg-slate-950/50 border-slate-800 text-slate-400 hover:border-slate-600'
+                }`}
+              >
+                <div className="text-xs font-bold opacity-50 mb-1">Divergent Path</div>
+                <div className="text-sm font-medium">Something else...</div>
+              </button>
             </div>
+
+            {selected === 'CUSTOM' && (
+              <div className="mt-4 animate-fade-in">
+                <input 
+                  type="text"
+                  value={customPath}
+                  onChange={(e) => setCustomPath(e.target.value)}
+                  placeholder="Describe your alternative path..."
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all shadow-inner"
+                />
+              </div>
+            )}
           </div>
 
           <div>
@@ -72,7 +98,7 @@ const CommitmentPanel: React.FC<CommitmentPanelProps> = ({ options, onCommit, on
 
           <button
             onClick={handleCommit}
-            disabled={!selected || why.length < 10}
+            disabled={!selected || (selected === 'CUSTOM' && !customPath) || why.length < 10}
             className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl shadow-xl shadow-indigo-500/20 transition-all active:scale-95"
           >
             {UI_CONTENT.COMMITMENT.BUTTON_COMMIT}
@@ -86,14 +112,14 @@ const CommitmentPanel: React.FC<CommitmentPanelProps> = ({ options, onCommit, on
               </div>
               <div>
                  <h4 className="text-emerald-400 font-bold mb-1">{UI_CONTENT.COMMITMENT.LOCKED_TITLE}</h4>
-                 <p className="text-sm text-slate-300 italic">"I have chosen: {selected.replace(/^[A-Z]:\s*/i, '')}"</p>
+                 <p className="text-sm text-slate-300 italic">"I have chosen: {selected === 'CUSTOM' ? customPath : selected.replace(/^[A-Z]:\s*/i, '')}"</p>
                  <p className="text-xs text-slate-500 mt-2">Reasoning: {why}</p>
               </div>
            </div>
 
            <div className="flex flex-col md:flex-row gap-4">
               <button
-                onClick={() => onBranch(`Based on my previous decision to ${selected}, my next step is:`)}
+                onClick={() => onBranch(`Based on my previous decision to ${selected === 'CUSTOM' ? customPath : selected}, my next step is:`)}
                 className="flex-1 py-4 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-3 border border-slate-700"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-400"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 3.5 1 8.8a7 7 0 0 1-9 9.2z"/><path d="M22 22l-5-5"/><path d="M17 22l5-5"/></svg>
@@ -101,7 +127,10 @@ const CommitmentPanel: React.FC<CommitmentPanelProps> = ({ options, onCommit, on
               </button>
               
               <button
-                onClick={() => setIsCommitted(false)}
+                onClick={() => {
+                  setIsCommitted(false);
+                  if (selected === 'CUSTOM') setSelected('CUSTOM'); // Keep custom path selected for editing
+                }}
                 className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest hover:text-slate-300 transition-colors"
               >
                 {UI_CONTENT.COMMITMENT.BUTTON_REEVALUATE}
