@@ -61,6 +61,13 @@ export interface CouncilResult {
   feedback?: 'helpful' | 'not-helpful'; // User feedback
 }
 
+export interface PartialCouncilResult {
+  analyst?: AgentResponse;
+  strategist?: AgentResponse;
+  skeptic?: AgentResponse;
+  mediator?: AgentResponse;
+}
+
 export interface BrainstormResult {
   questions: string[];
   suggestions: string[];

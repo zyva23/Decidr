@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { DecisionInput, CouncilResult, BrainstormResult, ChatMessage, ActionPlan } from "../types";
+import { DecisionInput, CouncilResult, BrainstormResult, ChatMessage, ActionPlan, PartialCouncilResult } from "../types";
 import { AnalystAgent } from "./agents/AnalystAgent";
 import { StrategistAgent } from "./agents/StrategistAgent";
 import { SkepticAgent } from "./agents/SkepticAgent";
@@ -33,9 +33,12 @@ const truncateContext = (text: string, maxChars: number = 2000): string => {
 
 /**
  * Orchestrates the "Council Deliberation".
- * Runs four specialized agents in parallel for maximum speed.
+ * Runs four specialized agents in parallel and streams results as they finish.
  */
-export async function analyzeDecision(input: DecisionInput): Promise<CouncilResult> {
+export async function analyzeDecision(
+  input: DecisionInput, 
+  onProgress?: (partial: PartialCouncilResult) => void
+): Promise<CouncilResult> {
   const optimizedInput: DecisionInput = {
     ...input,
     context: truncateContext(input.context)
@@ -51,12 +54,26 @@ export async function analyzeDecision(input: DecisionInput): Promise<CouncilResu
   const skepticAgent = new SkepticAgent(apiKey as string);
   const mediatorAgent = new MediatorAgent(apiKey as string);
 
-  // Parallel execution for maximum performance
+  // Run all agents in parallel but track individual completions
+  const analystPromise = analystAgent.run(optimizedInput).then(res => {
+    if (onProgress) onProgress({ analyst: res });
+    return res;
+  });
+  const strategistPromise = strategistAgent.run(optimizedInput).then(res => {
+    if (onProgress) onProgress({ strategist: res });
+    return res;
+  });
+  const skepticPromise = skepticAgent.run(optimizedInput).then(res => {
+    if (onProgress) onProgress({ skeptic: res });
+    return res;
+  });
+  const mediatorPromise = mediatorAgent.run(optimizedInput).then(res => {
+    if (onProgress) onProgress({ mediator: res });
+    return res;
+  });
+
   const [analyst, strategist, skeptic, mediator] = await Promise.all([
-    analystAgent.run(optimizedInput),
-    strategistAgent.run(optimizedInput),
-    skepticAgent.run(optimizedInput),
-    mediatorAgent.run(optimizedInput)
+    analystPromise, strategistPromise, skepticPromise, mediatorPromise
   ]);
 
   const prompt = `

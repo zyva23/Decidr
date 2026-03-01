@@ -6,6 +6,7 @@ import SourcesModal from './SourcesModal';
 interface AgentCardProps {
   agent: AgentResponse;
   color: 'blue' | 'purple' | 'red' | 'emerald';
+  isLoading?: boolean;
 }
 
 const colorMap = {
@@ -137,68 +138,77 @@ const AgentCard: React.FC<AgentCardProps> = ({ agent, color }) => {
         {/* Background Glow */}
         <div className={`absolute -top-24 -right-24 w-48 h-48 ${styles.glow} rounded-full blur-[80px] group-hover:blur-[60px] transition-all duration-700`}></div>
         
-        {/* Header */}
-        <div className="flex justify-between items-start mb-6 z-10 relative">
-          <div className="flex gap-4 items-center">
-            <div className="transform group-hover:scale-110 transition-transform duration-500">
-              {renderAvatar()}
-            </div>
-            <div>
-              <h3 className={`font-black text-xl tracking-tight ${styles.title}`}>{agent.name}</h3>
-              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">
-                {agent.role === 'Analyst' ? 'The Rationalist' : 
-                 agent.role === 'Strategist' ? 'The Architect' : 
-                 agent.role === 'Skeptic' ? 'The Realist' : 
-                 'The Ethicist'}
-              </p>
-            </div>
+        {isLoading ? (
+          <div className="flex flex-col h-full items-center justify-center py-12 animate-pulse">
+             <div className="mb-4">{renderAvatar()}</div>
+             <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Archetype Analyzing...</div>
           </div>
-          <div className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-tighter ${styles.badge} shadow-inner`}>
-            {agent.score} / 100
-          </div>
-        </div>
+        ) : (
+          <>
+            {/* Header */}
+            <div className="flex justify-between items-start mb-6 z-10 relative">
+              <div className="flex gap-4 items-center">
+                <div className="transform group-hover:scale-110 transition-transform duration-500">
+                  {renderAvatar()}
+                </div>
+                <div>
+                  <h3 className={`font-black text-xl tracking-tight ${styles.title}`}>{agent.name}</h3>
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">
+                    {agent.role === 'Analyst' ? 'The Rationalist' : 
+                    agent.role === 'Strategist' ? 'The Architect' : 
+                    agent.role === 'Skeptic' ? 'The Realist' : 
+                    'The Ethicist'}
+                  </p>
+                </div>
+              </div>
+              <div className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-tighter ${styles.badge} shadow-inner`}>
+                {agent.score} / 100
+              </div>
+            </div>
 
-        {/* Analysis Body */}
-        <div className="mb-6 text-slate-300 text-sm leading-relaxed flex-grow z-10 relative pl-1 whitespace-pre-wrap font-medium h-auto min-h-[100px]">
-          {agent.analysis}
-        </div>
+            {/* Analysis Body */}
+            <div className="mb-6 text-slate-300 text-sm leading-relaxed flex-grow z-10 relative pl-1 whitespace-pre-wrap font-medium h-auto min-h-[100px]">
+              {agent.analysis}
+            </div>
 
-        {/* Footer Actions */}
-        <div className="mt-auto pt-5 border-t border-slate-800/80 z-10 relative">
-          
-          {/* Key Findings */}
-          <h4 className={`text-[10px] font-black uppercase mb-3 tracking-widest ${styles.text}`}>Strategic Pillars</h4>
-          <ul className="space-y-2 mb-6">
-            {agent.keyPoints.map((point, idx) => (
-              <li key={idx} className="text-xs text-slate-400 flex items-start gap-3">
-                <span className={`mt-1.5 w-1 h-1 rounded-full flex-shrink-0 ${styles.text} bg-current`}></span>
-                <span className="group-hover:text-slate-200 transition-colors">{point}</span>
-              </li>
-            ))}
-          </ul>
+            {/* Footer Actions */}
+            <div className="mt-auto pt-5 border-t border-slate-800/80 z-10 relative">
+              
+              {/* Key Findings */}
+              <h4 className={`text-[10px] font-black uppercase mb-3 tracking-widest ${styles.text}`}>Strategic Pillars</h4>
+              <ul className="space-y-2 mb-6">
+                {agent.keyPoints.map((point, idx) => (
+                  <li key={idx} className="text-xs text-slate-400 flex items-start gap-3">
+                    <span className={`mt-1.5 w-1 h-1 rounded-full flex-shrink-0 ${styles.text} bg-current`}></span>
+                    <span className="group-hover:text-slate-200 transition-colors">{point}</span>
+                  </li>
+                ))}
+              </ul>
 
-          <div className="flex gap-3">
-            {/* Visualize Button */}
-            <button 
-                onClick={() => setIsSequenceOpen(true)}
-                className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.15em] transition-all duration-300 flex items-center justify-center gap-2 border ${styles.border} hover:bg-slate-800/80 hover:scale-[1.02] active:scale-[0.98] ${styles.text}`}
-            >
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
-                Visualize Impact
-            </button>
-
-            {/* Sources Button (Icon only) */}
-            {hasSources && (
-                <button
-                    onClick={() => setIsSourcesOpen(true)}
-                    className={`px-4 py-3 rounded-xl border ${styles.border} hover:bg-slate-800/80 ${styles.text} transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]`}
-                    title="View Research Sources"
+              <div className="flex gap-3">
+                {/* Visualize Button */}
+                <button 
+                    onClick={() => setIsSequenceOpen(true)}
+                    className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.15em] transition-all duration-300 flex items-center justify-center gap-2 border ${styles.border} hover:bg-slate-800/80 hover:scale-[1.02] active:scale-[0.98] ${styles.text}`}
                 >
-                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+                    Visualize Impact
                 </button>
-            )}
-          </div>
-        </div>
+
+                {/* Sources Button (Icon only) */}
+                {hasSources && (
+                    <button
+                        onClick={() => setIsSourcesOpen(true)}
+                        className={`px-4 py-3 rounded-xl border ${styles.border} hover:bg-slate-800/80 ${styles.text} transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]`}
+                        title="View Research Sources"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    </button>
+                )}
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       <SequenceModal 

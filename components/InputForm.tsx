@@ -255,12 +255,14 @@ const InputForm: React.FC<InputFormProps> = ({ initialValues, onSubmit, isLoadin
               </button>
 
             {brainstormLoading ? (
-              <div className="flex items-center gap-3 text-indigo-300 py-4 justify-center">
-                <div className="relative w-4 h-4">
-                  <div className="absolute inset-0 bg-indigo-400 rounded-full animate-ping opacity-75"></div>
-                  <div className="relative w-4 h-4 bg-indigo-500 rounded-full"></div>
+              <div className="flex flex-col items-center gap-3 text-indigo-300 py-8 justify-center animate-pulse">
+                <div className="relative w-10 h-10">
+                  <div className="absolute inset-0 bg-indigo-400 rounded-full animate-ping opacity-25"></div>
+                  <div className="relative w-10 h-10 bg-indigo-500/20 border border-indigo-500/50 rounded-full flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
+                  </div>
                 </div>
-                <span className="text-sm font-medium">Consulting strategy engine...</span>
+                <span className="text-xs font-black uppercase tracking-widest text-indigo-400/70">Consulting collective intelligence...</span>
               </div>
             ) : brainstormData ? (
               <div className="space-y-4">
