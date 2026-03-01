@@ -114,7 +114,7 @@ const MediatorAvatar = () => (
   </svg>
 );
 
-const AgentCard: React.FC<AgentCardProps> = ({ agent, color }) => {
+const AgentCard: React.FC<AgentCardProps> = ({ agent, color, isLoading }) => {
   const styles = colorMap[color];
   const [isSequenceOpen, setIsSequenceOpen] = useState(false);
   const [isSourcesOpen, setIsSourcesOpen] = useState(false);
