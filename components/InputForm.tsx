@@ -197,80 +197,94 @@ const InputForm: React.FC<InputFormProps> = ({ initialValues, onSubmit, isLoadin
         options: 'Path A: Purchase the residence (Commitment to Stability). Path B: Continue renting and deploy capital into high-growth liquid indices (Wealth focus). Path C: Rent-to-own or buy a smaller "starter" property in a less central area (Hedged approach).' 
       },
       { 
-        label: 'Marriage', 
-        title: 'Formalizing a Partnership: Legal Fortification vs. Evolving Bond', 
-        context: 'We have been in a committed relationship for five years. We function effectively as a unit, yet the question of legal marriage remains a point of friction. One partner views marriage as a necessary ritual of social and legal fortification; the other views it as an outdated bureaucratic overlay on a naturally evolving emotional bond. We are debating if the legal protections (inheritance, taxes, medical) outweigh the perceived loss of individual autonomy and the risk of "institutionalizing" the romance.', 
-        constraints: 'Pressure from extended family is mounting. Disparity in individual assets and debt. Potential for international relocation requiring dependent visas.', 
-        options: 'Path A: Legal marriage with a robust pre-nuptial agreement. Path B: Maintain the status quo (Organic Commitment). Path C: A non-legal symbolic ceremony to satisfy social expectations without state involvement.' 
+        label: 'Parenthood', 
+        title: 'Initiating Parenthood: Expanding the Family Unit', 
+        context: 'We are contemplating having our first child. We both value our current autonomy, deep focus on professional projects, and the ability to travel spontaneously. However, we feel a growing desire for the profound meaning and biological legacy of parenthood. The friction is between the "infinite responsibility" of a child and the "finite freedom" of our current lifestyle. We worry about the impact on our relationship synergy and individual career trajectories.', 
+        constraints: 'Current annual income is stable but childcare costs in our city are $3k/mo. No extended family nearby for support. Biological window is a factor.', 
+        options: 'Path A: Begin trying for a child now (Total Lifestyle Shift). Path B: Freeze embryos/eggs to extend the window by 3 years. Path C: Defer for 18 months to hit a specific financial/career milestone.' 
       },
       { 
-        label: 'Getting a Dog', 
-        title: 'Integrating a Canine Companion into a High-Performance Lifestyle', 
-        context: 'I desire the emotional grounding and discipline that comes with caring for a dog. However, my life is characterized by frequent travel and erratic working hours. I am weighing the joy of companionship against the logistical complexity of pet care, the financial overhead of boarding, and the potential reduction in my spontaneous mobility. The friction lies in whether I can actually adapt my lifestyle or if the dog will suffer from my ambition.', 
-        constraints: 'Living in a 700 sq ft apartment without private outdoor access. Travel occurs 1-2 times per month. Total pet care budget capped at $400/mo.', 
-        options: 'Path A: Adopt a high-energy rescue (Commitment to Lifestyle Shift). Path B: Foster a dog temporarily to test integration. Path C: Defer adoption until professional stability increases.' 
+        label: 'Relationships', 
+        title: 'Terminating a Long-Term Partnership vs. Salvaging Resonance', 
+        context: 'I have been in a partnership for seven years. While there is deep history and mutual respect, the "shared vision" has begun to diverge significantly. We are operating on different emotional frequencies. I am debating whether to end the relationship to allow both parties to find true resonance elsewhere, or to commit to intensive reparative work. The friction is the "sunk cost" of our history vs. the "opportunity cost" of my future happiness.', 
+        constraints: 'Shared lease and social circle. One partner is currently going through a professional crisis. Emotional exhaustion is high.', 
+        options: 'Path A: Initiate a conscious decoupling (The Clean Break). Path B: Commit to a 6-month intensive "Relational Sabbatical" with therapy. Path C: Trial a temporary separation to test the value of independence.' 
+      },
+      { 
+        label: 'Risking a Connection', 
+        title: 'The "Direct Ask": Transitioning a Friendship to Romance', 
+        context: 'I have developed deep feelings for a close friend. Our current dynamic is restorative and safe. I want to ask them out, but I recognize the high "frictional risk": if they don\'t reciprocate, the friendship may become too awkward to sustain. If I stay silent, I am living in a state of emotional repression. The friction is between the safety of the status quo and the speculative leap into romance.', 
+        constraints: 'We are part of a tight-knit weekly social group. They recently ended another relationship. I value their presence in my life regardless of the outcome.', 
+        options: 'Path A: The Direct Disclosure (High Risk/High Reward). Path B: Subtle escalation of physical/emotional proximity (The Test). Path C: Compartmentalization (Commitment to the Friendship).' 
       }
     ],
     'Career': [
       { 
-        label: 'Startup Offer', 
-        title: 'Accepting a Senior Role at a Stealth Startup vs. Big Tech Stability', 
-        context: 'I am currently at a Tier-1 Tech firm with high compensation and low risk. A stealth-stage startup has offered me a Senior Role with significant equity. The startup has high-quality founders but no guaranteed product-market fit. I am deciding between the "guaranteed" path of institutional wealth and the "speculative" path of category-defining impact. The friction is between my current comfort and my long-term career hunger.', 
-        constraints: 'Startup runway is only 14 months. Equity cliff is 1 year. I have a mortgage and young children.', 
-        options: 'Path A: Accept the startup role (High-Beta Growth). Path B: Stay at current firm and seek a more challenging internal transfer (Safety). Path C: Negotiate an advisory role at the startup first.' 
+        label: 'Starting a Company', 
+        title: 'Founding a Venture: From Professional Security to Entrepreneurial Risk', 
+        context: 'I have a validated idea for a new category of service. I am currently in a high-paying executive role. I am debating whether to resign and "burn the boats" to build this company or to stay in the safety of my career. The friction is between the "known ceiling" of my current path and the "unknown floor" of a startup. I hunger for the ownership, but fear the isolation and high failure rate of early-stage ventures.', 
+        constraints: 'Personal runway: 12 months. No current outside funding. My spouse values financial stability highly.', 
+        options: 'Path A: Resign and fund the MVP from savings (All-in). Path B: Build the MVP as a "Side-Quest" for 6 months while working. Path C: Seek a lead investor before resigning.' 
       },
       { 
-        label: 'Founder to CEO', 
-        title: 'Succession Planning: Transitioning from Founder to Professional Management', 
-        context: 'I have led this organization from inception to 200 employees. I recognize that my "wartime" founder instincts are beginning to create friction with the operational excellence now required. I worry that stepping back will dilute the original soul of the company, but staying in the CEO role may bottleneck our maturity. It is a deliberation on ego vs. institutional longevity.', 
-        constraints: 'Board of Directors expects a 12-month transition. Internal candidates are sensitive to external hires. I must maintain a majority stake.', 
-        options: 'Path A: Hire an external veteran CEO (Disruption). Path B: Promote the current COO (Continuity). Path C: Adopt a Co-CEO model for 18 months (Gradualism).' 
+        label: 'Industry Pivot', 
+        title: 'Changing Industry: Transferring Human Capital to a New Domain', 
+        context: 'I have 10 years of expertise in a traditional industry (e.g., Finance). I want to pivot into a frontier domain (e.g., Climate Tech). I am willing to take a pay cut for higher meaning, but I worry about "re-entry friction" and being perceived as a novice despite my senior years. The friction is between my "vertical expertise" and my "existential alignment."', 
+        constraints: 'Domain-specific knowledge gaps. Current professional network is 90% in the old industry. Need to maintain 70% of current salary.', 
+        options: 'Path A: Aggressive Pivot (Accept a mid-level role in the new domain). Path B: The "Bridge" Strategy (Consult in the new domain using old skills). Path C: Academic Reset (Masters or specialized bootcamp).' 
       },
       { 
-        label: 'Therapy', 
-        title: 'Initiating Psychotherapeutic Inquiry for Preventive Maintenance', 
-        context: 'I am not in a state of crisis, but I recognize recurring patterns of stress and a subtle "existential drift." I am considering hiring a high-performance therapist to map my cognitive biases. The deliberation is whether this investment of time and capital is more effective than self-directed practices like meditation. The friction is my skepticism toward "talk therapy" vs. my desire for deeper self-awareness.', 
-        constraints: 'Quality practitioners have a 3-month waitlist. Out-of-pocket cost is $250/hour. Time commitment: 2 hours/week including travel.', 
-        options: 'Path A: Begin weekly sessions (Professional Guidance). Path B: Structured self-optimization through journaling and philosophy. Path C: Group-based support or high-level masterminds.' 
+        label: 'Internal Shift', 
+        title: 'Changing Role: Individual Contributor to Management', 
+        context: 'I am a top-tier Individual Contributor (IC). I have been offered a Management role. I enjoy the "craft" of the work, but I recognize that leverage only comes through leading others. I fear the loss of "flow state" in my craft and the friction of navigating organizational politics. The friction is between my love for the "how" and the necessity of the "who."', 
+        constraints: 'Management role comes with a 20% raise. Team is currently under-performing. No prior formal management training.', 
+        options: 'Path A: Accept the role (The Leadership Leap). Path B: Stay as a Principal IC (The Craft Path). Path C: Trial management for a "Bridge Project" before committing.' 
       }
     ],
     'Business': [
       { 
-        label: 'The Big Pivot', 
-        title: 'Pivoting from a Service Agency to a Product-Led SaaS Company', 
-        context: 'Our agency is profitable but we are trading hours for dollars. We have built an internal tool that solves a client pain point and we want to turn it into a SaaS product. This requires a total shift in DNA—from "yes-man" service culture to "no-man" product engineering. It means potentially firing current high-revenue clients to focus on a high-margin future that isnt guaranteed.', 
-        constraints: 'Current cash runway: 8 months if we stop agency work. 60% of current staff have a service mindset, not a product mindset.', 
-        options: 'Path A: All-in pivot (The "Burn the Boats" strategy). Path B: Run both models in parallel (The Slow Transition). Path C: Spin out the software as a separate entity with new funding.' 
+        label: 'Picking a Cofounder', 
+        title: 'Selecting a Strategic Partner: Competence vs. Compatibility', 
+        context: 'I am looking for a technical cofounder for my venture. I have two candidates: Candidate A is a world-class engineer with a difficult personality; Candidate B is a strong engineer who is perfectly aligned with my values. The friction is between "technical velocity" and "relational stability." I know that cofounder conflict is the #1 killer of startups, but so is slow execution.', 
+        constraints: 'Need to ship the alpha in 3 months. Equity split must be determined now. Both candidates have competing offers.', 
+        options: 'Path A: Select Candidate A (Velocity focus). Path B: Select Candidate B (Culture focus). Path C: Work with both on a 2-week "Trial Sprint" before choosing.' 
       },
       { 
-        label: 'EU Expansion', 
-        title: 'Market Entry: Scaling Operations into the European Market', 
-        context: 'We have seen significant organic growth from EU-based users. Expanding requires setting up a legal entity, navigating GDPR at a deeper level, and hiring local staff. The friction is the massive operational overhead and cultural nuance of the European market vs. the efficiency of staying focused on the US. Is the TAM expansion worth the complexity?', 
-        constraints: 'Initial expansion budget: $500k. Regulatory landscape is shifting. Competitive local players are well-entrenched.', 
-        options: 'Path A: Direct entry with a London or Berlin hub. Path B: Partnership with a local distributor (Low-Cap). Path C: Digital-only expansion with local currency support.' 
+        label: 'US Market Entry', 
+        title: 'Geographic Expansion: Launching into the US Market', 
+        context: 'Our product is dominant in its local market. We are ready for US entry. This requires a massive capital outlay, potential relocation of the leadership team, and competing in the most aggressive market on earth. The friction is between the "safe local fortress" and the "speculative global dominance." If we fail, we may bankrupt the local entity.', 
+        constraints: 'Expansion budget: $2M. US competitors are 10x our size in funding. Regulatory hurdles are complex.', 
+        options: 'Path A: Full US Launch (Relocate CEO, high spend). Path B: Digital-only "Beachhead" strategy. Path C: Partnership with a US-based incumbent.' 
+      },
+      { 
+        label: 'Integrating AI', 
+        title: 'Technological Evolution: Adding Generative AI to the Core Product', 
+        context: 'We are a legacy SaaS platform. We need to integrate AI to remain relevant. I am debating whether to build our own proprietary models (high cost/moat) or to simply wrap an existing API (low cost/low moat). The friction is between "long-term defensibility" and "short-term speed-to-market." I worry that a "wrapper" is a commodity, but building from scratch will drain our resources.', 
+        constraints: 'Engineering team has limited LLM experience. Investors are demanding an AI roadmap by Q3. High inference cost risk.', 
+        options: 'Path A: Build a custom fine-tuned layer (Defensibility). Path B: Rapid API Integration (Speed). Path C: Acquire a small AI-native startup to integrate their tech.' 
       }
     ],
-    'Spiritual & Philosophical': [
+    'Life & Legacy': [
+      { 
+        label: 'Protest & Activism', 
+        title: 'The Act of Dissent: Participating in High-Stakes Civic Protest', 
+        context: 'A systemic issue has reached a breaking point. I feel a moral imperative to participate in a high-visibility protest. However, I occupy a professional role that values "neutrality," and my participation may result in reputational friction or job loss. The friction is between my "civic duty" and my "professional safety." Is the impact of my presence worth the risk to my livelihood?', 
+        constraints: 'Company has a strict social media/public conduct policy. I am the primary earner for my family. The movement is controversial in my local community.', 
+        options: 'Path A: Full Public Participation (Maximum Impact). Path B: "Silent Support" (Financial contribution/backstage help). Path C: Institutional Reform (Work for change from within my current role).' 
+      },
+      { 
+        label: 'The Voting Choice', 
+        title: 'Strategic Voting: Principal Alignment vs. Pragmatic Outcomes', 
+        context: 'In an upcoming election, I am torn between a candidate who perfectly aligns with my values but has no chance of winning (The Idealist) and a candidate who is deeply flawed but can win and block a catastrophic alternative (The Pragmatist). The friction is between the "purity of my vote" and the "utility of the outcome." Am I a participant in a system or a witness to it?', 
+        constraints: 'First-past-the-post voting system. High stakes for my specific industry. Family is split on the choice.', 
+        options: 'Path A: Vote for the Idealist (Moral Alignment). Path B: Vote for the Pragmatist (Damage Control). Path C: Abstention as a form of protest.' 
+      },
       { 
         label: 'Sabbatical', 
         title: 'A 3-Month Sabbatical: Experiential Expansion vs. Career Momentum', 
-        context: 'I have been working at a high intensity for six years. I feel a deep need for a "reset"—a solo journey through Southeast Asia to reconnect with my values. However, I am concerned that stepping out of the market now will result in "re-entry friction" and the loss of a promotion track that is currently opening up. Is the experiential wealth of travel worth the potential career deceleration?', 
+        context: 'I have been working at a high intensity for six years. I feel a deep need for a "reset"—a 3-month solo journey through Southeast Asia to reconnect with my values. However, I am concerned that stepping out of the market now will result in "re-entry friction" and the loss of a promotion track that is currently opening up. Is the experiential wealth of travel worth the potential career deceleration?', 
         constraints: 'Total cost $15k. The industry is undergoing rapid AI-driven shifts. My current manager can only guarantee my role for 4 weeks of absence.', 
         options: 'Path A: Take the full 3-month sabbatical (Total Reset). Path B: A 2-week intensive "mini-break" followed by a role change. Path C: Negotiate a remote-work sabbatical (Digital Nomadism).' 
-      },
-      { 
-        label: 'Ethical Dilemma', 
-        title: 'Whistleblowing vs. Internal Reform: Navigating Systemic Misalignment', 
-        context: 'I have discovered a systemic issue in my organization that violates my personal ethics but is technically legal within current regulations. I am weighing the impact of public disclosure (Whistleblowing) against the potential for slow, internal change. Whistleblowing may protect the public but will certainly end my career in this niche. Internal reform is safer but may be futile.', 
-        constraints: 'Signed a restrictive NDA. Only 6 months of liquid savings. High risk of industry blacklisting.', 
-        options: 'Path A: Public disclosure (Transparency). Path B: Lead an internal "Quiet Reform" effort. Path C: Resign quietly and distance yourself (Neutrality).' 
-      },
-      { 
-        label: 'Digital Minimalism', 
-        title: 'Deleting All Social Media Presence to Reclaim Cognitive Focus', 
-        context: 'I feel my focus is being fragmented by algorithmic attention-traps. I am considering a total digital "blackout" to reclaim my mind. However, I worry about professional irrelevance and social isolation. The friction is between my "existential focus" and my "professional reach." Can I survive in the modern economy without a digital avatar?', 
-        constraints: 'Professional network relies heavily on LinkedIn. Family lives abroad and uses social platforms for connection.', 
-        options: 'Path A: Total account deletion (The Radical Break). Path B: Extreme curation (Remove all mobile apps, desktop-only). Path C: Scheduled usage (1 hour per week strictly).' 
       }
     ]
   };
