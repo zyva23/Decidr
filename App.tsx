@@ -239,7 +239,16 @@ const DecidrApp: React.FC = () => {
   const handleSignOut = async () => {
     if (user) logActivity(user.id, 'logout');
     if (auth) await signOut(auth);
-    setIsGuestMode(false); setUser(null);
+    setIsGuestMode(false);
+    setUser(null);
+    setSessions([]);
+    setCurrentSessionId(null);
+    setResult(null);
+    setPartialResult(null);
+    setStatus(AnalysisStatus.IDLE);
+    setCredits(0);
+    setXp(0);
+    setLevel(1);
   };
 
   if (isAuthChecking) {
