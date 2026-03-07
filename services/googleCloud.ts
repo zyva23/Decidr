@@ -1,6 +1,6 @@
 import { initializeApp, getApp, getApps } from "firebase/app";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
-import { getFirestore, collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { getFirestore, collection, addDoc, serverTimestamp, doc, getDoc, setDoc } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: process.env.VITE_FIREBASE_API_KEY,
@@ -71,6 +71,34 @@ export const saveToWaitlist = async (email: string, userId?: string) => {
     });
   } catch (e) {
     console.error("Waitlist Error:", e);
+  }
+};
+
+export const getUserProfile = async (userId: string): Promise<{xp: number, level: number} | null> => {
+  if (!db) return null;
+  try {
+    const docRef = doc(db, "profiles", userId);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      return docSnap.data() as {xp: number, level: number};
+    }
+    return null;
+  } catch (e) {
+    console.error("Error fetching profile:", e);
+    return null;
+  }
+};
+
+export const saveUserProfile = async (userId: string, xp: number, level: number) => {
+  if (!db) return;
+  try {
+    await setDoc(doc(db, "profiles", userId), {
+      xp,
+      level,
+      updatedAt: serverTimestamp()
+    }, { merge: true });
+  } catch (e) {
+    console.error("Error saving profile:", e);
   }
 };
 
