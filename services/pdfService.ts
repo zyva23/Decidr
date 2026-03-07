@@ -1,7 +1,11 @@
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
-import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
+import * as pdfjsLib from 'pdfjs-dist';
 import { CouncilResult, DecisionInput, ActionPlan } from '../types';
+
+// IMPORTANT: Set the worker source explicitly using a version-locked CDN.
+// For version 4.4.168, we use the .mjs worker.
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@4.4.168/build/pdf.worker.min.mjs`;
 
 /**
  * PDF SERVICE
@@ -9,21 +13,37 @@ import { CouncilResult, DecisionInput, ActionPlan } from '../types';
  */
 
 export async function extractTextFromPDF(file: File): Promise<string> {
-  const arrayBuffer = await file.arrayBuffer();
-  const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
-  const pdf = await loadingTask.promise;
-  let fullText = '';
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    // Use the TypedArray directly
+    const loadingTask = pdfjsLib.getDocument({ 
+      data: new Uint8Array(arrayBuffer),
+      useWorkerFetch: false,
+      isEvalSupported: false 
+    });
+    
+    const pdf = await loadingTask.promise;
+    let fullText = '';
 
-  for (let i = 1; i <= pdf.numPages; i++) {
-    const page = await pdf.getPage(i);
-    const textContent = await page.getTextContent();
-    const pageText = textContent.items
-      .map((item: any) => item.str)
-      .join(' ');
-    fullText += pageText + '\n';
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const textContent = await page.getTextContent();
+      const pageText = textContent.items
+        .map((item: any) => item.str)
+        .join(' ');
+      fullText += pageText + '\n';
+    }
+
+    if (!fullText.trim()) {
+      throw new Error("No text content found in PDF. It might be a scanned image.");
+    }
+
+    return fullText;
+  } catch (error: any) {
+    console.error("Detailed PDF Extraction Error:", error);
+    // Rethrow to be caught by the UI
+    throw error;
   }
-
-  return fullText;
 }
 
 export async function generateDecisionPDF(input: DecisionInput, result: CouncilResult, actionPlan?: ActionPlan) {

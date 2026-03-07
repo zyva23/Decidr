@@ -53,9 +53,10 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ onDocumentsChange }) =>
       const updated = [...attachments, newAttachment];
       setAttachments(updated);
       onDocumentsChange(updated);
-    } catch (error) {
+    } catch (error: any) {
       console.error('File processing error:', error);
-      alert(UI_CONTENT.FORM.MESSAGES.FILE_ERROR);
+      const msg = error.message || UI_CONTENT.FORM.MESSAGES.FILE_ERROR;
+      alert(msg.includes('resisted extraction') ? msg : `${UI_CONTENT.FORM.MESSAGES.FILE_ERROR} (${msg})`);
     } finally {
       setIsUploading(false);
       setProgress('');
