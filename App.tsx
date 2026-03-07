@@ -13,7 +13,7 @@ import CommitmentPanel from './components/CommitmentPanel';
 import Auth from './components/Auth';
 import { UI_CONTENT } from './src/constants/uiContent';
 import { analyzeDecision, generateActionPlan } from './services/geminiService';
-import { saveSession, getSessions, deleteSession } from './services/storageService';
+import { saveSession, getSessions, deleteSession, getLocalSessions } from './services/storageService';
 import { auth, logActivity, onAuthStateChanged, signOut, isGCPConfigured, saveDetailedFeedback } from './services/googleCloud';
 import { generateDecisionPDF } from './services/pdfService';
 import { DecisionInput, CouncilResult, AnalysisStatus, DecisionSession, ChatMessage, UserProfile, ActionPlan, PartialCouncilResult } from './types';
