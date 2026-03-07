@@ -121,7 +121,6 @@ const InputForm: React.FC<InputFormProps> = ({ initialValues, onSubmit, isLoadin
   const handleLinkHistory = (session: DecisionSession) => {
     setInput(prev => ({
       ...prev,
-      title: `Evolved: ${session.input.title}`,
       parentId: session.id,
       context: `Continuing from my previous deliberation on "${session.input.title}". Selected path was: ${session.commitment?.selectedOption || 'Not locked'}.\n\nNew developments: `
     }));

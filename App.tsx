@@ -173,11 +173,18 @@ const DecidrApp: React.FC = () => {
     if (user) logActivity(user.id, 'commitment_made', { selected, title: session.input.title });
   };
 
-  const handleBranch = (newContext: string) => {
-    const parentId = currentSessionId || undefined;
-    startNewSession();
-    setInputValues(prev => ({ title: `Evolved: ${prev.title}`, context: `${newContext} `, constraints: prev.constraints, options: '', parentId: parentId }));
-  };
+    const handleBranch = (newContext: string) => {
+      const parentId = currentSessionId || undefined;
+      const oldTitle = inputValues.title;
+      startNewSession();
+      setInputValues(prev => ({ 
+        title: oldTitle, 
+        context: `${newContext} `, 
+        constraints: prev.constraints, 
+        options: '',
+        parentId: parentId
+      }));
+    };
 
   const handleDevelopPlan = async () => {
     if (!result || !inputValues) return;
