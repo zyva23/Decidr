@@ -4,10 +4,19 @@ import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadius
 import { RadarMetrics } from '../types';
 
 interface RadarVizProps {
-  metrics: RadarMetrics;
+  metrics?: RadarMetrics;
 }
 
 const RadarViz: React.FC<RadarVizProps> = ({ metrics }) => {
+  if (!metrics) {
+    return (
+      <div className="w-full h-full flex flex-col items-center justify-center text-slate-600 animate-pulse">
+        <div className="w-32 h-32 rounded-full border-4 border-dashed border-slate-800 mb-4" />
+        <span className="text-[10px] font-black uppercase tracking-widest">Mapping metrics...</span>
+      </div>
+    );
+  }
+
   const data = [
     { subject: 'Risk', A: metrics.risk || 0, fullMark: 100 },
     { subject: 'Speed', A: metrics.speed || 0, fullMark: 100 },

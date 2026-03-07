@@ -166,7 +166,7 @@ const App: React.FC = () => {
   const handleBranch = (newContext: string) => {
     startNewSession();
     setInputValues(prev => ({ 
-      title: `Step 2: Following ${prev.title}`, 
+      title: `Evolved: ${prev.title}`, 
       context: `${newContext} `,
       constraints: prev.constraints,
       options: '' 
@@ -225,6 +225,7 @@ const App: React.FC = () => {
     setCurrentSessionId(null);
     setInputValues({ title: '', context: '', constraints: '', options: '' });
     setResult(null);
+    setPartialResult(null);
     setChatHistory([]);
     setStatus(AnalysisStatus.IDLE);
     setIsChatOpen(false);
@@ -239,6 +240,7 @@ const App: React.FC = () => {
     setCurrentSessionId(session.id);
     setInputValues(session.input);
     setResult(session.result);
+    setPartialResult(null);
     setChatHistory(session.chatHistory || []);
     setStatus(session.status);
     setIsChatOpen(false);
@@ -405,124 +407,71 @@ const App: React.FC = () => {
           isResultReady={status === AnalysisStatus.COMPLETE}
           left={<InputForm initialValues={inputValues} onSubmit={handleAnalysis} isLoading={status === AnalysisStatus.ANALYZING} />}
           right={
-                        <div className="h-full">
-                          {(status === AnalysisStatus.COMPLETE || status === AnalysisStatus.ANALYZING) && (result || partialResult) && (
-                            <div className="space-y-6 animate-fade-in pb-12">
-                              
-                              {/* Show synthesis ONLY when complete, otherwise show a skeleton */}
-                              {status === AnalysisStatus.COMPLETE && result ? (
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                  {/* Final Verdict Synthesis */}
-                                  <div className="md:col-span-2 bg-gradient-to-br from-indigo-900/40 to-slate-900/40 border border-indigo-500/30 rounded-xl p-8 flex flex-col shadow-2xl">
-                                    <h2 className="text-indigo-300 text-xs font-bold uppercase tracking-widest mb-4">{UI_CONTENT.RESULTS.FINAL_VERDICT}</h2>
-                                    <h3 className="text-3xl font-black text-white mb-4 leading-tight">{result.synthesis.verdict}</h3>
-                                    <p className="text-slate-300 leading-relaxed text-lg mb-8">{result.synthesis.recommendation}</p>
-                                    <div className="flex flex-wrap gap-3 mt-auto">
-                                      <button 
-                                        onClick={() => setIsChatOpen(true)} 
-                                        title={UI_CONTENT.RESULTS.CONSULT_COUNCIL}
-                                        className="p-3 bg-white text-slate-950 rounded-xl active:scale-95 transition-all hover:bg-slate-100 flex items-center justify-center group"
-                                      >
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 21 1.9-5.7a8.5 8.5 0 1 1 3.8 3.8z"/></svg>
-                                        <span className="max-w-0 overflow-hidden group-hover:max-w-xs group-hover:ml-2 transition-all duration-300 font-bold whitespace-nowrap">{UI_CONTENT.RESULTS.CONSULT_COUNCIL}</span>
-                                      </button>
-            
-                                      <button 
-                                        onClick={() => setIsElaborationOpen(!isElaborationOpen)} 
-                                        title={isElaborationOpen ? `Hide ${UI_CONTENT.RESULTS.ELABORATION}` : `View ${UI_CONTENT.RESULTS.ELABORATION}`}
-                                        className={`p-3 border rounded-xl active:scale-95 transition-all flex items-center justify-center group ${isElaborationOpen ? 'bg-indigo-600 border-indigo-400 text-white' : 'border-indigo-500/50 text-indigo-300 hover:bg-indigo-500/10'}`}
-                                      >
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
-                                        <span className="max-w-0 overflow-hidden group-hover:max-w-xs group-hover:ml-2 transition-all duration-300 font-bold whitespace-nowrap">{isElaborationOpen ? UI_CONTENT.RESULTS.HIDE : UI_CONTENT.RESULTS.ELABORATION}</span>
-                                      </button>
-            
-                                      <button 
-                                        onClick={handleDevelopPlan} 
-                                        disabled={isGeneratingPlan}
-                                        title={`Develop ${UI_CONTENT.RESULTS.PLANNING} Plan`}
-                                        className="p-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl active:scale-95 flex items-center justify-center transition-all disabled:opacity-50 group"
-                                      >
-                                        {isGeneratingPlan ? (
-                                          <svg className="animate-spin h-6 w-6" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
-                                        ) : (
-                                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line><path d="m9 16 2 2 4-4"/></svg>
-                                        )}
-                                        <span className="max-w-0 overflow-hidden group-hover:max-w-xs group-hover:ml-2 transition-all duration-300 font-bold whitespace-nowrap">{UI_CONTENT.RESULTS.PLANNING}</span>
-                                      </button>
-            
-                                      <button 
-                                        onClick={handleExportPDF} 
-                                        disabled={isExporting}
-                                        title={UI_CONTENT.RESULTS.EXPORT}
-                                        className="p-3 border border-indigo-500/50 text-indigo-300 hover:bg-indigo-500/10 rounded-xl active:scale-95 flex items-center justify-center transition-all disabled:opacity-50 group"
-                                      >
-                                        {isExporting ? (
-                                          <svg className="animate-spin h-5 w-5 text-indigo-300" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                          </svg>
-                                        ) : (
-                                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                                        )}
-                                        <span className="max-w-0 overflow-hidden group-hover:max-w-xs group-hover:ml-2 transition-all duration-300 font-bold whitespace-nowrap">{UI_CONTENT.RESULTS.EXPORT}</span>
-                                      </button>
-                                      <div className="ml-auto flex items-center gap-2">
-                                         <button onClick={() => handleFeedback('helpful')} className={`p-3 rounded-xl border ${result?.feedback === 'helpful' ? 'bg-emerald-500 border-emerald-400 text-white' : 'bg-slate-800 border-slate-700 text-slate-500'}`}>
-                                           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M7 10v12"></path><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2h0a3.13 3.13 0 0 1 3 3.88Z"></path></svg>
-                                         </button>
-                                         <button onClick={() => handleFeedback('not-helpful')} className={`p-3 rounded-xl border ${result?.feedback === 'not-helpful' ? 'bg-red-500 border-red-400 text-white' : 'bg-slate-800 border-slate-700 text-slate-500'}`}>
-                                           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 14V2"></path><path d="M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79-1.11L12 22h0a3.13 3.13 0 0 1-3-3.88Z"></path></svg>
-                                         </button>
-                                      </div>
-                                    </div>
-            
-                                    {showFeedbackForm && (
-                                      <div className="mt-6 p-6 bg-slate-900/50 border border-slate-800 rounded-xl animate-fade-in">
-                                        {feedbackSubmitted ? (
-                                          <div className="text-emerald-400 font-bold flex items-center gap-2">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                                            {UI_CONTENT.FEEDBACK.SUCCESS}
-                                          </div>
-                                        ) : (
-                                          <>
-                                            <h4 className="text-sm font-bold text-slate-400 mb-3 uppercase tracking-widest">{UI_CONTENT.FEEDBACK.TITLE}</h4>
-                                            <textarea 
-                                              value={feedbackComment}
-                                              onChange={(e) => setFeedbackComment(e.target.value)}
-                                              placeholder={UI_CONTENT.FEEDBACK.PLACEHOLDER}
-                                              className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white placeholder-slate-600 focus:ring-1 focus:ring-indigo-500 outline-none transition-all h-24 resize-none mb-3 text-sm"
-                                            />
-                                            <div className="flex justify-end gap-3">
-                                               <button onClick={() => setShowFeedbackForm(false)} className="text-xs font-bold text-slate-500 uppercase px-4 py-2">{UI_CONTENT.FEEDBACK.BUTTON_CANCEL}</button>
-                                               <button 
-                                                onClick={submitDetailedFeedback}
-                                                disabled={!feedbackComment.trim()}
-                                                className="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-bold rounded-lg uppercase tracking-widest transition-all"
-                                               >
-                                                 {UI_CONTENT.FEEDBACK.BUTTON_SUBMIT}
-                                               </button>
-                                            </div>
-                                          </>
-                                        )}
-                                      </div>
-                                    )}
-                                  </div>
-                                  {/* Visual Data Radar */}
-                                  <div className="bg-slate-900/40 border border-slate-800 rounded-xl p-6 flex items-center justify-center">
-                                    <RadarViz metrics={result.synthesis.metrics} />
-                                  </div>
+            <div className="h-full overflow-y-auto custom-scrollbar">
+              {(status === AnalysisStatus.COMPLETE || status === AnalysisStatus.ANALYZING) && (result || partialResult) && (
+                <div className="space-y-6 animate-fade-in pb-12">
+                  
+                  {/* Synthesis Area */}
+                  {status === AnalysisStatus.COMPLETE && result ? (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div className="md:col-span-2 bg-gradient-to-br from-indigo-900/40 to-slate-900/40 border border-indigo-500/30 rounded-xl p-8 flex flex-col shadow-2xl">
+                        <h2 className="text-indigo-300 text-xs font-bold uppercase tracking-widest mb-4">{UI_CONTENT.RESULTS.FINAL_VERDICT}</h2>
+                        <h3 className="text-3xl font-black text-white mb-4 leading-tight">{result.synthesis?.verdict || "Synthesizing..."}</h3>
+                        <p className="text-slate-300 leading-relaxed text-lg mb-8">{result.synthesis?.recommendation}</p>
+                        <div className="flex flex-wrap gap-3 mt-auto">
+                          <button onClick={() => setIsChatOpen(true)} title={UI_CONTENT.RESULTS.CONSULT_COUNCIL} className="p-3 bg-white text-slate-950 rounded-xl active:scale-95 transition-all hover:bg-slate-100 flex items-center justify-center group">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 21 1.9-5.7a8.5 8.5 0 1 1 3.8 3.8z"/></svg>
+                            <span className="max-w-0 overflow-hidden group-hover:max-w-xs group-hover:ml-2 transition-all duration-300 font-bold whitespace-nowrap">{UI_CONTENT.RESULTS.CONSULT_COUNCIL}</span>
+                          </button>
+                          <button onClick={() => setIsElaborationOpen(!isElaborationOpen)} title={isElaborationOpen ? `Hide ${UI_CONTENT.RESULTS.ELABORATION}` : `View ${UI_CONTENT.RESULTS.ELABORATION}`} className={`p-3 border rounded-xl active:scale-95 transition-all flex items-center justify-center group ${isElaborationOpen ? 'bg-indigo-600 border-indigo-400 text-white' : 'border-indigo-500/50 text-indigo-300 hover:bg-indigo-500/10'}`}>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                            <span className="max-w-0 overflow-hidden group-hover:max-w-xs group-hover:ml-2 transition-all duration-300 font-bold whitespace-nowrap">{isElaborationOpen ? UI_CONTENT.RESULTS.HIDE : UI_CONTENT.RESULTS.ELABORATION}</span>
+                          </button>
+                          <button onClick={handleDevelopPlan} disabled={isGeneratingPlan} title={`Develop ${UI_CONTENT.RESULTS.PLANNING} Plan`} className="p-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl active:scale-95 flex items-center justify-center transition-all disabled:opacity-50 group">
+                            {isGeneratingPlan ? <svg className="animate-spin h-6 w-6" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> : <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line><path d="m9 16 2 2 4-4"/></svg>}
+                            <span className="max-w-0 overflow-hidden group-hover:max-w-xs group-hover:ml-2 transition-all duration-300 font-bold whitespace-nowrap">{UI_CONTENT.RESULTS.PLANNING}</span>
+                          </button>
+                          <button onClick={handleExportPDF} disabled={isExporting} title={UI_CONTENT.RESULTS.EXPORT} className="p-3 border border-indigo-500/50 text-indigo-300 hover:bg-indigo-500/10 rounded-xl active:scale-95 flex items-center justify-center transition-all disabled:opacity-50 group">
+                            {isExporting ? <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> : <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>}
+                            <span className="max-w-0 overflow-hidden group-hover:max-w-xs group-hover:ml-2 transition-all duration-300 font-bold whitespace-nowrap">{UI_CONTENT.RESULTS.EXPORT}</span>
+                          </button>
+                          <div className="ml-auto flex items-center gap-2">
+                             <button onClick={() => handleFeedback('helpful')} className={`p-3 rounded-xl border ${result?.feedback === 'helpful' ? 'bg-emerald-500 border-emerald-400 text-white' : 'bg-slate-800 border-slate-700 text-slate-500'}`}>
+                               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M7 10v12"></path><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2h0a3.13 3.13 0 0 1 3 3.88Z"></path></svg>
+                             </button>
+                             <button onClick={() => handleFeedback('not-helpful')} className={`p-3 rounded-xl border ${result?.feedback === 'not-helpful' ? 'bg-red-500 border-red-400 text-white' : 'bg-slate-800 border-slate-700 text-slate-500'}`}>
+                               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 14V2"></path><path d="M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79-1.11L12 22h0a3.13 3.13 0 0 1-3-3.88Z"></path></svg>
+                             </button>
+                          </div>
+                        </div>
+                        {showFeedbackForm && (
+                          <div className="mt-6 p-6 bg-slate-900/50 border border-slate-800 rounded-xl animate-fade-in">
+                            {feedbackSubmitted ? <div className="text-emerald-400 font-bold flex items-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>{UI_CONTENT.FEEDBACK.SUCCESS}</div> : <>
+                                <h4 className="text-sm font-bold text-slate-400 mb-3 uppercase tracking-widest">{UI_CONTENT.FEEDBACK.TITLE}</h4>
+                                <textarea value={feedbackComment} onChange={(e) => setFeedbackComment(e.target.value)} placeholder={UI_CONTENT.FEEDBACK.PLACEHOLDER} className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white placeholder-slate-600 focus:ring-1 focus:ring-indigo-500 outline-none transition-all h-24 resize-none mb-3 text-sm"/>
+                                <div className="flex justify-end gap-3">
+                                   <button onClick={() => setShowFeedbackForm(false)} className="text-xs font-bold text-slate-500 uppercase px-4 py-2">{UI_CONTENT.FEEDBACK.BUTTON_CANCEL}</button>
+                                   <button onClick={submitDetailedFeedback} disabled={!feedbackComment.trim()} className="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-bold rounded-lg uppercase tracking-widest transition-all">{UI_CONTENT.FEEDBACK.BUTTON_SUBMIT}</button>
                                 </div>
-                              ) : (
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-pulse">
-                                   <div className="md:col-span-2 bg-slate-900/40 border border-slate-800 rounded-xl h-64 flex flex-col items-center justify-center">
-                                      <div className="w-12 h-12 bg-indigo-500/20 rounded-full flex items-center justify-center mb-4">
-                                         <svg className="animate-spin h-6 w-6 text-indigo-500" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
-                                      </div>
-                                      <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Awaiting Council Synthesis...</div>
-                                   </div>
-                                   <div className="bg-slate-900/20 border border-slate-800/50 rounded-xl h-64" />
-                                </div>
-                              )}
+                              </>}
+                          </div>
+                        )}
+                      </div>
+                      <div className="bg-slate-900/40 border border-slate-800 rounded-xl p-6 flex items-center justify-center">
+                        <RadarViz metrics={result.synthesis?.metrics} />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-pulse">
+                       <div className="md:col-span-2 bg-slate-900/40 border border-slate-800 rounded-xl h-64 flex flex-col items-center justify-center text-center p-8">
+                          <div className="w-12 h-12 bg-indigo-500/20 rounded-full flex items-center justify-center mb-4">
+                             <svg className="animate-spin h-6 w-6 text-indigo-500" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                          </div>
+                          <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Synthesizing Archetypal Perspectives...</div>
+                       </div>
+                       <div className="bg-slate-900/20 border border-slate-800/50 rounded-xl h-64" />
+                    </div>
+                  )}
 
                   {status === AnalysisStatus.COMPLETE && result && isElaborationOpen && <VerdictElaboration result={result} />}
 
@@ -568,12 +517,8 @@ const App: React.FC = () => {
                         </div>
                      </div>
                   </div>
-                  
                   <h2 className="text-4xl font-black text-white mb-6 tracking-tight">{UI_CONTENT.IDLE.TITLE}</h2>
-                  <p className="text-lg text-slate-400 max-w-lg mx-auto leading-relaxed mb-12">
-                    {UI_CONTENT.IDLE.DESCRIPTION}
-                  </p>
-
+                  <p className="text-lg text-slate-400 max-w-lg mx-auto leading-relaxed mb-12">{UI_CONTENT.IDLE.DESCRIPTION}</p>
                   <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 w-full max-w-4xl">
                      {UI_CONTENT.IDLE.AGENTS.map(agent => (
                        <div key={agent.name} className="p-4 rounded-2xl bg-slate-900/40 border border-slate-800/50 text-left">
@@ -588,11 +533,7 @@ const App: React.FC = () => {
           }
         />
       </main>
-      
-      {/* Interactive Council Chat Modal */}
       {isChatOpen && result && <CouncilChat isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} councilResult={result} input={inputValues} chatHistory={chatHistory} onUpdateHistory={setChatHistory} onReAnalyze={(newCtx) => handleAnalysis({...inputValues, context: inputValues.context + newCtx})} />}
-      
-      {/* Action Plan Modal */}
       {currentPlan && (
         <ActionPlanModal 
           isOpen={isPlanModalOpen} 
