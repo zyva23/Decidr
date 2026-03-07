@@ -514,10 +514,10 @@ const App: React.FC = () => {
 
                   {/* Detailed Agent Cards */}
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    <AgentCard agent={(result?.analyst || partialResult?.analyst)!} color="blue" isLoading={!result?.analyst && !partialResult?.analyst} />
-                    <AgentCard agent={(result?.strategist || partialResult?.strategist)!} color="purple" isLoading={!result?.strategist && !partialResult?.strategist} />
-                    <AgentCard agent={(result?.skeptic || partialResult?.skeptic)!} color="red" isLoading={!result?.skeptic && !partialResult?.skeptic} />
-                    <AgentCard agent={(result?.mediator || partialResult?.mediator)!} color="emerald" isLoading={!result?.mediator && !partialResult?.mediator} />
+                    <AgentCard agent={result?.analyst || partialResult?.analyst} color="blue" isLoading={!result?.analyst && !partialResult?.analyst} />
+                    <AgentCard agent={result?.strategist || partialResult?.strategist} color="purple" isLoading={!result?.strategist && !partialResult?.strategist} />
+                    <AgentCard agent={result?.skeptic || partialResult?.skeptic} color="red" isLoading={!result?.skeptic && !partialResult?.skeptic} />
+                    <AgentCard agent={result?.mediator || partialResult?.mediator} color="emerald" isLoading={!result?.mediator && !partialResult?.mediator} />
                   </div>
 
                   {/* The Commitment Protocol */}

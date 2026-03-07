@@ -4,7 +4,7 @@ import SequenceModal from './SequenceModal';
 import SourcesModal from './SourcesModal';
 
 interface AgentCardProps {
-  agent: AgentResponse;
+  agent?: AgentResponse;
   color: 'blue' | 'purple' | 'red' | 'emerald';
   isLoading?: boolean;
 }
@@ -138,7 +138,7 @@ const AgentCard: React.FC<AgentCardProps> = ({ agent, color, isLoading }) => {
         {/* Background Glow */}
         <div className={`absolute -top-24 -right-24 w-48 h-48 ${styles.glow} rounded-full blur-[80px] group-hover:blur-[60px] transition-all duration-700`}></div>
         
-        {isLoading ? (
+        {isLoading || !agent ? (
           <div className="flex flex-col h-full items-center justify-center py-12 animate-pulse">
              <div className="mb-4">{renderAvatar()}</div>
              <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Archetype Analyzing...</div>
