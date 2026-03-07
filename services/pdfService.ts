@@ -1,12 +1,11 @@
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
-import { CouncilResult, DecisionInput } from '../types';
+import { CouncilResult, DecisionInput, ActionPlan } from '../types';
 
 /**
  * PDF SERVICE
  * Generates and parses strategic briefing documents.
- * Uses the legacy build to avoid worker-related extraction failures in browser environments.
  */
 
 export async function extractTextFromPDF(file: File): Promise<string> {
@@ -27,7 +26,7 @@ export async function extractTextFromPDF(file: File): Promise<string> {
   return fullText;
 }
 
-export async function generateDecisionPDF(input: DecisionInput, result: CouncilResult) {
+export async function generateDecisionPDF(input: DecisionInput, result: CouncilResult, actionPlan?: ActionPlan) {
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
@@ -47,6 +46,7 @@ export async function generateDecisionPDF(input: DecisionInput, result: CouncilR
   };
 
   const addText = (text: string, size = 10, color = [71, 85, 105], style = 'normal') => {
+    if (!text) return;
     doc.setFontSize(size);
     doc.setTextColor(color[0], color[1], color[2]);
     doc.setFont('helvetica', style);
@@ -119,6 +119,65 @@ export async function generateDecisionPDF(input: DecisionInput, result: CouncilR
     });
     cursorY += 6;
   });
+
+  if (actionPlan) {
+    doc.addPage();
+    cursorY = 25;
+    addHeader('Execution Roadmap', 18, [16, 185, 129]);
+    cursorY += 5;
+    addHeader('Strategic Summary', 12, [30, 41, 59]);
+    addText(actionPlan.executiveSummary, 10, [71, 85, 105]);
+    cursorY += 5;
+
+    actionPlan.phases.forEach((phase) => {
+      addHeader(`${phase.name} (${phase.duration})`, 13, [15, 23, 42]);
+      addText(`Objective: ${phase.objective}`, 10, [79, 70, 229], 'bold');
+      
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.setTextColor(30, 41, 59);
+      doc.text('Action Items:', margin, cursorY);
+      cursorY += 5;
+      
+      phase.tasks.forEach(task => {
+        addText(`• ${task.description} (KPI: ${task.kpi})`, 9, [71, 85, 105]);
+      });
+      cursorY += 2;
+
+      const pitfallsBottomStart = cursorY;
+      doc.setFontSize(8);
+      doc.setTextColor(239, 68, 68);
+      doc.text('Pitfalls to Avoid:', margin, cursorY);
+      cursorY += 4;
+      phase.pitfalls.forEach(p => {
+        addText(`- ${p}`, 8, [153, 27, 27]);
+      });
+      const pitfallsBottom = cursorY;
+
+      cursorY = pitfallsBottomStart;
+      doc.setFontSize(8);
+      doc.setTextColor(59, 130, 246);
+      doc.text('Success Criteria:', (pageWidth / 2) + 5, cursorY);
+      cursorY += 4;
+      phase.successCriteria.forEach(s => {
+        const splitS = doc.splitTextToSize(`- ${s}`, (pageWidth / 2) - margin - 5);
+        doc.setTextColor(30, 64, 175);
+        doc.text(splitS, (pageWidth / 2) + 5, cursorY);
+        cursorY += (splitS.length * 4) + 1;
+      });
+
+      cursorY = Math.max(pitfallsBottom, cursorY) + 8;
+    });
+
+    if (actionPlan.pivotPoints && actionPlan.pivotPoints.length > 0) {
+      addHeader('Strategic Pivot Points', 14, [245, 158, 11]);
+      actionPlan.pivotPoints.forEach(pp => {
+        addText(`IF: ${pp.trigger}`, 10, [30, 41, 59], 'bold');
+        addText(`THEN: ${pp.reaction}`, 9, [71, 85, 105]);
+        cursorY += 2;
+      });
+    }
+  }
 
   doc.addPage();
   cursorY = 25;
