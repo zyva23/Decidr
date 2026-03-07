@@ -379,7 +379,13 @@ const DecidrApp: React.FC = () => {
                   </div>
                   {status === AnalysisStatus.COMPLETE && result && (
                     <div className="pt-8 pb-20 border-t border-slate-800/50 mt-12">
-                      <CommitmentPanel options={inputValues.options} onCommit={handleCommitment} onBranch={handleBranch} existingCommitment={currentSessionId ? sessions.find(s => s.id === currentSessionId)?.commitment : undefined} />
+                      <CommitmentPanel 
+                          options={inputValues.options} 
+                          refinedPaths={result.synthesis?.refinedPaths}
+                          onCommit={handleCommitment} 
+                          onBranch={handleBranch} 
+                          existingCommitment={currentSessionId ? sessions.find(s => s.id === currentSessionId)?.commitment : undefined} 
+                      />
                     </div>
                   )}
                 </div>

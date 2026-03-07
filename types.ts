@@ -50,6 +50,7 @@ export interface SynthesisResult {
   verdict: string;
   recommendation: string;
   metrics: RadarMetrics;
+  refinedPaths: string[]; // High-fidelity analyzed options
 }
 
 export interface CouncilResult {

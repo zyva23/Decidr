@@ -3,25 +3,27 @@ import { UI_CONTENT } from '../src/constants/uiContent';
 
 interface CommitmentPanelProps {
   options: string;
+  refinedPaths?: string[]; // New high-fidelity options from AI synthesis
   onCommit: (selected: string, why: string) => void;
   onBranch: (newContext: string) => void;
   existingCommitment?: { selectedOption: string; justification: string; };
 }
 
-const CommitmentPanel: React.FC<CommitmentPanelProps> = ({ options, onCommit, onBranch, existingCommitment }) => {
+const CommitmentPanel: React.FC<CommitmentPanelProps> = ({ options, refinedPaths, onCommit, onBranch, existingCommitment }) => {
   const [selected, setSelected] = useState(existingCommitment?.selectedOption || '');
   const [customPath, setCustomPath] = useState('');
   const [why, setWhy] = useState(existingCommitment?.justification || '');
   const [isCommitted, setIsCommitted] = useState(!!existingCommitment);
 
   const parseOptions = (text: string) => {
-    // Split by common delimiters: "Path A:", "Option 1.", "1.", "•", or newlines
-    // This regex looks for patterns like "Path A:", "Option 1:", "1.", etc.
     const parts = text.split(/(?:\n|^)(?:Path\s+[A-Z]:|Option\s+\d+:|[A-Z]:|\d+\.|\*|•)\s*/i);
-    return parts.map(p => p.trim()).filter(p => p.length > 5); // Filter out empty or very short noise
+    return parts.map(p => p.trim()).filter(p => p.length > 5);
   };
 
-  const optionList = parseOptions(options);
+  // Prioritize refinedPaths from AI, fallback to parsed raw options
+  const optionList = (refinedPaths && refinedPaths.length > 0) 
+    ? refinedPaths 
+    : parseOptions(options);
 
   const handleCommit = () => {
     const finalChoice = selected === 'CUSTOM' ? customPath : selected;
@@ -58,7 +60,9 @@ const CommitmentPanel: React.FC<CommitmentPanelProps> = ({ options, onCommit, on
                       : 'bg-slate-950/50 border-slate-800 text-slate-400 hover:border-slate-600'
                   }`}
                 >
-                  <div className="text-xs font-bold opacity-50 mb-1">Option {String.fromCharCode(65 + i)}</div>
+                  <div className="text-xs font-bold opacity-50 mb-1">
+                    {refinedPaths && refinedPaths.length > 0 ? "Strategic Path" : `Option ${String.fromCharCode(65 + i)}`}
+                  </div>
                   <div className="text-sm font-medium">{opt.replace(/^[A-Z]:\s*/i, '')}</div>
                 </button>
               ))}
@@ -136,7 +140,7 @@ const CommitmentPanel: React.FC<CommitmentPanelProps> = ({ options, onCommit, on
               <button
                 onClick={() => {
                   setIsCommitted(false);
-                  if (selected === 'CUSTOM') setSelected('CUSTOM'); // Keep custom path selected for editing
+                  if (selected === 'CUSTOM') setSelected('CUSTOM'); 
                 }}
                 className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest hover:text-slate-300 transition-colors"
               >

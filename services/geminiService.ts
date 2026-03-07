@@ -77,12 +77,12 @@ export async function analyzeDecision(
     4. Mediator: ${mediator.analysis} (Score: ${mediator.score})
 
     Synthesize into a final recommendation.
-    For the 'metrics' section, provide scores between 0 and 100:
-    - risk: High risk = 100, Low risk = 0
-    - speed: Fast execution = 100, Slow = 0
-    - cost: High financial burden = 100, Low cost = 0
-    - impact: High positive change = 100, Low = 0
-    - feasibility: Easy to implement = 100, Difficult = 0
+    
+    REQUIREMENTS:
+    1. VERDICT: A clear, high-level summary of the best direction.
+    2. RECOMMENDATION: Detailed justification for the verdict.
+    3. REFINED PATHS: Provide 3-4 distinct, high-fidelity analyzed strategic paths based on the council's deliberation. Each path should be a short, actionable title (e.g., "The Conservative Pivot").
+    4. METRICS: Provide scores between 0 and 100 for the radar chart.
   `;
 
   try {
@@ -201,6 +201,7 @@ const synthesisSchema = {
   properties: {
     verdict: { type: Type.STRING },
     recommendation: { type: Type.STRING },
+    refinedPaths: { type: Type.ARRAY, items: { type: Type.STRING } },
     metrics: {
       type: Type.OBJECT,
       properties: { 
@@ -213,7 +214,7 @@ const synthesisSchema = {
       required: ["risk", "speed", "cost", "impact", "feasibility"]
     }
   },
-  required: ["verdict", "recommendation", "metrics"]
+  required: ["verdict", "recommendation", "refinedPaths", "metrics"]
 };
 
 const brainstormSchema = {
