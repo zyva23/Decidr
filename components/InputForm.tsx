@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { DecisionInput, BrainstormResult } from '../types';
+import { DecisionInput, BrainstormResult, DecisionSession } from '../types';
 import { exploreBrainstorm } from '../services/geminiService';
 import DocumentUpload from './DocumentUpload';
 import { Attachment } from '../types';
@@ -9,16 +9,15 @@ interface InputFormProps {
   initialValues: DecisionInput;
   onSubmit: (input: DecisionInput) => void;
   isLoading: boolean;
+  sessions: DecisionSession[];
 }
 
-const InputForm: React.FC<InputFormProps> = ({ initialValues, onSubmit, isLoading }) => {
+const InputForm: React.FC<InputFormProps> = ({ initialValues, onSubmit, isLoading, sessions }) => {
   const [input, setInput] = useState<DecisionInput>(initialValues);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [showHistoryLink, setShowHistoryLink] = useState(false);
 
-  // Sync state when initialValues change
-  useEffect(() => {
-    setInput(initialValues);
-  }, [initialValues]);
+  useEffect(() => { setInput(initialValues); }, [initialValues]);
 
   const [listeningField, setListeningField] = useState<keyof DecisionInput | null>(null);
   const [activeBrainstorm, setActiveBrainstorm] = useState<'constraints' | 'options' | 'context' | null>(null);
@@ -38,12 +37,8 @@ const InputForm: React.FC<InputFormProps> = ({ initialValues, onSubmit, isLoadin
     let interval: any;
     if (isLoading) {
       setLoadingStage(0);
-      interval = setInterval(() => {
-        setLoadingStage(prev => (prev + 1) % stages.length);
-      }, 2500);
-    } else {
-      setLoadingStage(0);
-    }
+      interval = setInterval(() => { setLoadingStage(prev => (prev + 1) % stages.length); }, 2500);
+    } else { setLoadingStage(0); }
     return () => clearInterval(interval);
   }, [isLoading]);
 
@@ -189,104 +184,36 @@ const InputForm: React.FC<InputFormProps> = ({ initialValues, onSubmit, isLoadin
 
   const categorizedTemplates: Record<string, any[]> = {
     'Personal': [
-      { 
-        label: 'Buying a Home', 
-        title: 'Acquiring a Primary Residence vs. Geographic Liquidity', 
-        context: 'I am currently renting in a vibrant urban center. The opportunity to purchase a home has arisen, which would anchor me to this geography for at least 5-7 years to reach a financial break-even point. While homeownership represents a "psychological anchor" and a forced savings vehicle, I fear the loss of professional optionality. If a transformative opportunity arises in another city, the house becomes a high-friction anchor rather than an asset. I am navigating the tension between my desire for "roots" and my need for "reach."', 
-        constraints: 'Current mortgage rates are at a 15-year high. My down payment represents 80% of my liquid net worth. The local market is showing signs of cooling after a 40% run-up.', 
-        options: 'Path A: Purchase the residence (Commitment to Stability). Path B: Continue renting and deploy capital into high-growth liquid indices (Wealth focus). Path C: Rent-to-own or buy a smaller "starter" property in a less central area (Hedged approach).' 
-      },
-      { 
-        label: 'Parenthood', 
-        title: 'Initiating Parenthood: Expanding the Family Unit', 
-        context: 'We are contemplating having our first child. We both value our current autonomy, deep focus on professional projects, and the ability to travel spontaneously. However, we feel a growing desire for the profound meaning and biological legacy of parenthood. The friction is between the "infinite responsibility" of a child and the "finite freedom" of our current lifestyle. We worry about the impact on our relationship synergy and individual career trajectories.', 
-        constraints: 'Current annual income is stable but childcare costs in our city are $3k/mo. No extended family nearby for support. Biological window is a factor.', 
-        options: 'Path A: Begin trying for a child now (Total Lifestyle Shift). Path B: Freeze embryos/eggs to extend the window by 3 years. Path C: Defer for 18 months to hit a specific financial/career milestone.' 
-      },
-      { 
-        label: 'Relationships', 
-        title: 'Terminating a Long-Term Partnership vs. Salvaging Resonance', 
-        context: 'I have been in a partnership for seven years. While there is deep history and mutual respect, the "shared vision" has begun to diverge significantly. We are operating on different emotional frequencies. I am debating whether to end the relationship to allow both parties to find true resonance elsewhere, or to commit to intensive reparative work. The friction is the "sunk cost" of our history vs. the "opportunity cost" of my future happiness.', 
-        constraints: 'Shared lease and social circle. One partner is currently going through a professional crisis. Emotional exhaustion is high.', 
-        options: 'Path A: Initiate a conscious decoupling (The Clean Break). Path B: Commit to a 6-month intensive "Relational Sabbatical" with therapy. Path C: Trial a temporary separation to test the value of independence.' 
-      },
-      { 
-        label: 'Risking a Connection', 
-        title: 'The "Direct Ask": Transitioning a Friendship to Romance', 
-        context: 'I have developed deep feelings for a close friend. Our current dynamic is restorative and safe. I want to ask them out, but I recognize the high "frictional risk": if they don\'t reciprocate, the friendship may become too awkward to sustain. If I stay silent, I am living in a state of emotional repression. The friction is between the safety of the status quo and the speculative leap into romance.', 
-        constraints: 'We are part of a tight-knit weekly social group. They recently ended another relationship. I value their presence in my life regardless of the outcome.', 
-        options: 'Path A: The Direct Disclosure (High Risk/High Reward). Path B: Subtle escalation of physical/emotional proximity (The Test). Path C: Compartmentalization (Commitment to the Friendship).' 
-      }
+      { label: 'Buying a Home', title: 'Acquiring a Primary Residence vs. Geographic Liquidity', context: 'I am currently renting in a vibrant urban center. The opportunity to purchase a home has arisen, which would anchor me to this geography for at least 5-7 years...', constraints: 'Mortgage rates high. Down payment is 80% of liquid net worth.', options: 'Path A: Purchase residence. Path B: Continue renting. Path C: Rent-to-own.' },
+      { label: 'Parenthood', title: 'Initiating Parenthood: Expanding the Family Unit', context: 'We are contemplating having our first child. We value our autonomy and deep focus, but feel a growing desire for the profound meaning of legacy...', constraints: 'Childcare costs $3k/mo. No family support nearby. Biological window factor.', options: 'Path A: Start now. Path B: Freeze embryos. Path C: Defer for 18 months.' },
+      { label: 'Relationships', title: 'Terminating a Partnership vs. Salvaging Resonance', context: ' partnership for seven years. Deep history but diverging visions. Operating on different emotional frequencies...', constraints: 'Shared lease. One partner in professional crisis. Emotional exhaustion.', options: 'Path A: Conscious decoupling. Path B: intensive therapy. Path C: Separation trial.' },
+      { label: 'Risking a Connection', title: ' Friend to Romance: The Direct Ask', context: 'Developed feelings for a close friend. current dynamic is restorative. Risking awkwardness vs living in repression...', constraints: 'Tight-knit social group. They recently ended a relationship.', options: 'Path A: Direct Disclosure. Path B: Subtle escalation. Path C: Compartmentalization.' }
     ],
     'Career': [
-      { 
-        label: 'Starting a Company', 
-        title: 'Founding a Venture: From Professional Security to Entrepreneurial Risk', 
-        context: 'I have a validated idea for a new category of service. I am currently in a high-paying executive role. I am debating whether to resign and "burn the boats" to build this company or to stay in the safety of my career. The friction is between the "known ceiling" of my current path and the "unknown floor" of a startup. I hunger for the ownership, but fear the isolation and high failure rate of early-stage ventures.', 
-        constraints: 'Personal runway: 12 months. No current outside funding. My spouse values financial stability highly.', 
-        options: 'Path A: Resign and fund the MVP from savings (All-in). Path B: Build the MVP as a "Side-Quest" for 6 months while working. Path C: Seek a lead investor before resigning.' 
-      },
-      { 
-        label: 'Industry Pivot', 
-        title: 'Changing Industry: Transferring Human Capital to a New Domain', 
-        context: 'I have 10 years of expertise in a traditional industry (e.g., Finance). I want to pivot into a frontier domain (e.g., Climate Tech). I am willing to take a pay cut for higher meaning, but I worry about "re-entry friction" and being perceived as a novice despite my senior years. The friction is between my "vertical expertise" and my "existential alignment."', 
-        constraints: 'Domain-specific knowledge gaps. Current professional network is 90% in the old industry. Need to maintain 70% of current salary.', 
-        options: 'Path A: Aggressive Pivot (Accept a mid-level role in the new domain). Path B: The "Bridge" Strategy (Consult in the new domain using old skills). Path C: Academic Reset (Masters or specialized bootcamp).' 
-      },
-      { 
-        label: 'Internal Shift', 
-        title: 'Changing Role: Individual Contributor to Management', 
-        context: 'I am a top-tier Individual Contributor (IC). I have been offered a Management role. I enjoy the "craft" of the work, but I recognize that leverage only comes through leading others. I fear the loss of "flow state" in my craft and the friction of navigating organizational politics. The friction is between my love for the "how" and the necessity of the "who."', 
-        constraints: 'Management role comes with a 20% raise. Team is currently under-performing. No prior formal management training.', 
-        options: 'Path A: Accept the role (The Leadership Leap). Path B: Stay as a Principal IC (The Craft Path). Path C: Trial management for a "Bridge Project" before committing.' 
-      }
+      { label: 'Starting a Company', title: 'Entrepreneurial Risk: Burning the Boats', context: 'Validated idea for a new category. Currently in high-paying exec role. known ceiling vs unknown floor...', constraints: '12 months runway. No outside funding. Spouse values stability.', options: 'Path A: Resign and fund MVP. Path B: Side-quest build. Path C: Seek lead investor first.' },
+      { label: 'Industry Pivot', title: 'Changing Industry: Transferring Human Capital', context: '10 years expertise in Finance. Want to pivot into Climate Tech. Pay cut for higher meaning vs re-entry friction...', constraints: 'Domain gaps. Network is 90% in old industry.', options: 'Path A: Aggressive pivot. Path B: Bridge Strategy. Path C: Academic Reset.' },
+      { label: 'Internal Shift', title: 'IC to Management: Changing the Nature of Craft', context: 'Top IC offered Management role. enjoy the craft vs leverage through leading others. Loss of flow state...', constraints: '20% raise. Team under-performing. No training.', options: 'Path A: Leadership leap. Path B: Principal IC path. Path C: Trial management project.' }
     ],
     'Business': [
-      { 
-        label: 'Picking a Cofounder', 
-        title: 'Selecting a Strategic Partner: Competence vs. Compatibility', 
-        context: 'I am looking for a technical cofounder for my venture. I have two candidates: Candidate A is a world-class engineer with a difficult personality; Candidate B is a strong engineer who is perfectly aligned with my values. The friction is between "technical velocity" and "relational stability." I know that cofounder conflict is the #1 killer of startups, but so is slow execution.', 
-        constraints: 'Need to ship the alpha in 3 months. Equity split must be determined now. Both candidates have competing offers.', 
-        options: 'Path A: Select Candidate A (Velocity focus). Path B: Select Candidate B (Culture focus). Path C: Work with both on a 2-week "Trial Sprint" before choosing.' 
-      },
-      { 
-        label: 'US Market Entry', 
-        title: 'Geographic Expansion: Launching into the US Market', 
-        context: 'Our product is dominant in its local market. We are ready for US entry. This requires a massive capital outlay, potential relocation of the leadership team, and competing in the most aggressive market on earth. The friction is between the "safe local fortress" and the "speculative global dominance." If we fail, we may bankrupt the local entity.', 
-        constraints: 'Expansion budget: $2M. US competitors are 10x our size in funding. Regulatory hurdles are complex.', 
-        options: 'Path A: Full US Launch (Relocate CEO, high spend). Path B: Digital-only "Beachhead" strategy. Path C: Partnership with a US-based incumbent.' 
-      },
-      { 
-        label: 'Integrating AI', 
-        title: 'Technological Evolution: Adding Generative AI to the Core Product', 
-        context: 'We are a legacy SaaS platform. We need to integrate AI to remain relevant. I am debating whether to build our own proprietary models (high cost/moat) or to simply wrap an existing API (low cost/low moat). The friction is between "long-term defensibility" and "short-term speed-to-market." I worry that a "wrapper" is a commodity, but building from scratch will drain our resources.', 
-        constraints: 'Engineering team has limited LLM experience. Investors are demanding an AI roadmap by Q3. High inference cost risk.', 
-        options: 'Path A: Build a custom fine-tuned layer (Defensibility). Path B: Rapid API Integration (Speed). Path C: Acquire a small AI-native startup to integrate their tech.' 
-      }
+      { label: 'Picking a Cofounder', title: 'Strategic Partner: Competence vs. Compatibility', context: 'technical cofounder search. World-class engineer vs value-aligned partner. velocity vs stability...', constraints: 'Alpha in 3 months. Equity split now. Competing offers.', options: 'Path A: Select Candidate A. Path B: Select Candidate B. Path C: Trial sprint.' },
+      { label: 'US Entry', title: 'Geographic Expansion: Launching into the US', context: 'Ready for US entry. Massive capital outlay vs speculative global dominance. Relocating leadership...', constraints: '$2M budget. 10x larger competitors. Regulatory hurdles.', options: 'Path A: Full US Launch. Path B: Digital beachhead. Path C: Partnership.' },
+      { label: 'Integrating AI', title: 'Technological Evolution: Adding AI to Core Product', context: 'Legacy SaaS platform needs AI relevance. build proprietary model vs API wrapper. Defensibility vs Speed...', constraints: 'Limited LLM experience. Investors demand roadmap. Inference costs.', options: 'Path A: Custom fine-tuned layer. Path B: API Integration. Path C: Acquisition.' }
     ],
     'Life & Legacy': [
-      { 
-        label: 'Protest & Activism', 
-        title: 'The Act of Dissent: Participating in High-Stakes Civic Protest', 
-        context: 'A systemic issue has reached a breaking point. I feel a moral imperative to participate in a high-visibility protest. However, I occupy a professional role that values "neutrality," and my participation may result in reputational friction or job loss. The friction is between my "civic duty" and my "professional safety." Is the impact of my presence worth the risk to my livelihood?', 
-        constraints: 'Company has a strict social media/public conduct policy. I am the primary earner for my family. The movement is controversial in my local community.', 
-        options: 'Path A: Full Public Participation (Maximum Impact). Path B: "Silent Support" (Financial contribution/backstage help). Path C: Institutional Reform (Work for change from within my current role).' 
-      },
-      { 
-        label: 'The Voting Choice', 
-        title: 'Strategic Voting: Principal Alignment vs. Pragmatic Outcomes', 
-        context: 'In an upcoming election, I am torn between a candidate who perfectly aligns with my values but has no chance of winning (The Idealist) and a candidate who is deeply flawed but can win and block a catastrophic alternative (The Pragmatist). The friction is between the "purity of my vote" and the "utility of the outcome." Am I a participant in a system or a witness to it?', 
-        constraints: 'First-past-the-post voting system. High stakes for my specific industry. Family is split on the choice.', 
-        options: 'Path A: Vote for the Idealist (Moral Alignment). Path B: Vote for the Pragmatist (Damage Control). Path C: Abstention as a form of protest.' 
-      },
-      { 
-        label: 'Sabbatical', 
-        title: 'A 3-Month Sabbatical: Experiential Expansion vs. Career Momentum', 
-        context: 'I have been working at a high intensity for six years. I feel a deep need for a "reset"—a 3-month solo journey through Southeast Asia to reconnect with my values. However, I am concerned that stepping out of the market now will result in "re-entry friction" and the loss of a promotion track that is currently opening up. Is the experiential wealth of travel worth the potential career deceleration?', 
-        constraints: 'Total cost $15k. The industry is undergoing rapid AI-driven shifts. My current manager can only guarantee my role for 4 weeks of absence.', 
-        options: 'Path A: Take the full 3-month sabbatical (Total Reset). Path B: A 2-week intensive "mini-break" followed by a role change. Path C: Negotiate a remote-work sabbatical (Digital Nomadism).' 
-      }
+      { label: 'Activism', title: 'The Act of Dissent: Civic Protest vs. Professional Safety', context: 'Moral imperative to participate in high-visibility protest. Professional role values neutrality. job loss risk...', constraints: 'Strict conduct policy. Primary earner. Controversial movement.', options: 'Path A: Full Participation. Path B: Silent Support. Path C: Internal Reform.' },
+      { label: 'Strategic Voting', title: 'Voting: Principal Alignment vs. Pragmatic Outcomes', context: 'Idealist candidate with no chance vs Flawed candidate who can win and block a catastrophic alternative...', constraints: 'First-past-the-post system. Industry stakes. Family split.', options: 'Path A: Vote Idealist. Path B: Vote Pragmatist. Path C: Abstention.' },
+      { label: 'Sabbatical', title: 'Experiential Expansion: The 3-Month Reset', context: 'Worked at high intensity for six years. Solo journey to reconnect. re-entry friction vs promotion track...', constraints: 'Total cost $15k. AI-driven industry shifts. 4-week role guarantee.', options: 'Path A: Full reset. Path B: Intensive mini-break. Path C: Remote-work sabbatical.' }
     ]
+  };
+
+  const handleLinkHistory = (session: DecisionSession) => {
+    setInput(prev => ({
+      ...prev,
+      title: `Evolved: Following ${session.input.title}`,
+      parentId: session.id,
+      context: `Continuing from my previous deliberation on "${session.input.title}". Selected path was: ${session.commitment?.selectedOption || 'Not locked'}.\n\nNew developments: `
+    }));
+    setShowHistoryLink(false);
   };
 
   return (
@@ -297,8 +224,30 @@ const InputForm: React.FC<InputFormProps> = ({ initialValues, onSubmit, isLoadin
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-500"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="12" x2="12" y1="18" y2="12"/><line x1="9" x2="15" y1="15" y2="15"/></svg>
             {UI_CONTENT.FORM.TITLE}
           </h2>
-          {isContextReady && <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded border border-emerald-400/20">{UI_CONTENT.FORM.MESSAGES.READY}</span>}
+          <div className="flex items-center gap-2">
+            {sessions.length > 0 && (
+              <button 
+                type="button"
+                onClick={() => setShowHistoryLink(!showHistoryLink)}
+                className="text-[10px] font-black uppercase tracking-widest text-indigo-400 hover:text-indigo-300 transition-all px-2 py-1 rounded bg-indigo-500/10 border border-indigo-500/20"
+              >
+                Link from History
+              </button>
+            )}
+            {isContextReady && <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded border border-emerald-400/20">{UI_CONTENT.FORM.MESSAGES.READY}</span>}
+          </div>
         </div>
+
+        {showHistoryLink && (
+          <div className="mb-6 p-4 bg-slate-950/80 border border-indigo-500/30 rounded-xl animate-fade-in max-h-40 overflow-y-auto custom-scrollbar">
+             <div className="text-[8px] font-black uppercase text-indigo-400 mb-2 tracking-widest">Select Parent Inquiry</div>
+             <div className="space-y-1">
+                {sessions.map(s => (
+                  <button key={s.id} type="button" onClick={() => handleLinkHistory(s)} className="w-full text-left p-2 rounded hover:bg-slate-800 text-xs text-slate-300 truncate">{s.input.title}</button>
+                ))}
+             </div>
+          </div>
+        )}
         
         <div className="space-y-4">
           <div className="flex gap-4 border-b border-slate-800 pb-2 overflow-x-auto custom-scrollbar no-scrollbar">
@@ -315,6 +264,15 @@ const InputForm: React.FC<InputFormProps> = ({ initialValues, onSubmit, isLoadin
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
+        {input.parentId && (
+          <div className="p-3 bg-indigo-500/5 border border-indigo-500/20 rounded-xl flex items-center justify-between">
+             <div className="flex items-center gap-2 text-[10px] font-black text-indigo-400 uppercase tracking-widest">
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                Linked Evolutionary Branch
+             </div>
+             <button type="button" onClick={() => setInput(prev => ({...prev, parentId: undefined}))} className="text-[10px] text-slate-500 hover:text-red-400 font-bold">Unlink</button>
+          </div>
+        )}
         {renderInputWrapper('title', UI_CONTENT.FORM.LABELS.TITLE, <input type="text" name="title" value={input.title} onChange={handleChange} placeholder={UI_CONTENT.FORM.PLACEHOLDERS.TITLE} className="w-full bg-slate-950/50 border border-slate-700/60 rounded-xl p-4 pr-16 text-white placeholder-slate-500 focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 outline-none transition-all shadow-inner font-medium text-lg" required />)}
         <div className="pt-2"><DocumentUpload onDocumentsChange={handleDocumentUpload} /></div>
         {renderInputWrapper('context', UI_CONTENT.FORM.LABELS.CONTEXT, <textarea name="context" value={input.context} onChange={handleChange} rows={5} placeholder={UI_CONTENT.FORM.PLACEHOLDERS.CONTEXT} className="w-full bg-slate-950/50 border border-slate-700/60 rounded-xl p-4 pb-14 pr-4 text-white placeholder-slate-500 focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 outline-none transition-all shadow-inner resize-none leading-relaxed custom-scrollbar" required />, true, 'question')}

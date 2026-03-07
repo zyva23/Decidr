@@ -4,6 +4,7 @@ export interface DecisionInput {
   context: string;
   constraints: string;
   options: string;
+  parentId?: string; // Links to a previous inquiry session
 }
 
 export interface SequenceEvent {

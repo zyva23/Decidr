@@ -7,11 +7,12 @@ interface CommitmentPanelProps {
   refinedPaths?: string[];
   onCommit: (selected: string, why: string) => void;
   onBranch: (newContext: string) => void;
-  onConsult: () => void; // New prop to trigger council chat
+  onConsult: () => void;
+  coreInquiry: string; // New prop
   existingCommitment?: { selectedOption: string; justification: string; };
 }
 
-const CommitmentPanel: React.FC<CommitmentPanelProps> = ({ options, refinedPaths, onCommit, onBranch, onConsult, existingCommitment }) => {
+const CommitmentPanel: React.FC<CommitmentPanelProps> = ({ options, refinedPaths, onCommit, onBranch, onConsult, coreInquiry, existingCommitment }) => {
   const [selected, setSelected] = useState(existingCommitment?.selectedOption || '');
   const [customPath, setCustomPath] = useState('');
   const [why, setWhy] = useState(existingCommitment?.justification || '');
@@ -163,6 +164,7 @@ const CommitmentPanel: React.FC<CommitmentPanelProps> = ({ options, refinedPaths
         onClose={() => setIsModalOpen(false)}
         onConfirm={finalConfirm}
         onConsult={() => { setIsModalOpen(false); onConsult(); }}
+        coreInquiry={coreInquiry}
         selectedOption={selected === 'CUSTOM' ? customPath : selected.replace(/^[A-Z]:\s*/i, '')}
       />
     </div>

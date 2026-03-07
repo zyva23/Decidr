@@ -5,10 +5,11 @@ interface Props {
   onClose: () => void;
   onConfirm: () => void;
   onConsult: () => void;
+  coreInquiry: string;
   selectedOption: string;
 }
 
-const MindfulCommitModal: React.FC<Props> = ({ isOpen, onClose, onConfirm, onConsult, selectedOption }) => {
+const MindfulCommitModal: React.FC<Props> = ({ isOpen, onClose, onConfirm, onConsult, coreInquiry, selectedOption }) => {
   const [timeLeft, setTimeLeft] = useState(60);
 
   useEffect(() => {
@@ -49,11 +50,22 @@ const MindfulCommitModal: React.FC<Props> = ({ isOpen, onClose, onConfirm, onCon
            </div>
         </div>
 
-        <h2 className="text-2xl font-bold text-white mb-4 tracking-tight">The Interval of Intent</h2>
+        <h2 className="text-2xl font-bold text-white mb-2 tracking-tight">The Interval of Intent</h2>
+        <p className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] mb-6">Final Resonance Check</p>
         
-        <p className="text-slate-300 mb-6 leading-relaxed italic">
-          "Pause. You are about to lock your intent on: <span className="text-indigo-400 font-bold not-italic">{selectedOption}</span>. 
-          Listen to your gut reaction. Does this resonance feel true, or is there a lingering dissonance?"
+        <div className="bg-slate-950/50 border border-slate-800 rounded-2xl p-6 mb-8 text-left space-y-4">
+           <div>
+              <span className="text-[8px] font-bold text-slate-500 uppercase tracking-widest block mb-1">Core Inquiry</span>
+              <p className="text-sm text-white font-medium line-clamp-2">{coreInquiry}</p>
+           </div>
+           <div className="pt-4 border-t border-slate-800/50">
+              <span className="text-[8px] font-bold text-indigo-500 uppercase tracking-widest block mb-1">Chosen Path</span>
+              <p className="text-sm text-indigo-300 font-bold">{selectedOption}</p>
+           </div>
+        </div>
+
+        <p className="text-slate-400 text-xs mb-8 leading-relaxed italic">
+          "Pause. Listen to your gut reaction. Does this choice feel true, or is there a lingering dissonance?"
         </p>
 
         <div className="space-y-4 pt-4">

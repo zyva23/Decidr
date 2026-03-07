@@ -150,8 +150,15 @@ const DecidrApp: React.FC = () => {
   };
 
   const handleBranch = (newContext: string) => {
+    const parentId = currentSessionId || undefined;
     startNewSession();
-    setInputValues(prev => ({ title: `Evolved: ${prev.title}`, context: `${newContext} `, constraints: prev.constraints, options: '' }));
+    setInputValues(prev => ({ 
+      title: `Evolved: ${prev.title}`, 
+      context: `${newContext} `, 
+      constraints: prev.constraints, 
+      options: '',
+      parentId: parentId
+    }));
   };
 
   const handleDevelopPlan = async () => {
@@ -316,7 +323,7 @@ const DecidrApp: React.FC = () => {
       <main className="flex-1 overflow-hidden relative p-4 lg:p-6">
         <ResizableSplitPane 
           isResultReady={status === AnalysisStatus.COMPLETE}
-          left={<InputForm initialValues={inputValues} onSubmit={handleAnalysis} isLoading={status === AnalysisStatus.ANALYZING} />}
+          left={<InputForm initialValues={inputValues} onSubmit={handleAnalysis} isLoading={status === AnalysisStatus.ANALYZING} sessions={sessions} />}
           right={
             <div className="h-full overflow-y-auto custom-scrollbar">
                             {(status === AnalysisStatus.COMPLETE || status === AnalysisStatus.ANALYZING || status === AnalysisStatus.ERROR) && (result || partialResult || status === AnalysisStatus.ERROR) && (
@@ -377,6 +384,7 @@ const DecidrApp: React.FC = () => {
                     <AgentCard role="Skeptic" agent={result?.skeptic || partialResult?.skeptic} color="red" isLoading={!result?.skeptic && !partialResult?.skeptic} />
                     <AgentCard role="Mediator" agent={result?.mediator || partialResult?.mediator} color="emerald" isLoading={!result?.mediator && !partialResult?.mediator} />
                   </div>
+                  {/* The Commitment Protocol */}
                   {status === AnalysisStatus.COMPLETE && result && (
                     <div className="pt-8 pb-20 border-t border-slate-800/50 mt-12">
                       <CommitmentPanel 
@@ -385,6 +393,7 @@ const DecidrApp: React.FC = () => {
                           onCommit={handleCommitment} 
                           onBranch={handleBranch} 
                           onConsult={() => setIsChatOpen(true)}
+                          coreInquiry={inputValues.title}
                           existingCommitment={currentSessionId ? sessions.find(s => s.id === currentSessionId)?.commitment : undefined} 
                       />
                     </div>
