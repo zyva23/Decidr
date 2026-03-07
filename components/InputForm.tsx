@@ -269,7 +269,7 @@ const InputForm: React.FC<InputFormProps> = ({ initialValues, onSubmit, isLoadin
           {showHistoryLink && (
             <div className="p-4 bg-slate-950/80 border border-indigo-500/30 rounded-xl animate-fade-in max-h-40 overflow-y-auto custom-scrollbar">
                <div className="space-y-1">
-                  {sessions.filter(s => s.id !== inputValues.parentId).map(s => (
+                  {sessions.filter(s => s.id !== input.parentId).map(s => (
                     <button key={s.id} type="button" onClick={() => handleLinkHistory(s)} className="w-full text-left p-2 rounded hover:bg-slate-800 text-xs text-slate-300 truncate transition-colors flex items-center gap-2">
                        <span className="w-1 h-1 rounded-full bg-indigo-500"></span>
                        {s.input.title}
