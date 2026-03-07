@@ -26,12 +26,14 @@ const SessionHistory: React.FC<Props> = ({
 }) => {
   return (
     <>
-      {/* Backdrop for Mobile */}
+      {/* Backdrop: Visible on mobile (dimmed), Invisible on desktop (transparent) */}
       {isOpen && (
         <div 
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[40] lg:hidden"
+          className={`fixed inset-0 z-[40] ${isOpen ? 'block' : 'hidden'}`}
           onClick={onClose}
-        />
+        >
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm lg:bg-transparent lg:backdrop-blur-none" />
+        </div>
       )}
 
       {/* Sidebar Panel */}
