@@ -348,7 +348,10 @@ const App: React.FC = () => {
                   </div>
                   {status === AnalysisStatus.COMPLETE && result && (
                     <div className="pt-8 pb-20 border-t border-slate-800/50 mt-12">
-                      <CommitmentPanel options={inputValues.options} onCommit={handleCommitment} onBranch={handleBranch} existingCommitment={sessions.find(s => s.id === currentSessionId)?.commitment} />
+                      <CommitmentPanel 
+                          options={inputValues.options} onCommit={handleCommitment} onBranch={handleBranch}
+                          existingCommitment={currentSessionId ? sessions.find(s => s.id === currentSessionId)?.commitment : undefined}
+                      />
                     </div>
                   )}
                 </div>
