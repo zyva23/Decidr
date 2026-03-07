@@ -50,7 +50,6 @@ const App: React.FC = () => {
   const [hasJoinedWaitlist, setHasJoinedWaitlist] = useState(false);
 
   useEffect(() => {
-    // Check if user previously joined waitlist locally
     if (localStorage.getItem('dc_waitlist_joined') === 'true') {
       setHasJoinedWaitlist(true);
     }
@@ -87,10 +86,93 @@ const App: React.FC = () => {
     localStorage.setItem('dc_waitlist_joined', 'true');
   };
 
+  const handleFeedback = async (type: 'helpful' | 'not-helpful') => {
+    if (!result) return;
+    const newResult = { ...result, feedback: type };
+    setResult(newResult); setShowFeedbackForm(true); setFeedbackSubmitted(false);
+    if (user) logActivity(user.id, 'feedback_click', { verdict: result.synthesis.verdict, type });
+    if (currentSessionId) {
+      const session = sessions.find(s => s.id === currentSessionId);
+      if (session) await saveSession({ ...session, result: newResult });
+    }
+  };
+
+  const submitDetailedFeedback = async () => {
+     if (!currentSessionId || !result?.feedback) return;
+     await saveDetailedFeedback(user?.id, currentSessionId, result.feedback, feedbackComment);
+     setFeedbackSubmitted(true);
+     setTimeout(() => setShowFeedbackForm(false), 2000);
+     setFeedbackComment('');
+  };
+
+  const handleCommitment = async (selected: string, why: string) => {
+    if (!currentSessionId) return;
+    const session = sessions.find(s => s.id === currentSessionId);
+    if (!session) return;
+    const commitment = { selectedOption: selected, justification: why, timestamp: Date.now() };
+    const updatedSession = { ...session, commitment };
+    const newXp = xp + 150;
+    const newLevel = Math.floor(newXp / 500) + 1;
+    setXp(newXp);
+    if (newLevel > level) { setLevel(newLevel); setShowLevelUp(true); setTimeout(() => setShowLevelUp(false), 5000); }
+    localStorage.setItem(user ? `dc_xp_${user.id}` : 'dc_xp_guest', newXp.toString());
+    localStorage.setItem(user ? `dc_level_${user.id}` : 'dc_level_guest', newLevel.toString());
+    await saveSession(updatedSession);
+    setSessions(await getSessions(user?.id));
+    if (user) logActivity(user.id, 'commitment_made', { selected, title: session.input.title });
+  };
+
+  const handleBranch = (newContext: string) => {
+    startNewSession();
+    setInputValues(prev => ({ title: `Evolved: ${prev.title}`, context: `${newContext} `, constraints: prev.constraints, options: '' }));
+  };
+
+  const handleDevelopPlan = async () => {
+    if (!result || !inputValues) return;
+    const existingSession = sessions.find(s => s.id === currentSessionId);
+    if (existingSession?.actionPlan) { setCurrentPlan(existingSession.actionPlan); setIsPlanModalOpen(true); return; }
+    setIsGeneratingPlan(true);
+    try {
+      const plan = await generateActionPlan(inputValues, result);
+      setCurrentPlan(plan); setIsPlanModalOpen(true);
+      if (currentSessionId) {
+        const session = sessions.find(s => s.id === currentSessionId);
+        if (session) {
+          const updatedSession = { ...session, actionPlan: plan };
+          await saveSession(updatedSession);
+          setSessions(await getSessions(user?.id));
+        }
+      }
+    } catch (e) { console.error(e); } finally { setIsGeneratingPlan(false); }
+  };
+
+  const handleSavePlan = async (updatedPlan: ActionPlan) => {
+    if (!currentSessionId) return;
+    const session = sessions.find(s => s.id === currentSessionId);
+    if (session) {
+      const updatedSession = { ...session, actionPlan: updatedPlan };
+      await saveSession(updatedSession);
+      setCurrentPlan(updatedPlan);
+      setSessions(await getSessions(user?.id));
+    }
+  };
+
+  const startNewSession = () => {
+    setCurrentSessionId(null); setInputValues({ title: '', context: '', constraints: '', options: '' });
+    setResult(null); setPartialResult(null); setChatHistory([]); setStatus(AnalysisStatus.IDLE);
+    setIsChatOpen(false); setIsElaborationOpen(false); setCurrentPlan(null);
+  };
+
+  const loadSession = (session: DecisionSession) => {
+    setCurrentSessionId(session.id); setInputValues(session.input);
+    setResult(session.result); setPartialResult(null); setChatHistory(session.chatHistory || []);
+    setStatus(session.status); setIsChatOpen(false); setIsElaborationOpen(false);
+    setCurrentPlan(session.actionPlan || null);
+  };
+
   const handleAnalysis = async (input: DecisionInput) => {
     if (credits >= MAX_FREE_CREDITS) {
       if (user && user.email && !hasJoinedWaitlist) {
-        // Auto-register logged in users
         await handleWaitlistJoin(user.email);
       }
       setShowWaitlist(true);
@@ -153,17 +235,39 @@ const App: React.FC = () => {
         onSignOut={handleSignOut}
       />
       <FrameworkLibrary isOpen={isLibraryOpen} onClose={() => setIsLibraryOpen(false)} />
+      
       {showWaitlist && (
         <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
           <div className="bg-slate-900 border border-slate-800 p-10 rounded-3xl max-w-md text-center shadow-2xl animate-fade-in">
             <h3 className="text-2xl font-bold text-white mb-4">Quota Exceeded</h3>
-            <p className="text-slate-400 mb-6 text-sm">Join the waitlist for Decision Council Pro.</p>
-            <input type="email" placeholder="your@email.com" className="w-full p-4 bg-slate-950 border border-slate-700 rounded-xl mb-4 text-white outline-none" />
-            <button onClick={() => setShowWaitlist(false)} className="w-full py-4 bg-indigo-600 text-white font-bold rounded-xl">Notify Me</button>
-            <button onClick={() => setShowWaitlist(false)} className="mt-4 text-xs text-slate-500 uppercase font-bold tracking-widest">Dismiss</button>
+            {hasJoinedWaitlist ? (
+              <div className="animate-fade-in">
+                <div className="w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-500"><polyline points="20 6 9 17 4 12"/></svg>
+                </div>
+                <p className="text-slate-300 font-bold mb-2">Request Received</p>
+                <p className="text-slate-500 text-sm mb-6">We've noted your interest in Decidr Pro. You'll be notified as soon as high-fidelity analysis capacity expands.</p>
+                <button onClick={() => setShowWaitlist(false)} className="w-full py-4 bg-slate-800 text-white font-bold rounded-xl hover:bg-slate-700 transition-all">Close</button>
+              </div>
+            ) : (
+              <>
+                <p className="text-slate-400 mb-6 text-sm">Join the waitlist for Decidr Pro for unlimited high-fidelity deliberation capacity.</p>
+                {user ? (
+                  <div className="mb-6 p-4 bg-indigo-500/10 border border-indigo-500/20 rounded-xl text-indigo-300 text-xs text-left flex items-center gap-3">
+                    <div className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse"></div>
+                    Registering {user.email}...
+                  </div>
+                ) : (
+                  <input type="email" id="waitlist-email" placeholder="your@email.com" className="w-full p-4 bg-slate-950 border border-slate-700 rounded-xl mb-4 text-white outline-none focus:border-indigo-500 transition-all" />
+                )}
+                <button onClick={() => { const email = user?.email || (document.getElementById('waitlist-email') as HTMLInputElement)?.value; if (email) handleWaitlistJoin(email); }} className="w-full py-4 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-500 transition-all shadow-lg shadow-indigo-900/30">Notify Me</button>
+                <button onClick={() => setShowWaitlist(false)} className="mt-4 text-xs text-slate-500 uppercase font-bold tracking-widest hover:text-slate-300">Dismiss</button>
+              </>
+            )}
           </div>
         </div>
       )}
+
       {showLevelUp && (
          <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[400] animate-bounce">
             <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 p-1 rounded-2xl shadow-2xl shadow-indigo-500/50">
@@ -244,10 +348,7 @@ const App: React.FC = () => {
                   </div>
                   {status === AnalysisStatus.COMPLETE && result && (
                     <div className="pt-8 pb-20 border-t border-slate-800/50 mt-12">
-                      <CommitmentPanel 
-                          options={inputValues.options} onCommit={handleCommitment} onBranch={handleBranch}
-                          existingCommitment={sessions.find(s => s.id === currentSessionId)?.commitment}
-                      />
+                      <CommitmentPanel options={inputValues.options} onCommit={handleCommitment} onBranch={handleBranch} existingCommitment={sessions.find(s => s.id === currentSessionId)?.commitment} />
                     </div>
                   )}
                 </div>
