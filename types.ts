@@ -68,8 +68,13 @@ export interface PartialCouncilResult {
   mediator?: AgentResponse;
 }
 
+export interface BrainstormQuestion {
+  question: string;
+  options: string[];
+}
+
 export interface BrainstormResult {
-  questions: string[];
+  structuredQuestions: BrainstormQuestion[];
   suggestions: string[];
 }
 
