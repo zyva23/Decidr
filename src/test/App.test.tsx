@@ -60,15 +60,15 @@ describe('App XP Integration', () => {
     expect(screen.getByText(/Observer/i)).toBeInTheDocument();
 
     // 5. Fill form and submit
-    fireEvent.change(screen.getByPlaceholderText(/What is the core question/i), { target: { value: 'Test Title' } });
-    fireEvent.change(screen.getByPlaceholderText(/Describe the situation/i), { target: { value: 'This is a long enough context for the button to enable.' } });
+    fireEvent.change(screen.getByPlaceholderText(/fundamental question/i), { target: { value: 'Test Title' } });
+    fireEvent.change(screen.getByPlaceholderText(/underlying dynamics/i), { target: { value: 'This is a long enough context for the button to enable.' } });
     
-    const analyzeBtn = screen.getByRole('button', { name: /Analyze Decision/i });
+    const analyzeBtn = screen.getByRole('button', { name: /Begin Deliberation/i });
     fireEvent.click(analyzeBtn);
 
     // 6. Wait for analysis to complete and check XP progress
     await waitFor(() => {
-      expect(screen.getByText(/Final Verdict/i)).toBeInTheDocument();
+      expect(screen.getByText(/The Synthesis/i)).toBeInTheDocument();
     }, { timeout: 5000 });
 
     // In our GamifiedHeader, 100/500 XP would be 20% progress

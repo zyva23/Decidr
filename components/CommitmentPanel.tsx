@@ -63,6 +63,7 @@ const CommitmentPanel: React.FC<CommitmentPanelProps> = ({ options, refinedPaths
                 <button
                   key={i}
                   onClick={() => setSelected(opt)}
+                  aria-label={`Select Path: ${opt}`}
                   className={`p-4 text-left rounded-xl border transition-all ${
                     selected === opt 
                       ? 'bg-indigo-600 border-indigo-400 text-white shadow-lg' 

@@ -36,7 +36,11 @@ const MindfulCommitModal: React.FC<Props> = ({ isOpen, onClose, onConfirm, onCon
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-slate-950/95 backdrop-blur-xl animate-fade-in" />
       
-      <div className="relative w-full max-w-lg bg-slate-900 border border-indigo-500/30 rounded-3xl p-8 md:p-12 shadow-[0_0_50px_rgba(99,102,241,0.2)] text-center animate-fade-in">
+      <div 
+        role="dialog"
+        aria-labelledby="modal-title"
+        className="relative w-full max-w-lg bg-slate-900 border border-indigo-500/30 rounded-3xl p-8 md:p-12 shadow-[0_0_50px_rgba(99,102,241,0.2)] text-center animate-fade-in"
+      >
         
         {/* Mindful Breathing Graphic */}
         <div className="relative w-32 h-32 mx-auto mb-10">
@@ -50,7 +54,7 @@ const MindfulCommitModal: React.FC<Props> = ({ isOpen, onClose, onConfirm, onCon
            </div>
         </div>
 
-        <h2 className="text-2xl font-bold text-white mb-2 tracking-tight">The Interval of Intent</h2>
+        <h2 id="modal-title" className="text-2xl font-bold text-white mb-2 tracking-tight">The Interval of Intent</h2>
         <p className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] mb-6">Final Resonance Check</p>
         
         <div className="bg-slate-950/50 border border-slate-800 rounded-2xl p-6 mb-8 text-left space-y-4">

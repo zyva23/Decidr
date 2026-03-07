@@ -37,3 +37,7 @@ class IntersectionObserverMock {
 }
 window.IntersectionObserver = IntersectionObserverMock as any;
 
+// Default to desktop view
+Object.defineProperty(window, 'innerWidth', { writable: true, configurable: true, value: 1200 });
+window.dispatchEvent(new Event('resize'));
+
