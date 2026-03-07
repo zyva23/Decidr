@@ -17,7 +17,10 @@ const InputForm: React.FC<InputFormProps> = ({ initialValues, onSubmit, isLoadin
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [showHistoryLink, setShowHistoryLink] = useState(false);
 
-  useEffect(() => { setInput(initialValues); }, [initialValues]);
+  useEffect(() => { 
+    setInput(initialValues); 
+    setLinkedPrefix(''); // Reset prefix when loading a different session
+  }, [initialValues]);
 
   const [listeningField, setListeningField] = useState<keyof DecisionInput | null>(null);
   const [activeBrainstorm, setActiveBrainstorm] = useState<'constraints' | 'options' | 'context' | null>(null);
@@ -118,13 +121,28 @@ const InputForm: React.FC<InputFormProps> = ({ initialValues, onSubmit, isLoadin
     setInput(prev => ({ ...prev, [activeBrainstorm]: currentVal + separator + suggestion }));
   };
 
+  const [linkedPrefix, setLinkedPrefix] = useState<string>('');
+
   const handleLinkHistory = (session: DecisionSession) => {
+    const prefix = `Continuing from my previous deliberation on "${session.input.title}". Selected path was: ${session.commitment?.selectedOption || 'Not locked'}.\n\n`;
+    setLinkedPrefix(prefix);
     setInput(prev => ({
       ...prev,
       parentId: session.id,
-      context: `Continuing from my previous deliberation on "${session.input.title}". Selected path was: ${session.commitment?.selectedOption || 'Not locked'}.\n\nNew developments: `
+      context: `${prefix}${prev.context}`
     }));
     setShowHistoryLink(false);
+  };
+
+  const handleUnlink = () => {
+    setInput(prev => {
+      let newContext = prev.context;
+      if (linkedPrefix && newContext.startsWith(linkedPrefix)) {
+        newContext = newContext.substring(linkedPrefix.length);
+      }
+      return { ...prev, parentId: undefined, context: newContext };
+    });
+    setLinkedPrefix('');
   };
 
   const renderInputWrapper = (field: keyof DecisionInput, label: string, component: React.ReactNode, hasAI: boolean = false, aiIconType: 'sparkle' | 'question' = 'sparkle') => {
@@ -285,7 +303,7 @@ const InputForm: React.FC<InputFormProps> = ({ initialValues, onSubmit, isLoadin
                     <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.7 1.5-1.7 1.5-2.7 0-1.5-1-2.8-2.5-2.8-1.7 0-2.5 1-2.5 2.8M9 14c-.2-1-.7-1.7-1.5-2.5-1-.7-1.5-1.7-1.5-2.7 0-1.5 1-2.8 2.5-2.8 1.7 0 2.5 1 2.5 2.8M12 21v-4M12 3v4"/></svg>
                     Evolutionary Branch
                   </div>
-                  <button type="button" onClick={() => setInput(prev => ({...prev, parentId: undefined}))} className="text-[10px] text-slate-500 hover:text-red-400 font-bold transition-colors">Unlink</button>
+                  <button type="button" onClick={handleUnlink} className="text-[10px] text-slate-500 hover:text-red-400 font-bold transition-colors">Unlink</button>
                </div>
                <div className="text-xs text-white font-bold truncate pl-1 border-l border-indigo-500/40">
                   {sessions.find(s => s.id === input.parentId)?.input.title || "Linked Inquiry"}
