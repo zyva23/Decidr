@@ -118,6 +118,16 @@ const InputForm: React.FC<InputFormProps> = ({ initialValues, onSubmit, isLoadin
     setInput(prev => ({ ...prev, [activeBrainstorm]: currentVal + separator + suggestion }));
   };
 
+  const handleLinkHistory = (session: DecisionSession) => {
+    setInput(prev => ({
+      ...prev,
+      title: `Evolved: ${session.input.title}`,
+      parentId: session.id,
+      context: `Continuing from my previous deliberation on "${session.input.title}". Selected path was: ${session.commitment?.selectedOption || 'Not locked'}.\n\nNew developments: `
+    }));
+    setShowHistoryLink(false);
+  };
+
   const renderInputWrapper = (field: keyof DecisionInput, label: string, component: React.ReactNode, hasAI: boolean = false, aiIconType: 'sparkle' | 'question' = 'sparkle') => {
     const isListening = listeningField === field;
     const isAiActive = activeBrainstorm === field;
@@ -206,48 +216,16 @@ const InputForm: React.FC<InputFormProps> = ({ initialValues, onSubmit, isLoadin
     ]
   };
 
-  const handleLinkHistory = (session: DecisionSession) => {
-    setInput(prev => ({
-      ...prev,
-      title: `Evolved: Following ${session.input.title}`,
-      parentId: session.id,
-      context: `Continuing from my previous deliberation on "${session.input.title}". Selected path was: ${session.commitment?.selectedOption || 'Not locked'}.\n\nNew developments: `
-    }));
-    setShowHistoryLink(false);
-  };
-
   return (
-    <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 shadow-2xl backdrop-blur-xl">
-      <div className="flex flex-col mb-6">
+    <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 shadow-2xl backdrop-blur-xl h-full flex flex-col overflow-hidden">
+      <div className="flex-shrink-0 mb-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold text-white flex items-center gap-2">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-500"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="12" x2="12" y1="18" y2="12"/><line x1="9" x2="15" y1="15" y2="15"/></svg>
             {UI_CONTENT.FORM.TITLE}
           </h2>
-          <div className="flex items-center gap-2">
-            {sessions.length > 0 && (
-              <button 
-                type="button"
-                onClick={() => setShowHistoryLink(!showHistoryLink)}
-                className="text-[10px] font-black uppercase tracking-widest text-indigo-400 hover:text-indigo-300 transition-all px-2 py-1 rounded bg-indigo-500/10 border border-indigo-500/20"
-              >
-                Link from History
-              </button>
-            )}
-            {isContextReady && <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded border border-emerald-400/20">{UI_CONTENT.FORM.MESSAGES.READY}</span>}
-          </div>
+          {isContextReady && <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded border border-emerald-400/20">{UI_CONTENT.FORM.MESSAGES.READY}</span>}
         </div>
-
-        {showHistoryLink && (
-          <div className="mb-6 p-4 bg-slate-950/80 border border-indigo-500/30 rounded-xl animate-fade-in max-h-40 overflow-y-auto custom-scrollbar">
-             <div className="text-[8px] font-black uppercase text-indigo-400 mb-2 tracking-widest">Select Parent Inquiry</div>
-             <div className="space-y-1">
-                {sessions.map(s => (
-                  <button key={s.id} type="button" onClick={() => handleLinkHistory(s)} className="w-full text-left p-2 rounded hover:bg-slate-800 text-xs text-slate-300 truncate">{s.input.title}</button>
-                ))}
-             </div>
-          </div>
-        )}
         
         <div className="space-y-4">
           <div className="flex gap-4 border-b border-slate-800 pb-2 overflow-x-auto custom-scrollbar no-scrollbar">
@@ -263,16 +241,7 @@ const InputForm: React.FC<InputFormProps> = ({ initialValues, onSubmit, isLoadin
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {input.parentId && (
-          <div className="p-3 bg-indigo-500/5 border border-indigo-500/20 rounded-xl flex items-center justify-between">
-             <div className="flex items-center gap-2 text-[10px] font-black text-indigo-400 uppercase tracking-widest">
-                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-                Linked Evolutionary Branch
-             </div>
-             <button type="button" onClick={() => setInput(prev => ({...prev, parentId: undefined}))} className="text-[10px] text-slate-500 hover:text-red-400 font-bold">Unlink</button>
-          </div>
-        )}
+      <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto custom-scrollbar space-y-6 pr-2">
         {renderInputWrapper('title', UI_CONTENT.FORM.LABELS.TITLE, <input type="text" name="title" value={input.title} onChange={handleChange} placeholder={UI_CONTENT.FORM.PLACEHOLDERS.TITLE} className="w-full bg-slate-950/50 border border-slate-700/60 rounded-xl p-4 pr-16 text-white placeholder-slate-500 focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 outline-none transition-all shadow-inner font-medium text-lg" required />)}
         <div className="pt-2"><DocumentUpload onDocumentsChange={handleDocumentUpload} /></div>
         {renderInputWrapper('context', UI_CONTENT.FORM.LABELS.CONTEXT, <textarea name="context" value={input.context} onChange={handleChange} rows={5} placeholder={UI_CONTENT.FORM.PLACEHOLDERS.CONTEXT} className="w-full bg-slate-950/50 border border-slate-700/60 rounded-xl p-4 pb-14 pr-4 text-white placeholder-slate-500 focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 outline-none transition-all shadow-inner resize-none leading-relaxed custom-scrollbar" required />, true, 'question')}
@@ -280,8 +249,69 @@ const InputForm: React.FC<InputFormProps> = ({ initialValues, onSubmit, isLoadin
           {renderInputWrapper('constraints', UI_CONTENT.FORM.LABELS.CONSTRAINTS, <textarea name="constraints" value={input.constraints} onChange={handleChange} rows={4} placeholder={UI_CONTENT.FORM.PLACEHOLDERS.CONSTRAINTS} className="w-full bg-slate-950/50 border border-slate-700/60 rounded-xl p-4 pb-14 pr-4 text-white placeholder-slate-600 focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 outline-none transition-all shadow-inner resize-none text-sm custom-scrollbar" />, true)}
           {renderInputWrapper('options', UI_CONTENT.FORM.LABELS.OPTIONS, <textarea name="options" value={input.options} onChange={handleChange} rows={4} placeholder={UI_CONTENT.FORM.PLACEHOLDERS.OPTIONS} className="w-full bg-slate-950/50 border border-slate-700/60 rounded-xl p-4 pb-14 pr-4 text-white placeholder-slate-600 focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 outline-none transition-all shadow-inner resize-none text-sm custom-scrollbar" />, true)}
         </div>
-        <button type="submit" disabled={isLoading || !isContextReady} className={`w-full py-4 px-6 rounded-xl font-bold text-lg text-white shadow-xl transition-all duration-300 transform border border-white/10 ${isLoading ? 'bg-slate-800 cursor-not-allowed' : !isContextReady ? 'bg-slate-800 text-slate-500 cursor-not-allowed' : 'bg-gradient-to-r from-indigo-600 via-violet-600 to-indigo-600 bg-[length:200%_auto] hover:bg-right hover:scale-[1.01] active:scale-[0.99] shadow-indigo-500/25'}`}>
-          {isLoading ? <span className="flex items-center justify-center gap-3"><svg className="animate-spin h-5 w-5 text-indigo-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span className="animate-pulse">{stages[loadingStage]}</span></span> : UI_CONTENT.FORM.BUTTONS.ANALYZE}
+
+        {/* Evolutionary Linking - Repositioned to Bottom */}
+        <div className="pt-4 border-t border-slate-800/50 space-y-4">
+          <div className="flex items-center justify-between">
+             <div className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Strategic Continuity</div>
+             {sessions.length > 0 && (
+                <button 
+                  type="button"
+                  onClick={() => setShowHistoryLink(!showHistoryLink)}
+                  className="text-[10px] font-bold text-indigo-400 hover:text-indigo-300 transition-all flex items-center gap-1.5"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                  {input.parentId ? 'Change Parent' : 'Link from History'}
+                </button>
+             )}
+          </div>
+
+          {showHistoryLink && (
+            <div className="p-4 bg-slate-950/80 border border-indigo-500/30 rounded-xl animate-fade-in max-h-40 overflow-y-auto custom-scrollbar">
+               <div className="space-y-1">
+                  {sessions.filter(s => s.id !== inputValues.parentId).map(s => (
+                    <button key={s.id} type="button" onClick={() => handleLinkHistory(s)} className="w-full text-left p-2 rounded hover:bg-slate-800 text-xs text-slate-300 truncate transition-colors flex items-center gap-2">
+                       <span className="w-1 h-1 rounded-full bg-indigo-500"></span>
+                       {s.input.title}
+                    </button>
+                  ))}
+               </div>
+            </div>
+          )}
+
+          {input.parentId && (
+            <div className="p-4 bg-indigo-500/5 border border-indigo-500/20 rounded-xl animate-fade-in">
+               <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2 text-[9px] font-black text-indigo-400 uppercase tracking-widest">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.7 1.5-1.7 1.5-2.7 0-1.5-1-2.8-2.5-2.8-1.7 0-2.5 1-2.5 2.8M9 14c-.2-1-.7-1.7-1.5-2.5-1-.7-1.5-1.7-1.5-2.7 0-1.5 1-2.8 2.5-2.8 1.7 0 2.5 1 2.5 2.8M12 21v-4M12 3v4"/></svg>
+                    Evolutionary Branch
+                  </div>
+                  <button type="button" onClick={() => setInput(prev => ({...prev, parentId: undefined}))} className="text-[10px] text-slate-500 hover:text-red-400 font-bold transition-colors">Unlink</button>
+               </div>
+               <div className="text-xs text-white font-bold truncate pl-1 border-l border-indigo-500/40">
+                  {sessions.find(s => s.id === input.parentId)?.input.title || "Linked Inquiry"}
+               </div>
+            </div>
+          )}
+        </div>
+
+        <button
+          type="submit"
+          disabled={isLoading || !isContextReady}
+          className={`w-full py-4 px-6 rounded-xl font-bold text-lg text-white shadow-xl transition-all duration-300 transform border border-white/10 shrink-0 ${
+            isLoading 
+              ? 'bg-slate-800 cursor-not-allowed' 
+              : !isContextReady 
+                ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                : 'bg-gradient-to-r from-indigo-600 via-violet-600 to-indigo-600 bg-[length:200%_auto] hover:bg-right hover:scale-[1.01] active:scale-[0.99] shadow-indigo-500/25'
+          }`}
+        >
+          {isLoading ? (
+            <span className="flex items-center justify-center gap-3">
+              <svg className="animate-spin h-5 w-5 text-indigo-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+              <span className="animate-pulse">{stages[loadingStage]}</span>
+            </span>
+          ) : UI_CONTENT.FORM.BUTTONS.ANALYZE}
         </button>
       </form>
     </div>
