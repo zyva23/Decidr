@@ -14,7 +14,14 @@ const CommitmentPanel: React.FC<CommitmentPanelProps> = ({ options, onCommit, on
   const [why, setWhy] = useState(existingCommitment?.justification || '');
   const [isCommitted, setIsCommitted] = useState(!!existingCommitment);
 
-  const optionList = options.split('\n').filter(o => o.trim().length > 0);
+  const parseOptions = (text: string) => {
+    // Split by common delimiters: "Path A:", "Option 1.", "1.", "•", or newlines
+    // This regex looks for patterns like "Path A:", "Option 1:", "1.", etc.
+    const parts = text.split(/(?:\n|^)(?:Path\s+[A-Z]:|Option\s+\d+:|[A-Z]:|\d+\.|\*|•)\s*/i);
+    return parts.map(p => p.trim()).filter(p => p.length > 5); // Filter out empty or very short noise
+  };
+
+  const optionList = parseOptions(options);
 
   const handleCommit = () => {
     const finalChoice = selected === 'CUSTOM' ? customPath : selected;
