@@ -70,17 +70,31 @@ const App: React.FC = () => {
       setIsAuthChecking(false);
       return;
     }
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
+        const storedXp = parseInt(localStorage.getItem(`dc_xp_${firebaseUser.uid}`) || '0', 10);
+        const storedLevel = parseInt(localStorage.getItem(`dc_level_${firebaseUser.uid}`) || '1', 10);
+        
         setUser({ 
            id: firebaseUser.uid, 
            email: firebaseUser.email || "User",
-           xp: parseInt(localStorage.getItem(`dc_xp_${firebaseUser.uid}`) || '0', 10),
-           level: parseInt(localStorage.getItem(`dc_level_${firebaseUser.uid}`) || '1', 10)
+           xp: storedXp,
+           level: storedLevel
         });
+        
+        setXp(storedXp);
+        setLevel(storedLevel);
+        
         logActivity(firebaseUser.uid, 'login');
+        
+        // Load sessions for this user immediately
+        const userSessions = await getSessions(firebaseUser.uid);
+        setSessions(userSessions);
       } else {
         setUser(null);
+        setSessions(getLocalSessions());
+        setXp(parseInt(localStorage.getItem('dc_xp_guest') || '0', 10));
+        setLevel(parseInt(localStorage.getItem('dc_level_guest') || '1', 10));
       }
       setIsAuthChecking(false);
     });
@@ -88,24 +102,12 @@ const App: React.FC = () => {
   }, []);
 
   /**
-   * Load history and local quota info on mount.
+   * Load local quota info on mount.
    */
   useEffect(() => {
-    const loadInitialData = async () => {
-      const initialSessions = await getSessions(user?.id);
-      setSessions(initialSessions);
-    };
-    loadInitialData();
-    
     const used = localStorage.getItem('dc_credits_used');
     setCredits(used ? parseInt(used, 10) : 0);
-
-    // Load Gamification Data
-    const storedXp = localStorage.getItem(user ? `dc_xp_${user.id}` : 'dc_xp_guest');
-    const storedLevel = localStorage.getItem(user ? `dc_level_${user.id}` : 'dc_level_guest');
-    setXp(storedXp ? parseInt(storedXp, 10) : 0);
-    setLevel(storedLevel ? parseInt(storedLevel, 10) : 1);
-  }, [user]);
+  }, []);
 
   /**
    * Handles user sentiment feedback on the verdict.
@@ -389,7 +391,7 @@ const App: React.FC = () => {
           <button onClick={() => setIsHistoryOpen(true)} className="p-2 -ml-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
           </button>
-          <h1 className="text-lg font-bold text-white tracking-tight">{UI_CONTENT.APP_NAME}</h1>
+          <h1 className="hidden sm:block text-lg font-bold text-white tracking-tight">{UI_CONTENT.APP_NAME}</h1>
         </div>
         
         <div className="flex items-center gap-6">
