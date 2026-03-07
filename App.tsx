@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Component, ErrorInfo, ReactNode } from 'react';
 import InputForm from './components/InputForm';
 import AgentCard from './components/AgentCard';
 import RadarViz from './components/RadarViz';
@@ -18,9 +18,38 @@ import { auth, logActivity, onAuthStateChanged, signOut, isGCPConfigured, saveDe
 import { generateDecisionPDF } from './services/pdfService';
 import { DecisionInput, CouncilResult, AnalysisStatus, DecisionSession, ChatMessage, UserProfile, ActionPlan, PartialCouncilResult } from './types';
 
+/**
+ * ERROR BOUNDARY
+ * Captures rendering crashes and provides diagnostic info.
+ */
+class ErrorBoundary extends Component<{children: ReactNode}, {hasError: boolean, error: Error | null}> {
+  constructor(props: any) { super(props); this.state = { hasError: false, error: null }; }
+  static getDerivedStateFromError(error: Error) { return { hasError: true, error }; }
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) { console.error("CRITICAL UI CRASH:", error, errorInfo); }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-8 text-center">
+          <div className="w-20 h-20 bg-red-500/20 rounded-full flex items-center justify-center mb-6 border border-red-500/50">
+            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-500"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+          </div>
+          <h1 className="text-2xl font-black text-white mb-2 uppercase tracking-tighter">System Malfunction</h1>
+          <p className="text-slate-400 max-w-md mb-8">The Council interface has encountered a fatal rendering error. This usually indicates a data mismatch during deliberation.</p>
+          <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl mb-8 text-left w-full max-w-xl overflow-hidden">
+             <p className="text-[10px] font-black text-red-400 uppercase mb-2">Diagnostic Log</p>
+             <code className="text-xs text-slate-300 break-all">{this.state.error?.message}</code>
+          </div>
+          <button onClick={() => window.location.reload()} className="px-8 py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-500 transition-all">Re-initialize Council</button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 const MAX_FREE_CREDITS = 5;
 
-const App: React.FC = () => {
+const DecidrApp: React.FC = () => {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isAuthChecking, setIsAuthChecking] = useState(true);
   const [isGuestMode, setIsGuestMode] = useState(false);
@@ -50,9 +79,7 @@ const App: React.FC = () => {
   const [hasJoinedWaitlist, setHasJoinedWaitlist] = useState(false);
 
   useEffect(() => {
-    if (localStorage.getItem('dc_waitlist_joined') === 'true') {
-      setHasJoinedWaitlist(true);
-    }
+    if (localStorage.getItem('dc_waitlist_joined') === 'true') { setHasJoinedWaitlist(true); }
   }, []);
 
   useEffect(() => {
@@ -172,17 +199,16 @@ const App: React.FC = () => {
 
   const handleAnalysis = async (input: DecisionInput) => {
     if (credits >= MAX_FREE_CREDITS) {
-      if (user && user.email && !hasJoinedWaitlist) {
-        await handleWaitlistJoin(user.email);
-      }
-      setShowWaitlist(true);
-      return;
+      if (user && user.email && !hasJoinedWaitlist) { await handleWaitlistJoin(user.email); }
+      setShowWaitlist(true); return;
     }
     setStatus(AnalysisStatus.ANALYZING); setInputValues(input); setResult(null); setPartialResult(null);
     if (user) logActivity(user.id, 'analysis_started', { title: input.title });
     try {
       const data = await analyzeDecision(input, (partial) => {
-        setPartialResult(prev => ({ ...(prev || {}), ...partial }));
+        try {
+          setPartialResult(prev => ({ ...(prev || {}), ...partial }));
+        } catch (e) { console.warn("Partial state update skipped due to malformed data", e); }
       });
       setResult(data); setPartialResult(null); setStatus(AnalysisStatus.COMPLETE);
       const newCredits = credits + 1; setCredits(newCredits);
@@ -237,8 +263,8 @@ const App: React.FC = () => {
       <FrameworkLibrary isOpen={isLibraryOpen} onClose={() => setIsLibraryOpen(false)} />
       
       {showWaitlist && (
-        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-          <div className="bg-slate-900 border border-slate-800 p-10 rounded-3xl max-w-md text-center shadow-2xl animate-fade-in">
+        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md text-center">
+          <div className="bg-slate-900 border border-slate-800 p-10 rounded-3xl max-w-md shadow-2xl animate-fade-in">
             <h3 className="text-2xl font-bold text-white mb-4">Quota Exceeded</h3>
             {hasJoinedWaitlist ? (
               <div className="animate-fade-in">
@@ -246,22 +272,15 @@ const App: React.FC = () => {
                   <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-500"><polyline points="20 6 9 17 4 12"/></svg>
                 </div>
                 <p className="text-slate-300 font-bold mb-2">Request Received</p>
-                <p className="text-slate-500 text-sm mb-6">We've noted your interest in Decidr Pro. You'll be notified as soon as high-fidelity analysis capacity expands.</p>
-                <button onClick={() => setShowWaitlist(false)} className="w-full py-4 bg-slate-800 text-white font-bold rounded-xl hover:bg-slate-700 transition-all">Close</button>
+                <p className="text-slate-500 text-sm mb-6">We've noted your interest. Capacity expands soon.</p>
+                <button onClick={() => setShowWaitlist(false)} className="w-full py-4 bg-slate-800 text-white font-bold rounded-xl">Close</button>
               </div>
             ) : (
               <>
-                <p className="text-slate-400 mb-6 text-sm">Join the waitlist for Decidr Pro for unlimited high-fidelity deliberation capacity.</p>
-                {user ? (
-                  <div className="mb-6 p-4 bg-indigo-500/10 border border-indigo-500/20 rounded-xl text-indigo-300 text-xs text-left flex items-center gap-3">
-                    <div className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse"></div>
-                    Registering {user.email}...
-                  </div>
-                ) : (
-                  <input type="email" id="waitlist-email" placeholder="your@email.com" className="w-full p-4 bg-slate-950 border border-slate-700 rounded-xl mb-4 text-white outline-none focus:border-indigo-500 transition-all" />
-                )}
+                <p className="text-slate-400 mb-6 text-sm">Join the waitlist for unlimited deliberation capacity.</p>
+                {user ? <div className="mb-6 p-4 bg-indigo-500/10 border border-indigo-500/20 rounded-xl text-indigo-300 text-xs text-left flex items-center gap-3"><div className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse"></div>Registering {user.email}...</div> : <input type="email" id="waitlist-email" placeholder="your@email.com" className="w-full p-4 bg-slate-950 border border-slate-700 rounded-xl mb-4 text-white outline-none focus:border-indigo-500 transition-all" />}
                 <button onClick={() => { const email = user?.email || (document.getElementById('waitlist-email') as HTMLInputElement)?.value; if (email) handleWaitlistJoin(email); }} className="w-full py-4 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-500 transition-all shadow-lg shadow-indigo-900/30">Notify Me</button>
-                <button onClick={() => setShowWaitlist(false)} className="mt-4 text-xs text-slate-500 uppercase font-bold tracking-widest hover:text-slate-300">Dismiss</button>
+                <button onClick={() => setShowWaitlist(false)} className="mt-4 text-xs text-slate-500 uppercase font-bold tracking-widest">Dismiss</button>
               </>
             )}
           </div>
@@ -270,7 +289,7 @@ const App: React.FC = () => {
 
       {showLevelUp && (
          <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[400] animate-bounce">
-            <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 p-1 rounded-2xl shadow-2xl shadow-indigo-500/50">
+            <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 p-1 rounded-2xl shadow-2xl">
                <div className="bg-slate-900 px-8 py-4 rounded-[14px] flex flex-col items-center">
                   <div className="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-400 mb-1">New Strategic Rank</div>
                   <div className="text-2xl font-black text-white">LEVEL {level} UNLOCKED</div>
@@ -280,9 +299,7 @@ const App: React.FC = () => {
       )}
       <header className="flex-shrink-0 h-16 border-b border-slate-800 bg-slate-900/50 backdrop-blur-md flex items-center justify-between px-4 lg:px-6 z-30">
         <div className="flex items-center gap-4">
-          <button onClick={() => setIsHistoryOpen(true)} className="p-2 -ml-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
-          </button>
+          <button onClick={() => setIsHistoryOpen(true)} className="p-2 -ml-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg></button>
           <h1 className="hidden sm:block text-lg font-bold text-white tracking-tight">{UI_CONTENT.APP_NAME}</h1>
         </div>
         <div className="flex items-center gap-6"><GamifiedHeader xp={xp} level={level} /></div>
@@ -316,24 +333,17 @@ const App: React.FC = () => {
                             {feedbackSubmitted ? <div className="text-emerald-400 font-bold flex items-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>{UI_CONTENT.FEEDBACK.SUCCESS}</div> : <>
                                 <h4 className="text-sm font-bold text-slate-400 mb-3 uppercase tracking-widest">{UI_CONTENT.FEEDBACK.TITLE}</h4>
                                 <textarea value={feedbackComment} onChange={(e) => setFeedbackComment(e.target.value)} placeholder={UI_CONTENT.FEEDBACK.PLACEHOLDER} className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white placeholder-slate-600 focus:ring-1 focus:ring-indigo-500 outline-none transition-all h-24 resize-none mb-3 text-sm"/>
-                                <div className="flex justify-end gap-3">
-                                   <button onClick={() => setShowFeedbackForm(false)} className="text-xs font-bold text-slate-500 uppercase px-4 py-2">{UI_CONTENT.FEEDBACK.BUTTON_CANCEL}</button>
-                                   <button onClick={submitDetailedFeedback} disabled={!feedbackComment.trim()} className="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-bold rounded-lg uppercase tracking-widest transition-all">{UI_CONTENT.FEEDBACK.BUTTON_SUBMIT}</button>
-                                </div>
+                                <div className="flex justify-end gap-3"><button onClick={() => setShowFeedbackForm(false)} className="text-xs font-bold text-slate-500 uppercase px-4 py-2">Cancel</button><button onClick={submitDetailedFeedback} disabled={!feedbackComment.trim()} className="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-bold rounded-lg uppercase tracking-widest transition-all">Submit</button></div>
                               </>}
                           </div>
                         )}
                       </div>
-                      <div className="bg-slate-900/40 border border-slate-800 rounded-xl p-6 flex items-center justify-center">
-                        <RadarViz metrics={result.synthesis?.metrics} />
-                      </div>
+                      <div className="bg-slate-900/40 border border-slate-800 rounded-xl p-6 flex items-center justify-center"><RadarViz metrics={result.synthesis?.metrics} /></div>
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-pulse">
                        <div className="md:col-span-2 bg-slate-900/40 border border-slate-800 rounded-xl h-64 flex flex-col items-center justify-center text-center p-8">
-                          <div className="w-12 h-12 bg-indigo-500/20 rounded-full flex items-center justify-center mb-4">
-                             <svg className="animate-spin h-6 w-6 text-indigo-500" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
-                          </div>
+                          <div className="w-12 h-12 bg-indigo-500/20 rounded-full flex items-center justify-center mb-4"><svg className="animate-spin h-6 w-6 text-indigo-500" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg></div>
                           <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Synthesizing Archetypal Perspectives...</div>
                        </div>
                        <div className="bg-slate-900/20 border border-slate-800/50 rounded-xl h-64" />
@@ -348,10 +358,7 @@ const App: React.FC = () => {
                   </div>
                   {status === AnalysisStatus.COMPLETE && result && (
                     <div className="pt-8 pb-20 border-t border-slate-800/50 mt-12">
-                      <CommitmentPanel 
-                          options={inputValues.options} onCommit={handleCommitment} onBranch={handleBranch}
-                          existingCommitment={currentSessionId ? sessions.find(s => s.id === currentSessionId)?.commitment : undefined}
-                      />
+                      <CommitmentPanel options={inputValues.options} onCommit={handleCommitment} onBranch={handleBranch} existingCommitment={currentSessionId ? sessions.find(s => s.id === currentSessionId)?.commitment : undefined} />
                     </div>
                   )}
                 </div>
@@ -371,14 +378,7 @@ const App: React.FC = () => {
                   </div>
                   <h2 className="text-4xl font-black text-white mb-6 tracking-tight">{UI_CONTENT.IDLE.TITLE}</h2>
                   <p className="text-lg text-slate-400 max-w-lg mx-auto leading-relaxed mb-12">{UI_CONTENT.IDLE.DESCRIPTION}</p>
-                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 w-full max-w-4xl">
-                     {UI_CONTENT.IDLE.AGENTS.map(agent => (
-                       <div key={agent.name} className="p-4 rounded-2xl bg-slate-900/40 border border-slate-800/50 text-left">
-                          <div className={`text-xs font-black uppercase tracking-widest mb-1 ${agent.color}`}>{agent.name}</div>
-                          <div className="text-[10px] text-slate-500 font-medium">{agent.desc}</div>
-                       </div>
-                     ))}
-                  </div>
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 w-full max-w-4xl">{UI_CONTENT.IDLE.AGENTS.map(agent => (<div key={agent.name} className="p-4 rounded-2xl bg-slate-900/40 border border-slate-800/50 text-left"><div className={`text-xs font-black uppercase tracking-widest mb-1 ${agent.color}`}>{agent.name}</div><div className="text-[10px] text-slate-500 font-medium">{agent.desc}</div></div>))}</div>
                 </div>
               )}
             </div>
@@ -390,6 +390,14 @@ const App: React.FC = () => {
         <ActionPlanModal isOpen={isPlanModalOpen} onClose={() => setIsPlanModalOpen(false)} onSave={handleSavePlan} plan={currentPlan} />
       )}
     </div>
+  );
+};
+
+const App: React.FC = () => {
+  return (
+    <ErrorBoundary>
+      <DecidrApp />
+    </ErrorBoundary>
   );
 };
 
