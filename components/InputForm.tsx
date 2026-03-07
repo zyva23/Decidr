@@ -318,32 +318,60 @@ const InputForm: React.FC<InputFormProps> = ({ initialValues, onSubmit, isLoadin
 
   const templates = [
     { 
-      label: 'Leadership', 
-      title: 'Succession Planning: Transitioning from Founder to Professional CEO', 
-      context: `I have led this organization from inception to 200 employees. While we are profitable, I recognize that my "wartime" founder instincts are beginning to create friction with the "peacetime" operational excellence we now require. I worry that stepping back will dilute the original soul of the company, but staying in the CEO role may bottleneck our next stage of institutional maturity.`,
-      constraints: 'Board of Directors expects a 12-month transition plan. I must maintain a majority stake to preserve long-term vision. High internal candidate sensitivity.',
-      options: 'Path A: Promote the current COO (Continuity). Path B: Launch an external search for a category-defining veteran (Disruption). Path C: Adopt a Co-CEO model for 18 months (Gradualism).'
+      label: 'Home & Roots', 
+      title: 'Acquiring a Primary Residence vs. Maintaining Geographic Liquidity', 
+      context: `I am currently renting in a vibrant urban center. The opportunity to purchase a home has arisen, which would anchor me to this geography for at least 5-7 years to reach a financial break-even point. While homeownership represents a forced savings vehicle and psychological "nesting," I fear the loss of optionality. If a transformative professional opportunity arises in another city, the house becomes a frictional anchor rather than an asset.`,
+      constraints: 'Mortgage rates are currently at a 10-year high. My down payment represents 70% of my liquid net worth. Local market has appreciated 40% in 3 years.',
+      options: 'Path A: Purchase the residence (Stability). Path B: Continue renting and invest the down payment in a diversified portfolio (Liquidity). Path C: Look for a "starter" property in a less central area (Compromise).'
     },
     { 
-      label: 'Prestige vs. Purpose', 
-      title: 'Choosing Between a Big Tech VP Role and a Social Impact Lead Position', 
-      context: 'The Big Tech role offers immense leverage, a $1M+ compensation package, and the ability to influence products used by billions. However, the work feels ethically neutral at best. The Social Impact role, at a well-funded non-profit, offers the chance to fix a broken educational system, but with 40% of the pay and significantly more bureaucratic friction. I am navigating the tension between my desire for financial security and my existential need for meaningful contribution.',
-      constraints: 'Children starting college in 4 years. Living in a high-cost-of-living urban center. Personal burnout levels are currently moderate.',
-      options: 'A: Accept Big Tech (Leverage & Security). B: Accept Social Impact (Meaning & Legacy). C: Big Tech for 2 years, then transition (The "Sabbatical" Strategy).'
+      label: 'Union', 
+      title: 'Formalizing a Partnership: The Marriage Inquiry', 
+      context: `We have been in a committed relationship for four years. We function effectively as a unit, yet the question of legal marriage remains. One partner views marriage as a necessary ritual of social and legal fortification; the other views it as an outdated bureaucratic overlay on a naturally evolving emotional bond. We need to deliberate on whether the legal and symbolic benefits outweigh the perceived loss of individual autonomy.`,
+      constraints: 'Pressure from extended family is mounting. Significant disparity in individual assets/debts. Potential for international relocation requiring visas.',
+      options: 'Path A: Legal marriage with a robust pre-nuptial agreement. Path B: Maintain the status quo (Commitment without Bureaucracy). Path C: A non-legal symbolic ceremony.'
     },
     { 
-      label: 'Vulnerability', 
-      title: 'The Risk of Emotional Disclosure in a Professional-Personal Hybrid Relationship', 
-      context: `I have been collaborating with a creative partner for three years. Our professional synergy is the source of our success. I have developed deep feelings for them, but the stakes are high: if I disclose my feelings and they aren't reciprocated, the friction might destroy the creative engine we have built. If I remain silent, the repressed emotion may eventually lead to resentment or an artificial wall between us.`,
-      constraints: 'We have a joint contract for a major exhibition in 6 months. We are part of a very small, niche professional community.',
-      options: 'A: Radical transparency (The Direct Ask). B: Subtle escalation of intimacy over time (The Test). C: Compartmentalization (Commitment to the Work).'
+      label: 'Companionship', 
+      title: 'Integrating a Canine Companion into a High-Performance Lifestyle', 
+      context: `I desire the emotional grounding and discipline that comes with caring for a dog. However, my life is characterized by frequent travel and erratic working hours. I am weighing the joy of companionship against the logistical complexity of pet care, the financial overhead of boarding, and the potential reduction in my spontaneous mobility.`,
+      constraints: 'Living in a 700 sq ft apartment with no private outdoor space. Working 50+ hours a week. Travel occurs at least once a month.',
+      options: 'Path A: Adopt a high-energy rescue (Commitment to Lifestyle Shift). Path B: Foster a dog temporarily to test compatibility. Path C: Defer the decision until professional stability increases.'
     },
     { 
-      label: 'Market Pivot', 
-      title: 'Pivoting from a Service Agency to a Product-Led SaaS Company', 
-      context: `Our agency is healthy, but we are trading hours for dollars. We have built an internal tool that solves a recurring pain point for our clients. Pivoting to SaaS offers scalability and higher valuation, but it requires a total shift in DNA—from customer service to product engineering. It means "firing" our current revenue streams to chase a high-margin future that isn't guaranteed.`,
-      constraints: 'Current cash runway: 8 months if we stop all agency work. 60% of the team has an agency mindset, not a product mindset.',
-      options: 'A: All-in pivot (The Burn the Boats Strategy). B: Run both in parallel (The Slow Transition). C: Sell the agency to fund the SaaS startup.'
+      label: 'Cognitive Health', 
+      title: 'Initiating Psychotherapeutic Inquiry for Preventive Maintenance', 
+      context: `I am not in a state of crisis, but I recognize recurring patterns of stress and a subtle "existential drift." I am considering hiring a high-performance therapist to map my cognitive biases and improve my emotional resilience. The deliberation is whether this investment of time and capital is more effective than self-directed practices like meditation or journaling.`,
+      constraints: 'High-quality practitioners in my area have 3-month waitlists. Cost is $250/hour out-of-network.',
+      options: 'Path A: Begin weekly sessions (Professional Guidance). Path B: Structured self-optimization (Journaling/Breathwork). Path C: Group-based philosophical or support circles.'
+    },
+    { 
+      label: 'Expedition', 
+      title: 'A Multi-Month Sabbatical: Experiential Expansion vs. Career Momentum', 
+      context: `I have been working at a high intensity for six years. I feel a deep need for a "reset"—a 3-month solo journey through Southeast Asia. While I have the savings, I am concerned that stepping out of the market now will result in "re-entry friction" and the loss of a promotion track that is currently opening up. Is the experiential wealth of travel worth the potential career deceleration?`,
+      constraints: 'Total cost would be $15k. Current industry is undergoing rapid AI-driven shifts. My current manager is supportive but can only hold the role for 4 weeks.',
+      options: 'Path A: Take the full 3-month sabbatical (Total Reset). Path B: A 2-week "mini-break" followed by a role change. Path C: Negotiate a remote-work arrangement while traveling.'
+    },
+    { 
+      label: 'Utility & Status', 
+      title: 'Capital Expenditure: Upgrading to a Premium Electric Vehicle', 
+      context: `My current internal combustion vehicle is reliable but aging. I am considering a high-performance EV. The logic is a mix of environmental alignment, reduced maintenance, and the "tech-forward" status it conveys in my professional circle. However, it is a significant depreciating asset that would consume capital I could otherwise deploy into my investment portfolio.`,
+      constraints: 'Charging infrastructure at my residence is limited. Current car has a resale value of $12k. The EV costs $65k.',
+      options: 'Path A: Purchase the EV (Modernization). Path B: Repair and keep the current vehicle (Pragmatism). Path C: Lease a mid-range EV to hedge against battery tech obsolescence.'
+    },
+    { 
+      label: 'Leisure vs. Depth', 
+      title: 'The Friday Night Dilemma: Passive Consumption vs. Deliberate Study', 
+      context: `After a demanding week, my default instinct is to watch a critically acclaimed but long film (3 hours). However, I have a stack of technical books that I need to master to remain competitive in my field. I am navigating the tension between the need for cognitive recovery (passive) and the drive for continuous growth (active).`,
+      constraints: 'Current energy level: 4/10. Early morning commitment tomorrow. The film is leaving the streaming platform in 48 hours.',
+      options: 'Path A: Watch the film (Restorative Culture). Path B: 90 minutes of deep study, then sleep (Discipline). Path C: A short podcast and early rest (Efficiency).'
+    },
+    { 
+      label: 'Risk Hedging', 
+      title: 'Evaluating Supplemental Disability & Life Insurance', 
+      context: `As I move into my mid-30s, my "human capital" is my greatest asset. I am considering private insurance policies beyond what my employer provides. I am weighing the "guaranteed loss" of the premiums against the "catastrophic protection" they provide. It is a deliberation on the value of peace of mind versus capital efficiency.`,
+      constraints: 'Premiums would cost $300/month. No current dependents, but planning for a family in 2 years.',
+      options: 'Path A: Secure the comprehensive policies (Maximum Hedging). Path B: Self-insure by increasing liquid emergency fund. Path C: Minimalist policy for catastrophic only.'
     }
   ];
 
