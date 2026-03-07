@@ -61,4 +61,17 @@ export const saveDetailedFeedback = async (userId: string | undefined, sessionId
   }
 };
 
+export const saveToWaitlist = async (email: string, userId?: string) => {
+  if (!db) return;
+  try {
+    await addDoc(collection(db, "waitlist"), {
+      email,
+      userId: userId || 'guest',
+      timestamp: serverTimestamp()
+    });
+  } catch (e) {
+    console.error("Waitlist Error:", e);
+  }
+};
+
 export { signInWithPopup, signOut, onAuthStateChanged };

@@ -14,7 +14,7 @@ import Auth from './components/Auth';
 import { UI_CONTENT } from './src/constants/uiContent';
 import { analyzeDecision, generateActionPlan } from './services/geminiService';
 import { saveSession, getSessions, deleteSession, getLocalSessions } from './services/storageService';
-import { auth, logActivity, onAuthStateChanged, signOut, isGCPConfigured, saveDetailedFeedback } from './services/googleCloud';
+import { auth, logActivity, onAuthStateChanged, signOut, isGCPConfigured, saveDetailedFeedback, saveToWaitlist } from './services/googleCloud';
 import { generateDecisionPDF } from './services/pdfService';
 import { DecisionInput, CouncilResult, AnalysisStatus, DecisionSession, ChatMessage, UserProfile, ActionPlan, PartialCouncilResult } from './types';
 
@@ -47,6 +47,14 @@ const App: React.FC = () => {
   const [feedbackComment, setFeedbackComment] = useState('');
   const [showFeedbackForm, setShowFeedbackForm] = useState(false);
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
+  const [hasJoinedWaitlist, setHasJoinedWaitlist] = useState(false);
+
+  useEffect(() => {
+    // Check if user previously joined waitlist locally
+    if (localStorage.getItem('dc_waitlist_joined') === 'true') {
+      setHasJoinedWaitlist(true);
+    }
+  }, []);
 
   useEffect(() => {
     if (!isGCPConfigured || !auth) { setIsAuthChecking(false); return; }
@@ -73,92 +81,21 @@ const App: React.FC = () => {
     setCredits(used ? parseInt(used, 10) : 0);
   }, []);
 
-  const handleFeedback = async (type: 'helpful' | 'not-helpful') => {
-    if (!result) return;
-    const newResult = { ...result, feedback: type };
-    setResult(newResult); setShowFeedbackForm(true); setFeedbackSubmitted(false);
-    if (user) logActivity(user.id, 'feedback_click', { verdict: result.synthesis.verdict, type });
-    if (currentSessionId) {
-      const session = sessions.find(s => s.id === currentSessionId);
-      if (session) await saveSession({ ...session, result: newResult });
-    }
-  };
-
-  const submitDetailedFeedback = async () => {
-     if (!currentSessionId || !result?.feedback) return;
-     await saveDetailedFeedback(user?.id, currentSessionId, result.feedback, feedbackComment);
-     setFeedbackSubmitted(true);
-     setTimeout(() => setShowFeedbackForm(false), 2000);
-     setFeedbackComment('');
-  };
-
-  const handleCommitment = async (selected: string, why: string) => {
-    if (!currentSessionId) return;
-    const session = sessions.find(s => s.id === currentSessionId);
-    if (!session) return;
-    const commitment = { selectedOption: selected, justification: why, timestamp: Date.now() };
-    const updatedSession = { ...session, commitment };
-    const newXp = xp + 150;
-    const newLevel = Math.floor(newXp / 500) + 1;
-    setXp(newXp);
-    if (newLevel > level) { setLevel(newLevel); setShowLevelUp(true); setTimeout(() => setShowLevelUp(false), 5000); }
-    localStorage.setItem(user ? `dc_xp_${user.id}` : 'dc_xp_guest', newXp.toString());
-    localStorage.setItem(user ? `dc_level_${user.id}` : 'dc_level_guest', newLevel.toString());
-    await saveSession(updatedSession);
-    setSessions(await getSessions(user?.id));
-    if (user) logActivity(user.id, 'commitment_made', { selected, title: session.input.title });
-  };
-
-  const handleBranch = (newContext: string) => {
-    startNewSession();
-    setInputValues(prev => ({ title: `Evolved: ${prev.title}`, context: `${newContext} `, constraints: prev.constraints, options: '' }));
-  };
-
-  const handleDevelopPlan = async () => {
-    if (!result || !inputValues) return;
-    const existingSession = sessions.find(s => s.id === currentSessionId);
-    if (existingSession?.actionPlan) { setCurrentPlan(existingSession.actionPlan); setIsPlanModalOpen(true); return; }
-    setIsGeneratingPlan(true);
-    try {
-      const plan = await generateActionPlan(inputValues, result);
-      setCurrentPlan(plan); setIsPlanModalOpen(true);
-      if (currentSessionId) {
-        const session = sessions.find(s => s.id === currentSessionId);
-        if (session) {
-          const updatedSession = { ...session, actionPlan: plan };
-          await saveSession(updatedSession);
-          setSessions(await getSessions(user?.id));
-        }
-      }
-    } catch (e) { console.error(e); } finally { setIsGeneratingPlan(false); }
-  };
-
-  const handleSavePlan = async (updatedPlan: ActionPlan) => {
-    if (!currentSessionId) return;
-    const session = sessions.find(s => s.id === currentSessionId);
-    if (session) {
-      const updatedSession = { ...session, actionPlan: updatedPlan };
-      await saveSession(updatedSession);
-      setCurrentPlan(updatedPlan);
-      setSessions(await getSessions(user?.id));
-    }
-  };
-
-  const startNewSession = () => {
-    setCurrentSessionId(null); setInputValues({ title: '', context: '', constraints: '', options: '' });
-    setResult(null); setPartialResult(null); setChatHistory([]); setStatus(AnalysisStatus.IDLE);
-    setIsChatOpen(false); setIsElaborationOpen(false); setCurrentPlan(null);
-  };
-
-  const loadSession = (session: DecisionSession) => {
-    setCurrentSessionId(session.id); setInputValues(session.input);
-    setResult(session.result); setPartialResult(null); setChatHistory(session.chatHistory || []);
-    setStatus(session.status); setIsChatOpen(false); setIsElaborationOpen(false);
-    setCurrentPlan(session.actionPlan || null);
+  const handleWaitlistJoin = async (email: string) => {
+    await saveToWaitlist(email, user?.id);
+    setHasJoinedWaitlist(true);
+    localStorage.setItem('dc_waitlist_joined', 'true');
   };
 
   const handleAnalysis = async (input: DecisionInput) => {
-    if (credits >= MAX_FREE_CREDITS) { setShowWaitlist(true); return; }
+    if (credits >= MAX_FREE_CREDITS) {
+      if (user && user.email && !hasJoinedWaitlist) {
+        // Auto-register logged in users
+        await handleWaitlistJoin(user.email);
+      }
+      setShowWaitlist(true);
+      return;
+    }
     setStatus(AnalysisStatus.ANALYZING); setInputValues(input); setResult(null); setPartialResult(null);
     if (user) logActivity(user.id, 'analysis_started', { title: input.title });
     try {
