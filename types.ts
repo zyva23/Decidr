@@ -119,6 +119,8 @@ export interface PlanPhase {
   duration: string;
   objective: string;
   tasks: PlanTask[];
+  pitfalls: string[]; // What to avoid
+  successCriteria: string[]; // What to track/verify to move to next phase
 }
 
 export interface PlanTask {

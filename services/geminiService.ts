@@ -175,8 +175,10 @@ export async function generateActionPlan(input: DecisionInput, councilResult: Co
     1. METHODOLOGY: Use a hybrid of Agile (for execution) and OKRs (for measurement).
     2. STRUCTURE: Break the plan into 3-4 distinct chronological phases (e.g., Preparation, Pilot, Scale, Optimization).
     3. TASKS: For each phase, provide 3-4 specific, granular tasks.
-    4. MEASUREMENT: Each task MUST have a clear KPI (Key Performance Indicator).
-    5. TRIPWIRES: Suggest 3 strategic 'Pivot Points' - specific conditions (market changes, technical failures, cost overruns) that should trigger a re-evaluation of the strategy.
+    4. PITFALLS (New): For each phase, list 2-3 critical errors or "antipatterns" the user must avoid.
+    5. SUCCESS CRITERIA (New): For each phase, list 2-3 specific conditions or metrics that must be met to safely transition to the next phase.
+    6. MEASUREMENT: Each task MUST have a clear KPI (Key Performance Indicator).
+    7. TRIPWIRES: Suggest 3 strategic 'Pivot Points' - specific conditions (market changes, technical failures, cost overruns) that should trigger a re-evaluation of the strategy.
     
     Output the plan in the requested JSON format.
   `;
@@ -235,6 +237,48 @@ const brainstormSchema = {
 
 const actionPlanSchema = {
   type: Type.OBJECT,
-  properties: { executiveSummary: { type: Type.STRING }, phases: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { name: { type: Type.STRING }, duration: { type: Type.STRING }, objective: { type: Type.STRING }, tasks: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { id: { type: Type.STRING }, description: { type: Type.STRING }, owner: { type: Type.STRING }, kpi: { type: Type.STRING }, status: { type: Type.STRING, enum: ["pending", "done"] } }, required: ["id", "description", "owner", "kpi", "status"] } } }, required: ["name", "duration", "objective", "tasks"] } }, pivotPoints: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { trigger: { type: Type.STRING }, reaction: { type: Type.STRING }, owner: { type: Type.STRING } }, required: ["trigger", "reaction", "owner"] } } },
+  properties: { 
+    executiveSummary: { type: Type.STRING }, 
+    phases: { 
+      type: Type.ARRAY, 
+      items: { 
+        type: Type.OBJECT, 
+        properties: { 
+          name: { type: Type.STRING }, 
+          duration: { type: Type.STRING }, 
+          objective: { type: Type.STRING }, 
+          tasks: { 
+            type: Type.ARRAY, 
+            items: { 
+              type: Type.OBJECT, 
+              properties: { 
+                id: { type: Type.STRING }, 
+                description: { type: Type.STRING }, 
+                owner: { type: Type.STRING }, 
+                kpi: { type: Type.STRING }, 
+                status: { type: Type.STRING, enum: ["pending", "done"] } 
+              }, 
+              required: ["id", "description", "owner", "kpi", "status"] 
+            } 
+          },
+          pitfalls: { type: Type.ARRAY, items: { type: Type.STRING } },
+          successCriteria: { type: Type.ARRAY, items: { type: Type.STRING } }
+        }, 
+        required: ["name", "duration", "objective", "tasks", "pitfalls", "successCriteria"] 
+      } 
+    }, 
+    pivotPoints: { 
+      type: Type.ARRAY, 
+      items: { 
+        type: Type.OBJECT, 
+        properties: { 
+          trigger: { type: Type.STRING }, 
+          reaction: { type: Type.STRING }, 
+          owner: { type: Type.STRING } 
+        }, 
+        required: ["trigger", "reaction", "owner"] 
+      } 
+    } 
+  },
   required: ["executiveSummary", "phases", "pivotPoints"]
 };
