@@ -37,25 +37,31 @@ export async function generateDecisionPDF(input: DecisionInput, result: CouncilR
   const pageHeight = doc.internal.pageSize.getHeight();
   let cursorY = 25;
 
-  // Tracking for Table of Contents
   const sections: { title: string; page: number }[] = [];
 
-  // Helper: Draw decorative background
-  const drawBackground = () => {
-    // Subtle gradient-like header bar
-    doc.setFillColor(15, 23, 42); // Slate 900
-    doc.rect(0, 0, pageWidth, 15, 'F');
-    
-    // Bottom border
-    doc.setDrawColor(226, 232, 240);
-    doc.line(0, pageHeight - 15, pageWidth, pageHeight - 15);
-
-    // Decorative corner shapes (subtle indigo accents)
-    doc.setFillColor(99, 102, 241);
-    doc.setGState(new (doc as any).GState({ opacity: 0.05 }));
-    doc.circle(0, 0, 40, 'F');
-    doc.circle(pageWidth, pageHeight, 60, 'F');
-    doc.setGState(new (doc as any).GState({ opacity: 1 }));
+  const drawBackground = (isTitlePage = false) => {
+    if (isTitlePage) {
+      // Full dark background for title page
+      doc.setFillColor(15, 23, 42); 
+      doc.rect(0, 0, pageWidth, pageHeight, 'F');
+      
+      // Decorative circles
+      doc.setFillColor(99, 102, 241);
+      doc.setGState(new (doc as any).GState({ opacity: 0.1 }));
+      doc.circle(pageWidth, 0, 100, 'F');
+      doc.circle(0, pageHeight, 60, 'F');
+      doc.setGState(new (doc as any).GState({ opacity: 1 }));
+    } else {
+      doc.setFillColor(15, 23, 42); 
+      doc.rect(0, 0, pageWidth, 15, 'F');
+      doc.setDrawColor(226, 232, 240);
+      doc.line(0, pageHeight - 15, pageWidth, pageHeight - 15);
+      doc.setFillColor(99, 102, 241);
+      doc.setGState(new (doc as any).GState({ opacity: 0.05 }));
+      doc.circle(0, 0, 40, 'F');
+      doc.circle(pageWidth, pageHeight, 60, 'F');
+      doc.setGState(new (doc as any).GState({ opacity: 1 }));
+    }
   };
 
   const checkPageOverflow = (neededHeight: number) => {
@@ -83,20 +89,15 @@ export async function generateDecisionPDF(input: DecisionInput, result: CouncilR
     doc.setFontSize(size);
     doc.setTextColor(color[0], color[1], color[2]);
     doc.setFont('helvetica', style);
-    
-    // Fix: Ensure text fits within margins precisely
     const maxWidth = pageWidth - (margin * 2) - indent - 2;
     const splitText = doc.splitTextToSize(text, maxWidth);
-    
     const lineHeight = (size / 2) + 1;
     const estimatedHeight = splitText.length * lineHeight;
-    
     checkPageOverflow(estimatedHeight);
     doc.text(splitText, margin + indent, cursorY);
     cursorY += estimatedHeight + 1;
   };
 
-  // Helper: Draw simplified agent icons
   const drawAgentIcon = (x: number, y: number, role: string) => {
     doc.setLineWidth(0.5);
     if (role === 'Analyst') {
@@ -114,24 +115,44 @@ export async function generateDecisionPDF(input: DecisionInput, result: CouncilR
     }
   };
 
-  // Initialize first page
-  drawBackground();
+  // --- PAGE 1: TITLE PAGE ---
+  drawBackground(true);
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.text('DECIDR STRATEGIC ANALYSIS', margin, 40);
+  
+  doc.setFontSize(36);
+  const titleLines = doc.splitTextToSize(input.title.toUpperCase(), pageWidth - margin * 2);
+  doc.text(titleLines, margin, 60);
+  
+  doc.setDrawColor(99, 102, 241);
+  doc.setLineWidth(1);
+  doc.line(margin, 60 + (titleLines.length * 12), margin + 40, 60 + (titleLines.length * 12));
+  
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(148, 163, 184);
+  doc.text(`Generated on ${new Date().toLocaleDateString(undefined, { dateStyle: 'long' })}`, margin, 80 + (titleLines.length * 12));
+  
+  doc.setFontSize(10);
+  doc.text('CONFIDENTIAL STRATEGIC BRIEFING', margin, pageHeight - 30);
 
-  // --- PAGE 1: TITLE & SYNTHESIS ---
-  addHeader('Strategic Decision Briefing', 10, [255, 255, 255]); // White text on dark header
+  // --- PAGE 2: TABLE OF CONTENTS (Placeholder) ---
+  doc.addPage();
+  drawBackground();
+  // We will fill this at the end
+
+  // --- PAGE 3+: CONTENT ---
+  doc.addPage();
+  drawBackground();
   cursorY = 30;
   
-  addHeader(input.title, 24, [15, 23, 42], true);
-  doc.setDrawColor(226, 232, 240);
-  doc.line(margin, cursorY, pageWidth - margin, cursorY);
-  cursorY += 10;
-
   addHeader('The Council Verdict', 14, [79, 70, 229], true);
   addText(result.synthesis.verdict, 12, [30, 41, 59], 'bold');
   addText(result.synthesis.recommendation, 11, [71, 85, 105]);
   cursorY += 5;
 
-  // Visual Radar
   const radarElement = document.getElementById('decision-radar-chart');
   if (radarElement) {
     try {
@@ -145,7 +166,6 @@ export async function generateDecisionPDF(input: DecisionInput, result: CouncilR
     } catch (e) { console.warn('Radar capture failed', e); }
   }
 
-  // --- COUNCIL PERSPECTIVES ---
   addHeader('Council Perspectives', 16, [15, 23, 42], true);
   const agents = [result.analyst, result.strategist, result.skeptic, result.mediator];
   agents.forEach((agent) => {
@@ -158,11 +178,10 @@ export async function generateDecisionPDF(input: DecisionInput, result: CouncilR
     agent.keyPoints.forEach(point => addText(`• ${point}`, 9, [71, 85, 105], 'normal', 5));
   });
 
-  // --- EXECUTION ROADMAP ---
   if (actionPlan) {
     doc.addPage();
     drawBackground();
-    cursorY = margin + 10;
+    cursorY = 30;
     addHeader('Execution Roadmap', 18, [16, 185, 129], true);
     addText(actionPlan.executiveSummary, 10, [71, 85, 105]);
     cursorY += 5;
@@ -172,19 +191,15 @@ export async function generateDecisionPDF(input: DecisionInput, result: CouncilR
       addHeader(`Phase ${idx + 1}: ${phase.name}`, 13, [15, 23, 42]);
       addText(`Objective: ${phase.objective}`, 10, [79, 70, 229], 'bold');
       addText(`Duration: ${phase.duration}`, 9, [100, 116, 139], 'italic');
-      
       cursorY += 2;
       addText('Critical Tasks:', 9, [30, 41, 59], 'bold');
       phase.tasks.forEach(task => addText(`• ${task.description} (KPI: ${task.kpi})`, 9, [71, 85, 105], 'normal', 5));
-
       cursorY += 3;
       addText('Pitfalls to Avoid:', 9, [185, 28, 28], 'bold');
       phase.pitfalls.forEach(p => addText(`× ${p}`, 9, [153, 27, 27], 'normal', 5));
-
       cursorY += 2;
       addText('Success Criteria:', 9, [30, 64, 175], 'bold');
       phase.successCriteria.forEach(s => addText(`→ ${s}`, 9, [30, 64, 175], 'normal', 5));
-      
       doc.setDrawColor(241, 245, 249);
       doc.line(margin, cursorY + 2, pageWidth - margin, cursorY + 2);
       cursorY += 6;
@@ -200,10 +215,9 @@ export async function generateDecisionPDF(input: DecisionInput, result: CouncilR
     }
   }
 
-  // --- RESOURCES ---
   doc.addPage();
   drawBackground();
-  cursorY = margin + 10;
+  cursorY = 30;
   addHeader('Resources & Grounding', 16, [15, 23, 42], true);
   const allSources = Array.from(new Set(agents.flatMap(a => a.sources || [])));
   if (allSources.length) {
@@ -212,10 +226,8 @@ export async function generateDecisionPDF(input: DecisionInput, result: CouncilR
     addText('No external citations utilized.', 10, [148, 163, 184], 'italic');
   }
 
-  // --- PREPEND TABLE OF CONTENTS ---
-  doc.insertPage(1);
-  doc.setPage(1);
-  drawBackground();
+  // --- FILL TABLE OF CONTENTS (Page 2) ---
+  doc.setPage(2);
   cursorY = 35;
   doc.setFontSize(20);
   doc.setTextColor(30, 41, 59);
@@ -233,9 +245,9 @@ export async function generateDecisionPDF(input: DecisionInput, result: CouncilR
     cursorY += 10;
   });
 
-  // --- PAGE NUMBERS & FOOTERS ---
+  // --- ADD PAGE NUMBERS & FOOTERS (Excluding Title Page) ---
   const totalPages = doc.internal.pages.length - 1;
-  for (let i = 1; i <= totalPages; i++) {
+  for (let i = 2; i <= totalPages; i++) {
     doc.setPage(i);
     doc.setFontSize(8);
     doc.setTextColor(148, 163, 184);
