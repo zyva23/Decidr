@@ -1,35 +1,43 @@
 import React, { useState } from 'react';
 import { UI_CONTENT } from '../src/constants/uiContent';
+import MindfulCommitModal from './MindfulCommitModal';
 
 interface CommitmentPanelProps {
   options: string;
-  refinedPaths?: string[]; // New high-fidelity options from AI synthesis
+  refinedPaths?: string[];
   onCommit: (selected: string, why: string) => void;
   onBranch: (newContext: string) => void;
+  onConsult: () => void; // New prop to trigger council chat
   existingCommitment?: { selectedOption: string; justification: string; };
 }
 
-const CommitmentPanel: React.FC<CommitmentPanelProps> = ({ options, refinedPaths, onCommit, onBranch, existingCommitment }) => {
+const CommitmentPanel: React.FC<CommitmentPanelProps> = ({ options, refinedPaths, onCommit, onBranch, onConsult, existingCommitment }) => {
   const [selected, setSelected] = useState(existingCommitment?.selectedOption || '');
   const [customPath, setCustomPath] = useState('');
   const [why, setWhy] = useState(existingCommitment?.justification || '');
   const [isCommitted, setIsCommitted] = useState(!!existingCommitment);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const parseOptions = (text: string) => {
     const parts = text.split(/(?:\n|^)(?:Path\s+[A-Z]:|Option\s+\d+:|[A-Z]:|\d+\.|\*|•)\s*/i);
     return parts.map(p => p.trim()).filter(p => p.length > 5);
   };
 
-  // Prioritize refinedPaths from AI, fallback to parsed raw options
   const optionList = (refinedPaths && refinedPaths.length > 0) 
     ? refinedPaths 
     : parseOptions(options);
 
-  const handleCommit = () => {
+  const initiateCommitment = () => {
     const finalChoice = selected === 'CUSTOM' ? customPath : selected;
     if (!finalChoice || !why) return;
+    setIsModalOpen(true);
+  };
+
+  const finalConfirm = () => {
+    const finalChoice = selected === 'CUSTOM' ? customPath : selected;
     onCommit(finalChoice, why);
     setIsCommitted(true);
+    setIsModalOpen(false);
   };
 
   return (
@@ -108,7 +116,7 @@ const CommitmentPanel: React.FC<CommitmentPanelProps> = ({ options, refinedPaths
           </div>
 
           <button
-            onClick={handleCommit}
+            onClick={initiateCommitment}
             disabled={!selected || (selected === 'CUSTOM' && !customPath) || why.length < 10}
             className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl shadow-xl shadow-indigo-500/20 transition-all active:scale-95"
           >
@@ -149,6 +157,14 @@ const CommitmentPanel: React.FC<CommitmentPanelProps> = ({ options, refinedPaths
            </div>
         </div>
       )}
+
+      <MindfulCommitModal 
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onConfirm={finalConfirm}
+        onConsult={() => { setIsModalOpen(false); onConsult(); }}
+        selectedOption={selected === 'CUSTOM' ? customPath : selected.replace(/^[A-Z]:\s*/i, '')}
+      />
     </div>
   );
 };

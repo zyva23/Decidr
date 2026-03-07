@@ -384,6 +384,7 @@ const DecidrApp: React.FC = () => {
                           refinedPaths={result.synthesis?.refinedPaths}
                           onCommit={handleCommitment} 
                           onBranch={handleBranch} 
+                          onConsult={() => setIsChatOpen(true)}
                           existingCommitment={currentSessionId ? sessions.find(s => s.id === currentSessionId)?.commitment : undefined} 
                       />
                     </div>
