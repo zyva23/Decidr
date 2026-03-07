@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
 import { DecisionInput, CouncilResult, BrainstormResult, ChatMessage, ActionPlan, PartialCouncilResult } from "../types";
 import { AnalystAgent } from "./agents/AnalystAgent";
@@ -8,8 +7,6 @@ import { MediatorAgent } from "./agents/MediatorAgent";
 
 /**
  * CORE SERVICE: Decision Council Orchestrator
- * This service handles the distribution of user inputs to multiple specialized agents
- * and synthesizes their disparate perspectives into a cohesive strategic verdict.
  */
 
 let aiInstance: GoogleGenAI | null = null;
@@ -31,10 +28,6 @@ const truncateContext = (text: string, maxChars: number = 2000): string => {
   return text.substring(0, maxChars) + "... [Context truncated for efficiency]";
 };
 
-/**
- * Orchestrates the "Council Deliberation".
- * Runs four specialized agents in parallel and streams results as they finish.
- */
 export async function analyzeDecision(
   input: DecisionInput, 
   onProgress?: (partial: PartialCouncilResult) => void
@@ -54,7 +47,6 @@ export async function analyzeDecision(
   const skepticAgent = new SkepticAgent(apiKey as string);
   const mediatorAgent = new MediatorAgent(apiKey as string);
 
-  // Run all agents in parallel but track individual completions
   const analystPromise = analystAgent.run(optimizedInput).then(res => {
     if (onProgress) onProgress({ analyst: res });
     return res;
@@ -113,31 +105,40 @@ export async function analyzeDecision(
   }
 }
 
-/**
- * Lightweight helper to assist the user in filling out the form.
- * Provides suggestions based on the partial input.
- */
 export async function exploreBrainstorm(field: 'constraints' | 'options' | 'context', title: string, context: string): Promise<BrainstormResult> {
-  const fieldName = field === 'constraints' ? 'Constraint' : 'Option';
-  const prompt = `Decision: ${title}. ${field === 'context' ? 'Help flesh out background.' : 'Suggest ' + fieldName + 's.'}`;
+  const prompt = `
+    Decision Inquiry: ${title}. 
+    Current Context: ${context}
+    
+    You are a Strategic Architect. Help the user flesh out the "${field}" field.
+    
+    REQUIREMENTS:
+    1. STRUCTURED QUESTIONS: Generate 7 high-impact, binary or multiple-choice questions that clarify fundamental missing information.
+    2. OPTIONS: Each question must have 3-4 distinct options (e.g., "Yes", "No", "Uncertain" or specific strategic choices).
+    3. TONE: Sophisticated and precise.
+    4. SUGGESTIONS: Provide 5 short one-line suggestions for topics they haven't mentioned yet.
+    
+    Output in JSON format matching the schema.
+  `;
   
   try {
     const ai = getAI();
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview", 
+      model: MASTER_MODEL, 
       contents: prompt,
-      config: { responseMimeType: "application/json", responseSchema: brainstormSchema as any, temperature: 0.7 }
+      config: { 
+        responseMimeType: "application/json", 
+        responseSchema: brainstormSchema as any, 
+        temperature: 0.7 
+      }
     });
     return JSON.parse(response.text || "{}");
   } catch (e) {
-    return { questions: [], suggestions: [] };
+    console.error("Brainstorm error:", e);
+    return { structuredQuestions: [], suggestions: [] };
   }
 }
 
-/**
- * Chat interface acting as the "Chairperson" of the council.
- * Uses history to maintain context.
- */
 export async function chatWithCouncil(history: ChatMessage[], newMessage: string, councilResult: CouncilResult, input: DecisionInput): Promise<string> {
   const contextPrompt = `You are the Chairperson of the Decision Council. Verdict: ${councilResult.synthesis.verdict}.`;
   const chatHistoryGemini = [
@@ -215,8 +216,21 @@ const synthesisSchema = {
 
 const brainstormSchema = {
   type: Type.OBJECT,
-  properties: { questions: { type: Type.ARRAY, items: { type: Type.STRING } }, suggestions: { type: Type.ARRAY, items: { type: Type.STRING } } },
-  required: ["questions", "suggestions"]
+  properties: { 
+    structuredQuestions: { 
+      type: Type.ARRAY, 
+      items: { 
+        type: Type.OBJECT,
+        properties: {
+          question: { type: Type.STRING },
+          options: { type: Type.ARRAY, items: { type: Type.STRING } }
+        },
+        required: ["question", "options"]
+      } 
+    }, 
+    suggestions: { type: Type.ARRAY, items: { type: Type.STRING } } 
+  },
+  required: ["structuredQuestions", "suggestions"]
 };
 
 const actionPlanSchema = {

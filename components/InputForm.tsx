@@ -27,11 +27,10 @@ const InputForm: React.FC<InputFormProps> = ({ initialValues, onSubmit, isLoadin
   const [activeBrainstorm, setActiveBrainstorm] = useState<'constraints' | 'options' | 'context' | null>(null);
   const [brainstormLoading, setBrainstormLoading] = useState(false);
   const [brainstormData, setBrainstormData] = useState<BrainstormResult | null>(null);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
 
   // Check if context is ready for AI features
-  // Title is enough to start asking for context help
   const isTitleReady = input.title.trim().length > 3;
-  // Full context needed for constraints/options
   const isContextReady = isTitleReady && input.context.trim().length > 10;
 
   const [loadingStage, setLoadingStage] = useState(0);
@@ -58,7 +57,6 @@ const InputForm: React.FC<InputFormProps> = ({ initialValues, onSubmit, isLoadin
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (input.title && input.context) {
-      // Combine typed context with extracted document text for the AI
       let finalContext = input.context;
       if (attachments.length > 0) {
         const docsText = attachments.map(a => `[Document: ${a.name}]\n${a.extractedText}`).join("\n\n");
@@ -84,63 +82,46 @@ const InputForm: React.FC<InputFormProps> = ({ initialValues, onSubmit, isLoadin
     }
 
     if (listeningField === field) {
-      // Stop listening if clicked again
       setListeningField(null);
       return;
     }
 
-    // @ts-ignore - Types for webkitSpeechRecognition are not standard in all envs
+    // @ts-ignore
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     const recognition = new SpeechRecognition();
-    
     recognition.continuous = false;
     recognition.interimResults = false;
     recognition.lang = 'en-US';
-
-    recognition.onstart = () => {
-      setListeningField(field);
-    };
-
+    recognition.onstart = () => setListeningField(field);
     recognition.onresult = (event: any) => {
       const transcript = event.results[0][0].transcript;
       setInput(prev => {
         const current = prev[field];
-        // Append if text exists, otherwise replace
         const newValue = current ? `${current} ${transcript}` : transcript;
         return { ...prev, [field]: newValue };
       });
       setListeningField(null);
     };
-
-    recognition.onerror = (event: any) => {
-      console.error("Speech recognition error", event.error);
-      setListeningField(null);
-    };
-
-    recognition.onend = () => {
-      setListeningField(null);
-    };
-
+    recognition.onerror = () => setListeningField(null);
+    recognition.onend = () => setListeningField(null);
     recognition.start();
   };
 
   // --- Brainstorm Logic ---
   const handleBrainstorm = async (field: 'constraints' | 'options' | 'context') => {
-    if (field === 'context') {
-      if (!isTitleReady) return;
-    } else {
-      if (!isContextReady) return;
-    }
+    if (field === 'context' ? !isTitleReady : !isContextReady) return;
 
     if (activeBrainstorm === field) {
       setActiveBrainstorm(null);
       setBrainstormData(null);
+      setCurrentQuestionIndex(0);
       return;
     }
 
     setActiveBrainstorm(field);
     setBrainstormLoading(true);
     setBrainstormData(null);
+    setCurrentQuestionIndex(0);
 
     try {
       const result = await exploreBrainstorm(field, input.title, input.context);
@@ -153,27 +134,33 @@ const InputForm: React.FC<InputFormProps> = ({ initialValues, onSubmit, isLoadin
     }
   };
 
-  const addSuggestion = (suggestion: string) => {
+  const selectBrainstormOption = (question: string, option: string) => {
     if (!activeBrainstorm) return;
     
     const currentVal = input[activeBrainstorm];
+    const separator = currentVal.trim().length > 0 ? '\n\n' : '';
+    const newVal = currentVal + separator + `Q: ${question}\nA: ${option}`;
+    
+    setInput(prev => ({ ...prev, [activeBrainstorm]: newVal }));
+    
+    // Move to next question if available
+    if (brainstormData && currentQuestionIndex < brainstormData.structuredQuestions.length - 1) {
+      setCurrentQuestionIndex(prev => prev + 1);
+    } else {
+      // If last question, close the panel
+      setActiveBrainstorm(null);
+      setBrainstormData(null);
+    }
+  };
+
+  const addSuggestion = (suggestion: string) => {
+    if (!activeBrainstorm) return;
+    const currentVal = input[activeBrainstorm];
     const separator = currentVal.trim().length > 0 ? '\n• ' : '• ';
     const newVal = currentVal + separator + suggestion;
-    
     setInput(prev => ({ ...prev, [activeBrainstorm]: newVal }));
   };
 
-  const addQuestionAsInput = (question: string) => {
-      if (activeBrainstorm !== 'context') return;
-      
-      const currentVal = input.context;
-      const separator = currentVal.trim().length > 0 ? '\n\n' : '';
-      const newVal = currentVal + separator + `Q: ${question}\nA: `;
-      
-      setInput(prev => ({ ...prev, context: newVal }));
-  };
-
-  // Helper for Input Wrapper
   const renderInputWrapper = (
     field: keyof DecisionInput,
     label: string,
@@ -183,8 +170,6 @@ const InputForm: React.FC<InputFormProps> = ({ initialValues, onSubmit, isLoadin
   ) => {
     const isListening = listeningField === field;
     const isAiActive = activeBrainstorm === field;
-    
-    // Determine if AI button should be enabled
     const isAiEnabled = field === 'context' ? isTitleReady : isContextReady;
     const aiTooltip = isAiEnabled 
       ? (field === 'context' ? UI_CONTENT.FORM.TOOLTIPS.AI_CONTEXT : UI_CONTENT.FORM.TOOLTIPS.AI_GENERAL)
@@ -199,10 +184,7 @@ const InputForm: React.FC<InputFormProps> = ({ initialValues, onSubmit, isLoadin
         <div className="relative">
           {component}
           
-          {/* Action Buttons Container */}
           <div className="absolute right-3 bottom-3 flex items-center gap-2 z-10">
-            
-            {/* AI Brainstorm Button */}
             {hasAI && (
               <button
                 type="button"
@@ -225,7 +207,6 @@ const InputForm: React.FC<InputFormProps> = ({ initialValues, onSubmit, isLoadin
               </button>
             )}
 
-            {/* Mic Button */}
             <button
               type="button"
               onClick={() => handleVoiceInput(field)}
@@ -244,62 +225,89 @@ const InputForm: React.FC<InputFormProps> = ({ initialValues, onSubmit, isLoadin
           </div>
         </div>
 
-        {/* AI Panel Render */}
         {hasAI && activeBrainstorm === field && (
-          <div className="mt-3 p-4 bg-indigo-950/40 border border-indigo-500/30 rounded-lg animate-fade-in relative shadow-inner">
+          <div className="mt-3 p-6 bg-slate-900 border border-indigo-500/30 rounded-xl animate-fade-in relative shadow-2xl">
              <button 
                 onClick={() => { setActiveBrainstorm(null); setBrainstormData(null); }}
-                className="absolute top-2 right-2 text-indigo-400/50 hover:text-indigo-300"
+                className="absolute top-3 right-3 text-slate-500 hover:text-slate-300"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
               </button>
 
             {brainstormLoading ? (
-              <div className="flex flex-col items-center gap-3 text-indigo-300 py-8 justify-center animate-pulse">
-                <div className="relative w-10 h-10">
+              <div className="flex flex-col h-40 items-center justify-center py-8 animate-pulse">
+                <div className="relative w-12 h-12 mb-4">
                   <div className="absolute inset-0 bg-indigo-400 rounded-full animate-ping opacity-25"></div>
-                  <div className="relative w-10 h-10 bg-indigo-500/20 border border-indigo-500/50 rounded-full flex items-center justify-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
+                  <div className="relative w-12 h-12 bg-indigo-500/20 border border-indigo-500/50 rounded-full flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-400"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
                   </div>
                 </div>
-                <span className="text-xs font-black uppercase tracking-widest text-indigo-400/70">Consulting collective intelligence...</span>
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-400/70">Architecting structured inquiry...</span>
               </div>
             ) : brainstormData ? (
-              <div className="space-y-4">
-                {/* Questions Section */}
-                <div>
-                  <h4 className="text-[10px] font-bold uppercase text-indigo-400 mb-2 tracking-wider">
-                     {field === 'context' ? 'Clarifying Questions' : 'Strategic Considerations'}
-                  </h4>
-                  <ul className="list-disc list-outside ml-4 space-y-2">
-                    {brainstormData.questions.map((q, i) => (
-                      <li 
-                        key={i} 
-                        className={`text-sm text-slate-300 italic leading-relaxed ${field === 'context' ? 'cursor-pointer hover:text-white hover:underline decoration-indigo-500/50' : ''}`}
-                        onClick={() => field === 'context' && addQuestionAsInput(q)}
-                        title={field === 'context' ? "Click to add this question to your context" : ""}
-                      >
-                        {q}
-                      </li>
-                    ))}
-                  </ul>
-                  {field === 'context' && (
-                      <p className="text-[10px] text-slate-500 mt-2 text-right">Click a question to add it above</p>
-                  )}
-                </div>
+              <div className="space-y-6">
+                {/* Wizard UI */}
+                {brainstormData.structuredQuestions.length > 0 && (
+                  <div className="animate-fade-in">
+                    <div className="flex justify-between items-center mb-4">
+                       <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Question {currentQuestionIndex + 1} of {brainstormData.structuredQuestions.length}</span>
+                       <div className="flex gap-1">
+                          {brainstormData.structuredQuestions.map((_, i) => (
+                            <div key={i} className={`w-4 h-1 rounded-full transition-all ${i === currentQuestionIndex ? 'bg-indigo-500' : i < currentQuestionIndex ? 'bg-indigo-900' : 'bg-slate-800'}`} />
+                          ))}
+                       </div>
+                    </div>
+                    
+                    <h4 className="text-sm font-bold text-white mb-4 leading-relaxed min-h-[40px]">
+                      {brainstormData.structuredQuestions[currentQuestionIndex].question}
+                    </h4>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-6">
+                      {brainstormData.structuredQuestions[currentQuestionIndex].options.map((opt, i) => (
+                        <button
+                          key={i}
+                          onClick={() => selectBrainstormOption(brainstormData.structuredQuestions[currentQuestionIndex].question, opt)}
+                          className="p-3 text-left bg-slate-800 hover:bg-indigo-600 border border-slate-700 hover:border-indigo-400 text-slate-200 text-xs rounded-lg transition-all active:scale-95 group"
+                        >
+                          <span className="opacity-50 mr-2 font-mono">{String.fromCharCode(65 + i)}.</span> {opt}
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="flex justify-between pt-4 border-t border-slate-800">
+                       <button 
+                        disabled={currentQuestionIndex === 0}
+                        onClick={() => setCurrentQuestionIndex(prev => prev - 1)}
+                        className="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-white disabled:opacity-0 transition-all"
+                       >
+                         Previous
+                       </button>
+                       <button 
+                        onClick={() => {
+                          if (currentQuestionIndex < brainstormData.structuredQuestions.length - 1) {
+                            setCurrentQuestionIndex(prev => prev + 1);
+                          } else {
+                            setActiveBrainstorm(null);
+                          }
+                        }}
+                        className="text-[10px] font-black uppercase tracking-widest text-indigo-400 hover:text-indigo-300 transition-all"
+                       >
+                         {currentQuestionIndex === brainstormData.structuredQuestions.length - 1 ? 'Finish' : 'Skip Question'}
+                       </button>
+                    </div>
+                  </div>
+                )}
                 
-                {/* Suggestions Section */}
-                <div>
-                  <h4 className="text-[10px] font-bold uppercase text-indigo-400 mb-2 tracking-wider">
-                    {field === 'context' ? 'Recommended Topics' : 'Suggested Additions'}
-                  </h4>
+                {/* Suggestions Footer */}
+                <div className="pt-4 border-t border-slate-800/50">
+                  <h4 className="text-[9px] font-black uppercase text-slate-500 mb-2 tracking-[0.2em]">Nuance Suggestions</h4>
                   <div className="flex flex-wrap gap-2">
                     {brainstormData.suggestions.map((s, i) => (
                       <button
                         key={i}
                         type="button"
                         onClick={() => addSuggestion(s)}
-                        className="text-xs text-left bg-slate-800/80 hover:bg-indigo-600 border border-slate-700 hover:border-indigo-400 text-slate-200 py-1.5 px-3 rounded-md transition-all duration-200 active:scale-95"
+                        className="text-[10px] bg-slate-950/50 hover:bg-slate-800 border border-slate-800 hover:border-slate-600 text-slate-400 py-1 px-2.5 rounded transition-all"
                       >
                         + {s}
                       </button>
@@ -308,7 +316,7 @@ const InputForm: React.FC<InputFormProps> = ({ initialValues, onSubmit, isLoadin
                 </div>
               </div>
             ) : (
-               <div className="text-red-400 text-sm">Unavailable. Please try again.</div>
+               <div className="text-red-400 text-xs py-10 text-center font-bold">Inquiry generation failed. Please try again.</div>
             )}
           </div>
         )}
@@ -461,7 +469,7 @@ const InputForm: React.FC<InputFormProps> = ({ initialValues, onSubmit, isLoadin
               onChange={handleChange}
               rows={4}
               placeholder={UI_CONTENT.FORM.PLACEHOLDERS.CONSTRAINTS}
-              className="w-full bg-slate-950/50 border border-slate-700/60 rounded-xl p-4 pb-14 pr-4 text-white placeholder-slate-500 focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 outline-none transition-all shadow-inner resize-none text-sm custom-scrollbar"
+              className="w-full bg-slate-950/50 border border-slate-700/60 rounded-xl p-4 pb-14 pr-4 text-white placeholder-slate-600 focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 outline-none transition-all shadow-inner resize-none text-sm custom-scrollbar"
             />,
             true
           )}
@@ -475,7 +483,7 @@ const InputForm: React.FC<InputFormProps> = ({ initialValues, onSubmit, isLoadin
               onChange={handleChange}
               rows={4}
               placeholder={UI_CONTENT.FORM.PLACEHOLDERS.OPTIONS}
-              className="w-full bg-slate-950/50 border border-slate-700/60 rounded-xl p-4 pb-14 pr-4 text-white placeholder-slate-500 focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 outline-none transition-all shadow-inner resize-none text-sm custom-scrollbar"
+              className="w-full bg-slate-950/50 border border-slate-700/60 rounded-xl p-4 pb-14 pr-4 text-white placeholder-slate-600 focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 outline-none transition-all shadow-inner resize-none text-sm custom-scrollbar"
             />,
             true
           )}
