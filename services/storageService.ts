@@ -42,23 +42,32 @@ export const getSessions = async (userId?: string): Promise<DecisionSession[]> =
   if (!db || !userId) return localSessions;
 
   try {
+    // 1. Fetch from Firestore
     const q = query(
       collection(db, "sessions"), 
-      where("user_id", "==", userId),
-      orderBy("timestamp", "desc")
+      where("user_id", "==", userId)
     );
     const querySnapshot = await getDocs(q);
     const firestoreSessions = querySnapshot.docs.map(doc => doc.data() as DecisionSession);
     
-    // Merge logic: Map by ID, favor Firestore version for conflicts
+    // 2. Merge logic: prioritizing Firestore
     const sessionMap = new Map<string, DecisionSession>();
-    localSessions.forEach(s => sessionMap.set(s.id, s));
+    
+    // Only keep local sessions that either have NO user_id (guest) or match the current userId
+    localSessions.forEach(s => {
+      if (!s.user_id || s.user_id === userId) {
+        sessionMap.set(s.id, s);
+      }
+    });
+    
+    // Overwrite with Firestore versions (they are the truth for cross-device)
     firestoreSessions.forEach(s => sessionMap.set(s.id, s));
     
     return Array.from(sessionMap.values()).sort((a, b) => b.timestamp - a.timestamp);
   } catch (e) {
     console.error("Firestore Load Error:", e);
-    return localSessions;
+    // If firestore fails (e.g. offline), just show relevant local ones
+    return localSessions.filter(s => !s.user_id || s.user_id === userId);
   }
 };
 
