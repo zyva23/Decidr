@@ -189,24 +189,89 @@ const InputForm: React.FC<InputFormProps> = ({ initialValues, onSubmit, isLoadin
 
   const categorizedTemplates: Record<string, any[]> = {
     'Personal': [
-      { label: 'Buying a Home', title: 'Acquiring a Primary Residence vs. Geographic Liquidity', context: 'I am currently renting in a vibrant urban center. The opportunity to purchase a home has arisen, which would anchor me to this geography for at least 5-7 years...', constraints: 'Mortgage rates high. Down payment is 70% of liquid assets.', options: 'Path A: Purchase residence. Path B: Continue renting and invest. Path C: Look for a starter property elsewhere.' },
-      { label: 'Marriage', title: 'Formalizing a Partnership: The Marriage Inquiry', context: 'We have been in a committed relationship for four years. One partner views marriage as a legal fortification; the other as an outdated bureaucratic overlay...', constraints: 'Family pressure. Asset disparity. Visa requirements.', options: 'Path A: Legal marriage with pre-nup. Path B: Status quo. Path C: Symbolic ceremony.' },
-      { label: 'Getting a Dog', title: 'Integrating a Canine Companion into a High-Performance Lifestyle', context: 'I desire the emotional grounding of a dog, but my life is characterized by frequent travel and erratic working hours...', constraints: '700 sq ft apartment. 50+ working hours. Frequent travel.', options: 'Path A: Adopt rescue. Path B: Foster temporarily. Path C: Defer decision.' },
-      { label: 'Moving City', title: 'Relocating for Lifestyle vs. Professional Proximity', context: 'I am considering moving from a dense, high-cost tech hub to a mid-sized city with better access to nature. I worry about the "out of sight, out of mind" effect on my career velocity.', constraints: 'Remote work policy is stable but not guaranteed for 2+ years. Social circle is 90% in current city.', options: 'Path A: Move now (Lifestyle focus). Path B: Stay for 2 more years (Career focus). Path C: Trial a 3-month rental in the new city.' }
+      { 
+        label: 'Buying a Home', 
+        title: 'Acquiring a Primary Residence vs. Geographic Liquidity', 
+        context: 'I am currently renting in a vibrant urban center. The opportunity to purchase a home has arisen, which would anchor me to this geography for at least 5-7 years to reach a financial break-even point. While homeownership represents a "psychological anchor" and a forced savings vehicle, I fear the loss of professional optionality. If a transformative opportunity arises in another city, the house becomes a high-friction anchor rather than an asset. I am navigating the tension between my desire for "roots" and my need for "reach."', 
+        constraints: 'Current mortgage rates are at a 15-year high. My down payment represents 80% of my liquid net worth. The local market is showing signs of cooling after a 40% run-up.', 
+        options: 'Path A: Purchase the residence (Commitment to Stability). Path B: Continue renting and deploy capital into high-growth liquid indices (Wealth focus). Path C: Rent-to-own or buy a smaller "starter" property in a less central area (Hedged approach).' 
+      },
+      { 
+        label: 'Marriage', 
+        title: 'Formalizing a Partnership: Legal Fortification vs. Evolving Bond', 
+        context: 'We have been in a committed relationship for five years. We function effectively as a unit, yet the question of legal marriage remains a point of friction. One partner views marriage as a necessary ritual of social and legal fortification; the other views it as an outdated bureaucratic overlay on a naturally evolving emotional bond. We are debating if the legal protections (inheritance, taxes, medical) outweigh the perceived loss of individual autonomy and the risk of "institutionalizing" the romance.', 
+        constraints: 'Pressure from extended family is mounting. Disparity in individual assets and debt. Potential for international relocation requiring dependent visas.', 
+        options: 'Path A: Legal marriage with a robust pre-nuptial agreement. Path B: Maintain the status quo (Organic Commitment). Path C: A non-legal symbolic ceremony to satisfy social expectations without state involvement.' 
+      },
+      { 
+        label: 'Getting a Dog', 
+        title: 'Integrating a Canine Companion into a High-Performance Lifestyle', 
+        context: 'I desire the emotional grounding and discipline that comes with caring for a dog. However, my life is characterized by frequent travel and erratic working hours. I am weighing the joy of companionship against the logistical complexity of pet care, the financial overhead of boarding, and the potential reduction in my spontaneous mobility. The friction lies in whether I can actually adapt my lifestyle or if the dog will suffer from my ambition.', 
+        constraints: 'Living in a 700 sq ft apartment without private outdoor access. Travel occurs 1-2 times per month. Total pet care budget capped at $400/mo.', 
+        options: 'Path A: Adopt a high-energy rescue (Commitment to Lifestyle Shift). Path B: Foster a dog temporarily to test integration. Path C: Defer adoption until professional stability increases.' 
+      }
     ],
     'Career': [
-      { label: 'New Job Offer', title: 'Accepting a Senior Role at a Stealth Startup', context: 'Currently at Big Tech with stability. Startup offers more equity and ownership but higher risk and longer hours.', constraints: 'Need to decide by Friday. 12 months financial runway.', options: 'Path A: Stay at current firm. Path B: Accept startup. Path C: Negotiate 4-day week.' },
-      { label: 'Founder to CEO', title: 'Succession Planning: Transitioning Leadership', context: 'I have led this organization from inception to 200 employees. Founder instincts are creating friction with peacetime operational needs...', constraints: '12-month transition. Maintain majority stake. Internal sensitivity.', options: 'Path A: Promote COO. Path B: External search. Path C: Co-CEO model.' },
-      { label: 'Therapy', title: 'Initiating Psychotherapeutic Inquiry for Preventive Maintenance', context: 'Not in crisis, but recognizing recurring stress patterns and existential drift. Considering high-performance therapy...', constraints: '3-month waitlist. $250/hour cost.', options: 'Path A: Begin weekly sessions. Path B: Self-optimization. Path C: Philosophical circles.' }
+      { 
+        label: 'Startup Offer', 
+        title: 'Accepting a Senior Role at a Stealth Startup vs. Big Tech Stability', 
+        context: 'I am currently at a Tier-1 Tech firm with high compensation and low risk. A stealth-stage startup has offered me a Senior Role with significant equity. The startup has high-quality founders but no guaranteed product-market fit. I am deciding between the "guaranteed" path of institutional wealth and the "speculative" path of category-defining impact. The friction is between my current comfort and my long-term career hunger.', 
+        constraints: 'Startup runway is only 14 months. Equity cliff is 1 year. I have a mortgage and young children.', 
+        options: 'Path A: Accept the startup role (High-Beta Growth). Path B: Stay at current firm and seek a more challenging internal transfer (Safety). Path C: Negotiate an advisory role at the startup first.' 
+      },
+      { 
+        label: 'Founder to CEO', 
+        title: 'Succession Planning: Transitioning from Founder to Professional Management', 
+        context: 'I have led this organization from inception to 200 employees. I recognize that my "wartime" founder instincts are beginning to create friction with the operational excellence now required. I worry that stepping back will dilute the original soul of the company, but staying in the CEO role may bottleneck our maturity. It is a deliberation on ego vs. institutional longevity.', 
+        constraints: 'Board of Directors expects a 12-month transition. Internal candidates are sensitive to external hires. I must maintain a majority stake.', 
+        options: 'Path A: Hire an external veteran CEO (Disruption). Path B: Promote the current COO (Continuity). Path C: Adopt a Co-CEO model for 18 months (Gradualism).' 
+      },
+      { 
+        label: 'Therapy', 
+        title: 'Initiating Psychotherapeutic Inquiry for Preventive Maintenance', 
+        context: 'I am not in a state of crisis, but I recognize recurring patterns of stress and a subtle "existential drift." I am considering hiring a high-performance therapist to map my cognitive biases. The deliberation is whether this investment of time and capital is more effective than self-directed practices like meditation. The friction is my skepticism toward "talk therapy" vs. my desire for deeper self-awareness.', 
+        constraints: 'Quality practitioners have a 3-month waitlist. Out-of-pocket cost is $250/hour. Time commitment: 2 hours/week including travel.', 
+        options: 'Path A: Begin weekly sessions (Professional Guidance). Path B: Structured self-optimization through journaling and philosophy. Path C: Group-based support or high-level masterminds.' 
+      }
     ],
     'Business': [
-      { label: 'The Big Pivot', title: 'Pivoting from a Service Agency to a SaaS Product', context: 'Healthy agency trading hours for dollars. Built internal tool solving client pain. SaaS offers scale but requires DNA shift...', constraints: '8 months runway. Agency-focused team DNA.', options: 'Path A: All-in pivot. Path B: Parallel paths. Path C: Sell agency to fund SaaS.' },
-      { label: 'EU Expansion', title: 'Market Entry: Scaling Operations into Europe', context: 'Strong growth in US/UK. Seeing organic traffic from Germany/France. Considering physical vs digital presence...', constraints: 'GDPR compliance. Limited local staff. Competitive landscape.', options: 'Path A: Direct entry. Path B: Partnership. Path C: Remote-only.' }
+      { 
+        label: 'The Big Pivot', 
+        title: 'Pivoting from a Service Agency to a Product-Led SaaS Company', 
+        context: 'Our agency is profitable but we are trading hours for dollars. We have built an internal tool that solves a client pain point and we want to turn it into a SaaS product. This requires a total shift in DNA—from "yes-man" service culture to "no-man" product engineering. It means potentially firing current high-revenue clients to focus on a high-margin future that isnt guaranteed.', 
+        constraints: 'Current cash runway: 8 months if we stop agency work. 60% of current staff have a service mindset, not a product mindset.', 
+        options: 'Path A: All-in pivot (The "Burn the Boats" strategy). Path B: Run both models in parallel (The Slow Transition). Path C: Spin out the software as a separate entity with new funding.' 
+      },
+      { 
+        label: 'EU Expansion', 
+        title: 'Market Entry: Scaling Operations into the European Market', 
+        context: 'We have seen significant organic growth from EU-based users. Expanding requires setting up a legal entity, navigating GDPR at a deeper level, and hiring local staff. The friction is the massive operational overhead and cultural nuance of the European market vs. the efficiency of staying focused on the US. Is the TAM expansion worth the complexity?', 
+        constraints: 'Initial expansion budget: $500k. Regulatory landscape is shifting. Competitive local players are well-entrenched.', 
+        options: 'Path A: Direct entry with a London or Berlin hub. Path B: Partnership with a local distributor (Low-Cap). Path C: Digital-only expansion with local currency support.' 
+      }
     ],
     'Spiritual & Philosophical': [
-      { label: 'Sabbatical', title: 'A 3-Month Sabbatical: Experiential Expansion', context: 'I have been working at a high intensity for six years. I feel a deep need for a "reset"—a 3-month solo journey through Southeast Asia...', constraints: 'Cost $15k. AI-driven industry shifts. Manager holds role for only 4 weeks.', options: 'Path A: 3-month reset. Path B: 2-week mini-break. Path C: Remote-work arrangement.' },
-      { label: 'Ethical Dilemma', title: 'Whistleblowing vs. Internal Reform', context: 'I have discovered a systemic issue in my organization that violates my personal ethics but is technically legal. I am weighing the impact of public disclosure against the potential for slow, internal change.', constraints: 'I have 6 months of savings. Signed a restrictive NDA. High risk of industry blacklisting.', options: 'Path A: Go public (Transparency). Path B: Lead internal reform (Patience). Path C: Resign quietly (Neutrality).' },
-      { label: 'Digital Minimalism', title: 'Deleting All Social Media Presence', context: 'I feel my cognitive focus is being fragmented by algorithmic attention-traps. I am considering a total digital "blackout" to reclaim my mind, but worry about professional irrelevance.', constraints: 'Professional network relies on LinkedIn. Family is abroad and uses Instagram to see updates.', options: 'Path A: Total deletion. Path B: Aggressive curation (Remove all apps, use desktop only). Path C: Scheduled usage (1 hour per week).' }
+      { 
+        label: 'Sabbatical', 
+        title: 'A 3-Month Sabbatical: Experiential Expansion vs. Career Momentum', 
+        context: 'I have been working at a high intensity for six years. I feel a deep need for a "reset"—a solo journey through Southeast Asia to reconnect with my values. However, I am concerned that stepping out of the market now will result in "re-entry friction" and the loss of a promotion track that is currently opening up. Is the experiential wealth of travel worth the potential career deceleration?', 
+        constraints: 'Total cost $15k. The industry is undergoing rapid AI-driven shifts. My current manager can only guarantee my role for 4 weeks of absence.', 
+        options: 'Path A: Take the full 3-month sabbatical (Total Reset). Path B: A 2-week intensive "mini-break" followed by a role change. Path C: Negotiate a remote-work sabbatical (Digital Nomadism).' 
+      },
+      { 
+        label: 'Ethical Dilemma', 
+        title: 'Whistleblowing vs. Internal Reform: Navigating Systemic Misalignment', 
+        context: 'I have discovered a systemic issue in my organization that violates my personal ethics but is technically legal within current regulations. I am weighing the impact of public disclosure (Whistleblowing) against the potential for slow, internal change. Whistleblowing may protect the public but will certainly end my career in this niche. Internal reform is safer but may be futile.', 
+        constraints: 'Signed a restrictive NDA. Only 6 months of liquid savings. High risk of industry blacklisting.', 
+        options: 'Path A: Public disclosure (Transparency). Path B: Lead an internal "Quiet Reform" effort. Path C: Resign quietly and distance yourself (Neutrality).' 
+      },
+      { 
+        label: 'Digital Minimalism', 
+        title: 'Deleting All Social Media Presence to Reclaim Cognitive Focus', 
+        context: 'I feel my focus is being fragmented by algorithmic attention-traps. I am considering a total digital "blackout" to reclaim my mind. However, I worry about professional irrelevance and social isolation. The friction is between my "existential focus" and my "professional reach." Can I survive in the modern economy without a digital avatar?', 
+        constraints: 'Professional network relies heavily on LinkedIn. Family lives abroad and uses social platforms for connection.', 
+        options: 'Path A: Total account deletion (The Radical Break). Path B: Extreme curation (Remove all mobile apps, desktop-only). Path C: Scheduled usage (1 hour per week strictly).' 
+      }
     ]
   };
 
