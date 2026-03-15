@@ -22,7 +22,7 @@ interface DecisionTreeVizProps {
   problemTitle: string;
   councilResult?: CouncilResult;
   initialTree?: DecisionTree;
-  onSave: (tree: DecisionTree) => void;
+  onSave: (tree: DecisionTree, shouldClose?: boolean) => void;
   onClose: () => void;
 }
 
@@ -41,7 +41,8 @@ const DecisionTreeViz: React.FC<DecisionTreeVizProps> = ({ problemTitle, council
       padding: '10px',
       fontSize: '11px',
       width: 200,
-      transition: 'all 0.3s ease'
+      transition: 'all 0.3s ease',
+      textAlign: 'center' as const
     };
     if (sentiment === 'positive') return { ...base, background: '#064e3b', border: '2px solid #10b981', boxShadow: '0 0 15px rgba(16, 185, 129, 0.3)' };
     if (sentiment === 'negative') return { ...base, background: '#450a0a', border: '2px solid #ef4444', boxShadow: '0 0 15px rgba(239, 68, 68, 0.3)' };
@@ -106,6 +107,12 @@ const DecisionTreeViz: React.FC<DecisionTreeVizProps> = ({ problemTitle, council
       const { nodes: fn, edges: fe } = formatNodesAndEdges(data);
       setNodes(fn);
       setEdges(fe);
+      
+      // Auto-save the generated tree
+      onSave({
+        nodes: data.nodes.map(n => ({ id: n.id, position: n.position, data: n.data as any })),
+        edges: data.edges.map(e => ({ id: e.id, source: e.source, target: e.target, label: e.label as string }))
+      }, false);
     } catch (error) {
       console.error("Failed to generate tree:", error);
     } finally {
@@ -118,7 +125,7 @@ const DecisionTreeViz: React.FC<DecisionTreeVizProps> = ({ problemTitle, council
       nodes: nodes.map(n => ({ id: n.id, position: n.position, data: n.data as any })),
       edges: edges.map(e => ({ id: e.id, source: e.source, target: e.target, label: e.label as string }))
     };
-    onSave(treeData);
+    onSave(treeData, true);
   };
 
   const onNodeClick = (_: React.MouseEvent, node: Node) => {
@@ -129,28 +136,33 @@ const DecisionTreeViz: React.FC<DecisionTreeVizProps> = ({ problemTitle, council
 
   const updateNodeLabel = () => {
     if (!selectedNodeId) return;
-    setNodes(nds => {
-      const newNodes = nds.map(n => n.id === selectedNodeId ? { 
-        ...n, 
-        data: { ...n.data, label: editLabel, sentiment: editSentiment },
-        style: getNodeStyle(editSentiment)
-      } : n);
-      
-      // Also update edge styles when a node's sentiment changes
-      setTimeout(() => {
-        setEdges(eds => eds.map(edge => {
-          const source = newNodes.find(n => n.id === edge.source);
-          const target = newNodes.find(n => n.id === edge.target);
-          return {
-            ...edge,
-            animated: target?.data.sentiment === 'positive' || target?.data.sentiment === 'negative',
-            style: getEdgeStyle(source?.data.sentiment as any, target?.data.sentiment as any)
-          };
-        }));
-      }, 0);
-      
-      return newNodes;
+    const newNodes = nodes.map(n => n.id === selectedNodeId ? { 
+      ...n, 
+      data: { ...n.data, label: editLabel, sentiment: editSentiment },
+      style: getNodeStyle(editSentiment)
+    } : n);
+    
+    setNodes(newNodes);
+    
+    // Update edge styles
+    const nodeMap = new Map(newNodes.map(n => [n.id, n]));
+    const newEdges = edges.map(edge => {
+      const source = nodeMap.get(edge.source);
+      const target = nodeMap.get(edge.target);
+      return {
+        ...edge,
+        animated: target?.data.sentiment === 'positive' || target?.data.sentiment === 'negative',
+        style: getEdgeStyle(source?.data.sentiment as any, target?.data.sentiment as any)
+      };
     });
+    setEdges(newEdges);
+    
+    // Auto-save edit
+    onSave({
+      nodes: newNodes.map(n => ({ id: n.id, position: n.position, data: n.data as any })),
+      edges: newEdges.map(e => ({ id: e.id, source: e.source, target: e.target, label: e.label as string }))
+    }, false);
+
     setSelectedNodeId(null);
   };
 

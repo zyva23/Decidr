@@ -218,13 +218,13 @@ const DecidrApp: React.FC = () => {
     }
   };
 
-  const handleSaveTree = async (tree: DecisionTree) => {
+  const handleSaveTree = async (tree: DecisionTree, shouldClose: boolean = true) => {
     if (!currentSessionId) return;
     const session = sessions.find(s => s.id === currentSessionId);
     if (session) {
       const updatedSession = { ...session, decisionTree: tree };
       await saveSession(updatedSession);
-      setIsTreeOpen(false);
+      if (shouldClose) setIsTreeOpen(false);
       setSessions(await getSessions(user?.id));
     }
   };
