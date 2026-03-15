@@ -484,6 +484,7 @@ const DecidrApp: React.FC = () => {
       {isTreeOpen && (
         <DecisionTreeViz 
           problemTitle={inputValues.title} 
+          councilResult={result || undefined}
           initialTree={currentSessionId ? sessions.find(s => s.id === currentSessionId)?.decisionTree : undefined}
           onSave={handleSaveTree} 
           onClose={() => setIsTreeOpen(false)} 

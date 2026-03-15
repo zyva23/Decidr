@@ -157,7 +157,7 @@ export interface DecisionTree {
   nodes: {
     id: string;
     position: { x: number; y: number };
-    data: { label: string };
+    data: { label: string; sentiment?: 'positive' | 'negative' | 'neutral' };
   }[];
   edges: {
     id: string;

@@ -196,20 +196,25 @@ export async function generateActionPlan(input: DecisionInput, councilResult: Co
   }
 }
 
-export async function generateDecisionTree(problem: string): Promise<DecisionTree> {
+export async function generateDecisionTree(problem: string, councilResult?: CouncilResult): Promise<DecisionTree> {
   const prompt = `
     You are a Strategic Futurist and Decision Architect. 
     Analyze the following problem and generate a comprehensive Decision Tree of possible outcomes.
     
     PROBLEM: "${problem}"
+    ${councilResult ? `COUNCIL VERDICT: "${councilResult.synthesis.verdict}"` : ''}
+    ${councilResult ? `RECOMMENDATION: "${councilResult.synthesis.recommendation}"` : ''}
     
     REQUIREMENTS:
     1. STRUCTURE: Create a node-link diagram (Decision Tree).
-    2. DEPTH & BRANCHING: The tree must go 4-5 levels deep. At each level, explore multiple divergent scenarios (at least 2-3 branches per node).
-    3. SCENARIOS: Explicitly model different choices (e.g., Aggressive vs Conservative) and their cascading effects on Cost, Risk, and Strategic Impact.
-    4. NODES: Each node represents a specific state, consequence, or scenario description.
-    5. LAYOUT: Provide (x, y) coordinates for a clean, hierarchical vertical layout. (Root at top-center).
-    6. EDGES: Each edge represents the causal link or choice. Provide clear labels for these choices.
+    2. DEPTH & BRANCHING: The tree must go 4-5 levels deep.
+    3. SENTIMENT TAGGING: 
+       - Mark nodes that align with the RECOMMENDED path as "positive".
+       - Mark nodes that represent high-risk, failed, or UNDESIRABLE outcomes as "negative".
+       - All other nodes should be "neutral".
+    4. NODES: Each node represents a state. Include a 'sentiment' field ('positive', 'negative', or 'neutral') in the data object.
+    5. LAYOUT: Provide (x, y) coordinates for a hierarchical vertical layout.
+    6. EDGES: Each edge represents a causal link.
     7. OUTPUT: Return ONLY a strict JSON object matching the schema.
   `;
   try {
@@ -338,7 +343,8 @@ const decisionTreeSchema = {
           data: {
             type: Type.OBJECT,
             properties: {
-              label: { type: Type.STRING }
+              label: { type: Type.STRING },
+              sentiment: { type: Type.STRING, enum: ["positive", "negative", "neutral"] }
             },
             required: ["label"]
           }

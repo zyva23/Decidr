@@ -16,45 +16,71 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { generateDecisionTree } from '../services/geminiService';
-import { DecisionTree } from '../types';
+import { DecisionTree, CouncilResult } from '../types';
 
 interface DecisionTreeVizProps {
   problemTitle: string;
+  councilResult?: CouncilResult;
   initialTree?: DecisionTree;
   onSave: (tree: DecisionTree) => void;
   onClose: () => void;
 }
 
-const DecisionTreeViz: React.FC<DecisionTreeVizProps> = ({ problemTitle, initialTree, onSave, onClose }) => {
+const DecisionTreeViz: React.FC<DecisionTreeVizProps> = ({ problemTitle, councilResult, initialTree, onSave, onClose }) => {
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [editLabel, setEditLabel] = useState('');
+  const [editSentiment, setEditSentiment] = useState<'positive' | 'negative' | 'neutral'>('neutral');
 
-  // Initialize from initialTree if provided
+  const getNodeStyle = (sentiment?: string) => {
+    const base = {
+      color: '#f8fafc',
+      borderRadius: '12px',
+      padding: '10px',
+      fontSize: '11px',
+      width: 200,
+      transition: 'all 0.3s ease'
+    };
+    if (sentiment === 'positive') return { ...base, background: '#064e3b', border: '2px solid #10b981', boxShadow: '0 0 15px rgba(16, 185, 129, 0.3)' };
+    if (sentiment === 'negative') return { ...base, background: '#450a0a', border: '2px solid #ef4444', boxShadow: '0 0 15px rgba(239, 68, 68, 0.3)' };
+    return { ...base, background: '#1e293b', border: '1px solid #6366f1' };
+  };
+
+  const getEdgeStyle = (sourceSentiment?: string, targetSentiment?: string) => {
+    if (sourceSentiment === 'positive' && targetSentiment === 'positive') return { stroke: '#10b981', strokeWidth: 2 };
+    if (targetSentiment === 'negative') return { stroke: '#ef4444', strokeWidth: 2 };
+    return { stroke: '#6366f1' };
+  };
+
+  const formatNodesAndEdges = (tree: DecisionTree) => {
+    const nodeMap = new Map(tree.nodes.map(n => [n.id, n]));
+    
+    const formattedNodes: Node[] = tree.nodes.map(node => ({
+      ...node,
+      style: getNodeStyle(node.data.sentiment)
+    }));
+
+    const formattedEdges: Edge[] = tree.edges.map(edge => {
+      const source = nodeMap.get(edge.source);
+      const target = nodeMap.get(edge.target);
+      return {
+        ...edge,
+        animated: target?.data.sentiment === 'positive' || target?.data.sentiment === 'negative',
+        style: getEdgeStyle(source?.data.sentiment, target?.data.sentiment),
+        labelStyle: { fill: '#818cf8', fontWeight: 700, fontSize: '10px' }
+      };
+    });
+
+    return { nodes: formattedNodes, edges: formattedEdges };
+  };
+
   useEffect(() => {
     if (initialTree && initialTree.nodes.length > 0) {
-      const formattedNodes: Node[] = initialTree.nodes.map(node => ({
-        ...node,
-        style: { 
-          background: '#1e293b', 
-          color: '#f8fafc', 
-          border: '1px solid #6366f1',
-          borderRadius: '12px',
-          padding: '10px',
-          fontSize: '11px',
-          width: 200,
-        }
-      }));
-      const formattedEdges: Edge[] = initialTree.edges.map(edge => ({
-        ...edge,
-        animated: true,
-        style: { stroke: '#6366f1' },
-        labelStyle: { fill: '#818cf8', fontWeight: 700, fontSize: '10px' }
-      }));
-      setNodes(formattedNodes);
-      setEdges(formattedEdges);
+      const { nodes: fn, edges: fe } = formatNodesAndEdges(initialTree);
+      setNodes(fn);
+      setEdges(fe);
     }
   }, [initialTree]);
 
@@ -76,27 +102,10 @@ const DecisionTreeViz: React.FC<DecisionTreeVizProps> = ({ problemTitle, initial
   const handleGenerateTree = async () => {
     setIsLoading(true);
     try {
-      const data = await generateDecisionTree(problemTitle);
-      const formattedNodes: Node[] = data.nodes.map(node => ({
-        ...node,
-        style: { 
-          background: '#1e293b', 
-          color: '#f8fafc', 
-          border: '1px solid #6366f1',
-          borderRadius: '12px',
-          padding: '10px',
-          fontSize: '11px',
-          width: 200,
-        }
-      }));
-      const formattedEdges: Edge[] = data.edges.map(edge => ({
-        ...edge,
-        animated: true,
-        style: { stroke: '#6366f1' },
-        labelStyle: { fill: '#818cf8', fontWeight: 700, fontSize: '10px' }
-      }));
-      setNodes(formattedNodes);
-      setEdges(formattedEdges);
+      const data = await generateDecisionTree(problemTitle, councilResult);
+      const { nodes: fn, edges: fe } = formatNodesAndEdges(data);
+      setNodes(fn);
+      setEdges(fe);
     } catch (error) {
       console.error("Failed to generate tree:", error);
     } finally {
@@ -106,7 +115,7 @@ const DecisionTreeViz: React.FC<DecisionTreeVizProps> = ({ problemTitle, initial
 
   const handleSave = () => {
     const treeData: DecisionTree = {
-      nodes: nodes.map(n => ({ id: n.id, position: n.position, data: n.data as { label: string } })),
+      nodes: nodes.map(n => ({ id: n.id, position: n.position, data: n.data as any })),
       edges: edges.map(e => ({ id: e.id, source: e.source, target: e.target, label: e.label as string }))
     };
     onSave(treeData);
@@ -115,11 +124,33 @@ const DecisionTreeViz: React.FC<DecisionTreeVizProps> = ({ problemTitle, initial
   const onNodeClick = (_: React.MouseEvent, node: Node) => {
     setSelectedNodeId(node.id);
     setEditLabel((node.data as any).label);
+    setEditSentiment((node.data as any).sentiment || 'neutral');
   };
 
   const updateNodeLabel = () => {
     if (!selectedNodeId) return;
-    setNodes(nds => nds.map(n => n.id === selectedNodeId ? { ...n, data: { ...n.data, label: editLabel } } : n));
+    setNodes(nds => {
+      const newNodes = nds.map(n => n.id === selectedNodeId ? { 
+        ...n, 
+        data: { ...n.data, label: editLabel, sentiment: editSentiment },
+        style: getNodeStyle(editSentiment)
+      } : n);
+      
+      // Also update edge styles when a node's sentiment changes
+      setTimeout(() => {
+        setEdges(eds => eds.map(edge => {
+          const source = newNodes.find(n => n.id === edge.source);
+          const target = newNodes.find(n => n.id === edge.target);
+          return {
+            ...edge,
+            animated: target?.data.sentiment === 'positive' || target?.data.sentiment === 'negative',
+            style: getEdgeStyle(source?.data.sentiment as any, target?.data.sentiment as any)
+          };
+        }));
+      }, 0);
+      
+      return newNodes;
+    });
     setSelectedNodeId(null);
   };
 
@@ -128,16 +159,8 @@ const DecisionTreeViz: React.FC<DecisionTreeVizProps> = ({ problemTitle, initial
     const newNode: Node = {
       id,
       position: { x: 250, y: 250 },
-      data: { label: 'New Scenario Node' },
-      style: { 
-        background: '#1e293b', 
-        color: '#f8fafc', 
-        border: '1px solid #6366f1',
-        borderRadius: '12px',
-        padding: '10px',
-        fontSize: '11px',
-        width: 200,
-      }
+      data: { label: 'New Scenario Node', sentiment: 'neutral' },
+      style: getNodeStyle('neutral')
     };
     setNodes(nds => [...nds, newNode]);
   };
@@ -159,7 +182,9 @@ const DecisionTreeViz: React.FC<DecisionTreeVizProps> = ({ problemTitle, initial
            </div>
            <div>
               <h1 className="text-lg font-bold text-white tracking-tight">Causal Scenario Mapping</h1>
-              <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Interactive Decision Architect</p>
+              <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
+                <span className="text-emerald-400">Green = Council Path</span> • <span className="text-red-400">Red = Undesirable</span>
+              </p>
            </div>
         </div>
         <div className="flex items-center gap-3">
@@ -206,6 +231,24 @@ const DecisionTreeViz: React.FC<DecisionTreeVizProps> = ({ problemTitle, initial
                 onChange={(e) => setEditLabel(e.target.value)}
                 className="w-full h-24 bg-slate-950 border border-slate-800 rounded-lg p-3 text-xs text-white mb-3 outline-none focus:border-indigo-500"
               />
+              <div className="mb-4">
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 block">Sentiment</label>
+                <div className="flex gap-1">
+                  {(['positive', 'neutral', 'negative'] as const).map(s => (
+                    <button
+                      key={s}
+                      onClick={() => setEditSentiment(s)}
+                      className={`flex-1 py-1 text-[9px] font-black uppercase rounded border transition-all ${
+                        editSentiment === s 
+                          ? (s === 'positive' ? 'bg-emerald-600 border-emerald-400 text-white' : s === 'negative' ? 'bg-red-600 border-red-400 text-white' : 'bg-slate-700 border-slate-500 text-white')
+                          : 'bg-slate-950 border-slate-800 text-slate-500 hover:border-slate-600'
+                      }`}
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
               <div className="flex gap-2">
                 <button onClick={updateNodeLabel} className="flex-1 py-2 bg-indigo-600 text-white text-[10px] font-black uppercase rounded-lg">Apply</button>
                 <button onClick={deleteSelected} className="px-3 py-2 bg-red-900/50 text-red-400 border border-red-500/20 rounded-lg"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg></button>
