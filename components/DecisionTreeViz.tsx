@@ -82,6 +82,9 @@ const DecisionTreeViz: React.FC<DecisionTreeVizProps> = ({ problemTitle, council
       const { nodes: fn, edges: fe } = formatNodesAndEdges(initialTree);
       setNodes(fn);
       setEdges(fe);
+    } else if (!isLoading && nodes.length === 0) {
+      // Auto-trigger generation if we open an empty tree
+      handleGenerateTree();
     }
   }, [initialTree]);
 

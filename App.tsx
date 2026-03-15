@@ -240,6 +240,7 @@ const DecidrApp: React.FC = () => {
     setResult(session.result); setPartialResult(null); setChatHistory(session.chatHistory || []);
     setStatus(session.status); setIsChatOpen(false); setIsElaborationOpen(false);
     setCurrentPlan(session.actionPlan || null);
+    setIsHistoryOpen(false);
   };
 
   const handleAnalysis = async (input: DecisionInput) => {
@@ -261,12 +262,35 @@ const DecidrApp: React.FC = () => {
       
       await updateProgression(100);
 
+      const sessionId = currentSessionId || crypto.randomUUID();
       const newSession: DecisionSession = {
-        id: currentSessionId || crypto.randomUUID(), user_id: user?.id, timestamp: Date.now(),
+        id: sessionId, user_id: user?.id, timestamp: Date.now(),
         input: input, result: data, status: AnalysisStatus.COMPLETE, chatHistory: []
       };
-      await saveSession(newSession); setCurrentSessionId(newSession.id);
+      await saveSession(newSession); setCurrentSessionId(sessionId);
       setSessions(await getSessions(user?.id));
+
+      // BACKGROUND GENERATION: Plan & Decision Tree
+      (async () => {
+        try {
+          const [plan, tree] = await Promise.all([
+            generateActionPlan(input, data),
+            generateDecisionTree(input.title, data)
+          ]);
+          
+          const session = (await getSessions(user?.id)).find(s => s.id === sessionId);
+          if (session) {
+            await saveSession({ ...session, actionPlan: plan, decisionTree: tree });
+            if (sessionId === currentSessionId) {
+              setCurrentPlan(plan);
+              setSessions(await getSessions(user?.id));
+            }
+          }
+        } catch (bgError) {
+          console.error("Background Generation Error:", bgError);
+        }
+      })();
+
     } catch (error: any) {
       setStatus(AnalysisStatus.ERROR);
       logActivity(user?.id, 'error', { message: error.message });
