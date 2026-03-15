@@ -10,6 +10,7 @@ import VerdictElaboration from './components/VerdictElaboration';
 import ActionPlanModal from './components/ActionPlanModal';
 import GamifiedHeader from './components/GamifiedHeader';
 import CommitmentPanel from './components/CommitmentPanel';
+import DecisionTreeViz from './components/DecisionTreeViz';
 import Auth from './components/Auth';
 import { UI_CONTENT } from './src/constants/uiContent';
 import { analyzeDecision, generateActionPlan } from './services/geminiService';
@@ -144,7 +145,7 @@ const DecidrApp: React.FC = () => {
     if (!result) return;
     const newResult = { ...result, feedback: type };
     setResult(newResult); setShowFeedbackForm(true); setFeedbackSubmitted(false);
-    if (user) logActivity(user.id, 'feedback_click', { verdict: result.synthesis.verdict, type });
+    logActivity(user?.id, 'feedback_click', { verdict: result.synthesis.verdict, type });
     if (currentSessionId) {
       const session = sessions.find(s => s.id === currentSessionId);
       if (session) await saveSession({ ...session, result: newResult });
@@ -170,7 +171,7 @@ const DecidrApp: React.FC = () => {
     
     await saveSession(updatedSession);
     setSessions(await getSessions(user?.id));
-    if (user) logActivity(user.id, 'commitment_made', { selected, title: session.input.title });
+    logActivity(user?.id, 'commitment_made', { selected, title: session.input.title });
   };
 
     const handleBranch = (newContext: string) => {
@@ -235,7 +236,7 @@ const DecidrApp: React.FC = () => {
       setShowWaitlist(true); return;
     }
     setStatus(AnalysisStatus.ANALYZING); setInputValues(input); setResult(null); setPartialResult(null);
-    if (user) logActivity(user.id, 'analysis_started', { title: input.title });
+    logActivity(user?.id, 'analysis_started', { title: input.title });
     try {
       const data = await analyzeDecision(input, (partial) => {
         try {
@@ -256,7 +257,7 @@ const DecidrApp: React.FC = () => {
       setSessions(await getSessions(user?.id));
     } catch (error: any) {
       setStatus(AnalysisStatus.ERROR);
-      if (user) logActivity(user.id, 'error', { message: error.message });
+      logActivity(user?.id, 'error', { message: error.message });
     }
   };
 
@@ -267,7 +268,7 @@ const DecidrApp: React.FC = () => {
   };
 
   const handleSignOut = async () => {
-    if (user) logActivity(user.id, 'logout');
+    logActivity(user?.id, 'logout');
     if (auth) await signOut(auth);
     setIsGuestMode(false);
     setUser(null);
@@ -289,7 +290,12 @@ const DecidrApp: React.FC = () => {
     );
   }
 
-  if (!user && !isGuestMode) { return <Auth onContinueAsGuest={() => setIsGuestMode(true)} />; }
+  if (!user && !isGuestMode) { 
+    return <Auth onContinueAsGuest={() => { 
+      setIsGuestMode(true); 
+      logActivity(null, 'guest_session_start'); 
+    }} />; 
+  }
 
   return (
     <div className="flex flex-col h-screen w-full bg-slate-950 text-slate-200 font-sans overflow-hidden">
@@ -337,10 +343,16 @@ const DecidrApp: React.FC = () => {
          </div>
       )}
       <header className="flex-shrink-0 h-16 border-b border-slate-800 bg-slate-900/50 backdrop-blur-md flex items-center justify-between px-4 lg:px-6 z-30">
-        <div className="flex items-center gap-4">
-          <button onClick={() => setIsHistoryOpen(true)} className="p-2 -ml-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg></button>
-          <h1 className="hidden sm:block text-lg font-bold text-white tracking-tight">{UI_CONTENT.APP_NAME}</h1>
-        </div>
+                <div className="flex items-center gap-4">
+                  <button 
+                    onClick={() => setIsHistoryOpen(true)} 
+                    aria-label="Open History"
+                    className="p-2 -ml-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                  </button>
+                  <h1 className="hidden sm:block text-lg font-bold text-white tracking-tight">{UI_CONTENT.APP_NAME}</h1>
+                </div>
         <div className="flex items-center gap-6"><GamifiedHeader xp={xp} level={level} /></div>
       </header>
       <main className="flex-1 overflow-hidden relative p-4 lg:p-6">
@@ -418,6 +430,21 @@ const DecidrApp: React.FC = () => {
                           coreInquiry={inputValues.title}
                           existingCommitment={currentSessionId ? sessions.find(s => s.id === currentSessionId)?.commitment : undefined} 
                       />
+                    </div>
+                  )}
+
+                  {status === AnalysisStatus.COMPLETE && result && (
+                    <div className="pt-8 pb-20 border-t border-slate-800/50">
+                       <div className="flex items-center gap-3 mb-6">
+                          <div className="w-8 h-8 bg-indigo-500/10 rounded-lg flex items-center justify-center border border-indigo-500/20">
+                             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-400"><path d="M12 2v8"/><path d="m4.93 10.93 1.41 1.41"/><path d="M2 18h2"/><path d="M20 18h2"/><path d="m19.07 10.93-1.41 1.41"/><path d="M22 22H2"/><path d="m8 22 4-10 4 10"/></svg>
+                          </div>
+                          <div>
+                             <h4 className="text-sm font-black text-white uppercase tracking-widest">Scenario Decision Tree</h4>
+                             <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tight">AI-Generated Causal Mapping</p>
+                          </div>
+                       </div>
+                       <DecisionTreeViz problemTitle={inputValues.title} />
                     </div>
                   )}
                 </div>

@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import { DecisionInput, CouncilResult, BrainstormResult, ChatMessage, ActionPlan, PartialCouncilResult } from "../types";
+import { DecisionInput, CouncilResult, BrainstormResult, ChatMessage, ActionPlan, PartialCouncilResult, DecisionTree } from "../types";
 import { AnalystAgent } from "./agents/AnalystAgent";
 import { StrategistAgent } from "./agents/StrategistAgent";
 import { SkepticAgent } from "./agents/SkepticAgent";
@@ -196,6 +196,40 @@ export async function generateActionPlan(input: DecisionInput, councilResult: Co
   }
 }
 
+export async function generateDecisionTree(problem: string): Promise<DecisionTree> {
+  const prompt = `
+    You are a Strategic Futurist and Decision Architect. 
+    Analyze the following problem and generate a comprehensive Decision Tree of possible outcomes.
+    
+    PROBLEM: "${problem}"
+    
+    REQUIREMENTS:
+    1. STRUCTURE: Create a node-link diagram (Decision Tree).
+    2. DEPTH: The tree must go at least 3 levels deep from the root.
+    3. NODES: Each node represents a state or scenario. It must have a unique 'id' and a 'label' (scenario description).
+    4. POSITIONS: Assign (x, y) coordinates to each node for a clear, hierarchical top-down layout (Root at top-center).
+    5. EDGES: Each edge represents a choice or causal link. It must have a unique 'id', 'source' node ID, and 'target' node ID.
+    6. LABELS (Optional): Edges can have labels representing the decision made (e.g., "High Investment", "Wait and See").
+    7. OUTPUT: Return ONLY a strict JSON object matching the schema.
+  `;
+  try {
+    const ai = getAI();
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: prompt,
+      config: { 
+        responseMimeType: "application/json", 
+        responseSchema: decisionTreeSchema as any, 
+        temperature: 0.6 
+      }
+    });
+    return JSON.parse(response.text || "{}");
+  } catch (error) {
+    console.error("Decision Tree Error:", error);
+    return { nodes: [], edges: [] };
+  }
+}
+
 const synthesisSchema = {
   type: Type.OBJECT,
   properties: {
@@ -282,4 +316,49 @@ const actionPlanSchema = {
     } 
   },
   required: ["executiveSummary", "phases", "pivotPoints"]
+};
+
+const decisionTreeSchema = {
+  type: Type.OBJECT,
+  properties: {
+    nodes: {
+      type: Type.ARRAY,
+      items: {
+        type: Type.OBJECT,
+        properties: {
+          id: { type: Type.STRING },
+          position: {
+            type: Type.OBJECT,
+            properties: {
+              x: { type: Type.NUMBER },
+              y: { type: Type.NUMBER }
+            },
+            required: ["x", "y"]
+          },
+          data: {
+            type: Type.OBJECT,
+            properties: {
+              label: { type: Type.STRING }
+            },
+            required: ["label"]
+          }
+        },
+        required: ["id", "position", "data"]
+      }
+    },
+    edges: {
+      type: Type.ARRAY,
+      items: {
+        type: Type.OBJECT,
+        properties: {
+          id: { type: Type.STRING },
+          source: { type: Type.STRING },
+          target: { type: Type.STRING },
+          label: { type: Type.STRING }
+        },
+        required: ["id", "source", "target"]
+      }
+    }
+  },
+  required: ["nodes", "edges"]
 };

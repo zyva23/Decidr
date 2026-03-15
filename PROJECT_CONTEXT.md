@@ -1,33 +1,44 @@
-# Decision Council AI - Project Context
+# Decidr - Project Context
 
 ## Overview
-An agentic Decision Support System (DSS) that uses Google Gemini (Gemini 3 Flash) to simulate a "Council of Experts" deliberating on complex user-provided problems.
+Decidr is a sophisticated, intellectually-toned Decision Support System (DSS). It uses a multi-agent orchestration pattern (Google Gemini 3 Flash) to simulate a "Council of Experts" that deliberates on complex life and business inquiries.
 
 ## Tech Stack
-- **Frontend**: React 19, Tailwind CSS, Recharts (Visualizations), Lucide-inspired SVG icons.
-- **AI Backend**: `@google/genai` (Gemini API) using a multi-agent orchestration pattern.
-- **Database/Auth**: Firebase (Google Cloud) for session persistence and activity logging.
-- **Infrastructure**: Vite (Build system), Vercel (Deployment config).
+- **Frontend**: React 19, Tailwind CSS, Recharts (Visualizations).
+- **AI Core**: `@google/genai` (Gemini API) using parallel streaming agents.
+- **Backend/DB**: Firebase Firestore for session persistence, user profiles, and activity logging.
+- **PDF Core**: `jspdf` & `html2canvas` for reporting; `pdfjs-dist` (legacy build) for extraction.
+- **OCR**: `tesseract.js` for image-based text extraction.
 
-## Architecture & Data Flow
-1. **Input Phase**: `InputForm.tsx` captures title, context, constraints, and options. Includes AI-assisted brainstorming.
-2. **Analysis Phase**: `geminiService.ts` orchestrates 4 distinct agents in parallel:
-   - **Analyst**: Quantitative/Financial lens.
-   - **Strategist**: Competitive/Game Theory lens.
-   - **Skeptic**: Pre-mortem/Risk lens.
-   - **Mediator**: Stakeholder/Ethical lens.
-3. **Synthesis Phase**: A master model (`gemini-3-flash-preview`) evaluates all agent reports and provides a final verdict and a 5-point radar metric (Risk, Speed, Cost, Impact, Feasibility).
-4. **Planning Phase (Optional)**: If the user approves, a PM agent generates a tactical roadmap (Agile/OKR hybrid) with specific tasks, KPIs, and strategic pivot points.
-5. **Persistence**: Sessions are synced between `localStorage` and Firebase Firestore (if authenticated).
+## Core Philosophical Workflows
+1. **The Inquiry (Input)**: 
+   - `InputForm.tsx` supports "thick descriptions" of frictional realities.
+   - **Smart Context Architect**: A 7-question guided wizard that helps users build high-fidelity briefs.
+   - **Categorized Scenarios**: Relatable templates across Personal, Career, Business, and **Life & Legacy**.
+2. **The Deliberation (Analysis)**:
+   - `geminiService.ts` runs 4 specialized agents in parallel (The Rationalist, The Architect, The Realist, The Ethicist).
+   - Results stream in real-time, guarded by a global **Error Boundary** and robust **Skeleton Loaders**.
+3. **The Synthesis (Verdict)**:
+   - A master model evaluates reports to provide a final verdict, 5-point radar metrics, and **Refined Strategic Paths**.
+4. **The Interval of Intent (Commitment)**:
+   - `MindfulCommitModal.tsx` enforces a 60-second pause with a pulsing breathing graphic for final gut resonance.
+5. **The Strategic Continuity (Linking)**:
+   - Inquiries can be linked into **Evolutionary Branches**, either automatically via "Evolve to Next" or manually via **Link from History**.
+6. **Executive Reporting**:
+   - `pdfService.ts` generates premium A4 reports with Title Pages, Table of Contents, and Archetype Icons.
 
-## Key Logic Locations
-- **Orchestration**: `src/services/geminiService.ts`
-- **Structured AI Output**: `src/services/agents/BaseAgent.ts` (Handles JSON parsing and 429/503 retries).
-- **Visualization Mapping**: `src/components/RadarViz.tsx` (5-point pentagon) and `src/components/VerdictElaboration.tsx` (Multi-track timeline and ROI chart).
-- **Tactical Roadmap**: `src/components/ActionPlanModal.tsx` and `generateActionPlan` service.
-- **Reporting**: `src/services/pdfService.ts` (A4 export with automatic alignment and citations page).
-- **Storage**: `src/services/storageService.ts` (Hybrid Firestore/Local sync).
+## Key System Modules
+- **State Management**: `App.tsx` handles parallel agent state, cloud-synced progression (XP/Rank), and session lifecycle.
+- **Cloud Storage**: `storageService.ts` implements a "Cloud-First" merge logic ensuring history and rank sync across all devices.
+- **Agent Logic**: Individual agent prompts reside in `src/services/agents/`.
+- **UI Content**: Centrally managed in `src/constants/uiContent.ts` to ensure a consistent, sophisticated tone.
 
-## Critical Environment Variables
-- `VITE_GEMINI_API_KEY`: Gemini API Key.
-- `VITE_FIREBASE_*`: Firebase configuration keys.
+## Stability & Integrity
+- **Error Handling**: Uses a Global Error Boundary to prevent "black screen" crashes, providing diagnostic logs instead.
+- **PDF Stability**: Uses PDF.js legacy build with a version-locked CDN worker (4.4.168) to ensure reliable extraction in browser environments.
+- **Null Safety**: All streaming components (AgentCards, RadarViz) implement defensive rendering for partially loaded data.
+
+## Environment Requirements
+- `VITE_GEMINI_API_KEY`: Strategic AI access.
+- `VITE_FIREBASE_*`: Full Firebase suite for Auth and Cloud Firestore.
+- `EINVALIDTAGNAME`: Avoid '#' in package dependencies.

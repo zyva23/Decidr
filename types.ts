@@ -142,8 +142,8 @@ export interface PivotPoint {
 export interface UserProfile {
   id: string;
   email: string;
-  xp?: number;
-  level?: number;
+  xp: number;
+  level: number;
 }
 
 export interface Attachment {
@@ -152,9 +152,16 @@ export interface Attachment {
   extractedText: string;
 }
 
-export interface ActivityLog {
-  user_id: string;
-  action_type: string;
-  details?: any;
-  created_at: string;
+export interface DecisionTree {
+  nodes: {
+    id: string;
+    position: { x: number; y: number };
+    data: { label: string };
+  }[];
+  edges: {
+    id: string;
+    source: string;
+    target: string;
+    label?: string;
+  }[];
 }

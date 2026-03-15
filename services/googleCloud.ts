@@ -32,11 +32,34 @@ export const auth = app ? getAuth(app) : null;
 export const db = app ? getFirestore(app) : null;
 export const googleProvider = new GoogleAuthProvider();
 
-export const logActivity = async (userId: string, actionType: string, details: any = {}) => {
+const getAnonymousId = () => {
+  let id = localStorage.getItem('dc_anon_id');
+  if (!id) {
+    id = `anon_${crypto.randomUUID()}`;
+    localStorage.setItem('dc_anon_id', id);
+  }
+  return id;
+};
+
+const getBrowserSessionId = () => {
+  let id = sessionStorage.getItem('dc_session_id');
+  if (!id) {
+    id = `sess_${crypto.randomUUID()}`;
+    sessionStorage.setItem('dc_session_id', id);
+  }
+  return id;
+};
+
+export const logActivity = async (userId: string | null | undefined, actionType: string, details: any = {}) => {
   if (!db) return;
   try {
+    const anonId = getAnonymousId();
+    const sessionId = getBrowserSessionId();
+    
     await addDoc(collection(db, "activity_logs"), {
-      userId,
+      userId: userId || anonId,
+      isGuest: !userId,
+      browserSessionId: sessionId,
       actionType,
       details,
       timestamp: serverTimestamp()
