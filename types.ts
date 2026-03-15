@@ -103,6 +103,7 @@ export interface DecisionSession {
   status: AnalysisStatus;
   chatHistory?: ChatMessage[];
   actionPlan?: ActionPlan;
+  decisionTree?: DecisionTree;
   commitment?: {
     selectedOption: string;
     justification: string;

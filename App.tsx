@@ -69,6 +69,7 @@ const DecidrApp: React.FC = () => {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isElaborationOpen, setIsElaborationOpen] = useState(false);
   const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
+  const [isTreeOpen, setIsTreeOpen] = useState(false);
   const [currentPlan, setCurrentPlan] = useState<ActionPlan | null>(null);
   const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
   const [showWaitlist, setShowWaitlist] = useState(false);
@@ -213,6 +214,17 @@ const DecidrApp: React.FC = () => {
       const updatedSession = { ...session, actionPlan: updatedPlan };
       await saveSession(updatedSession);
       setCurrentPlan(updatedPlan);
+      setSessions(await getSessions(user?.id));
+    }
+  };
+
+  const handleSaveTree = async (tree: DecisionTree) => {
+    if (!currentSessionId) return;
+    const session = sessions.find(s => s.id === currentSessionId);
+    if (session) {
+      const updatedSession = { ...session, decisionTree: tree };
+      await saveSession(updatedSession);
+      setIsTreeOpen(false);
       setSessions(await getSessions(user?.id));
     }
   };
@@ -389,7 +401,16 @@ const DecidrApp: React.FC = () => {
                           </div>
                         )}
                       </div>
-                      <div className="bg-slate-900/40 border border-slate-800 rounded-xl p-6 flex items-center justify-center"><RadarViz metrics={result.synthesis?.metrics} /></div>
+                      <div className="bg-slate-900/40 border border-slate-800 rounded-xl p-6 flex flex-col items-center justify-center gap-4">
+                        <RadarViz metrics={result.synthesis?.metrics} />
+                        <button 
+                          onClick={() => setIsTreeOpen(true)}
+                          className="w-full py-3 bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 border border-indigo-500/20 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v8"/><path d="m4.93 10.93 1.41 1.41"/><path d="M2 18h2"/><path d="M20 18h2"/><path d="m19.07 10.93-1.41 1.41"/><path d="M22 22H2"/><path d="m8 22 4-10 4 10"/></svg>
+                          Scenario Mapping
+                        </button>
+                      </div>
                     </div>
                   ) : status === AnalysisStatus.ERROR ? (
                     <div className="bg-red-950/20 border border-red-500/30 rounded-2xl p-12 text-center animate-fade-in">
@@ -432,21 +453,6 @@ const DecidrApp: React.FC = () => {
                       />
                     </div>
                   )}
-
-                  {status === AnalysisStatus.COMPLETE && result && (
-                    <div className="pt-8 pb-20 border-t border-slate-800/50">
-                       <div className="flex items-center gap-3 mb-6">
-                          <div className="w-8 h-8 bg-indigo-500/10 rounded-lg flex items-center justify-center border border-indigo-500/20">
-                             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-400"><path d="M12 2v8"/><path d="m4.93 10.93 1.41 1.41"/><path d="M2 18h2"/><path d="M20 18h2"/><path d="m19.07 10.93-1.41 1.41"/><path d="M22 22H2"/><path d="m8 22 4-10 4 10"/></svg>
-                          </div>
-                          <div>
-                             <h4 className="text-sm font-black text-white uppercase tracking-widest">Scenario Decision Tree</h4>
-                             <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tight">AI-Generated Causal Mapping</p>
-                          </div>
-                       </div>
-                       <DecisionTreeViz problemTitle={inputValues.title} />
-                    </div>
-                  )}
                 </div>
               )}
               {status === AnalysisStatus.IDLE && (
@@ -474,6 +480,14 @@ const DecidrApp: React.FC = () => {
       {isChatOpen && result && <CouncilChat isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} councilResult={result} input={inputValues} chatHistory={chatHistory} onUpdateHistory={setChatHistory} onReAnalyze={(newCtx) => handleAnalysis({...inputValues, context: inputValues.context + newCtx})} />}
       {currentPlan && (
         <ActionPlanModal isOpen={isPlanModalOpen} onClose={() => setIsPlanModalOpen(false)} onSave={handleSavePlan} plan={currentPlan} />
+      )}
+      {isTreeOpen && (
+        <DecisionTreeViz 
+          problemTitle={inputValues.title} 
+          initialTree={currentSessionId ? sessions.find(s => s.id === currentSessionId)?.decisionTree : undefined}
+          onSave={handleSaveTree} 
+          onClose={() => setIsTreeOpen(false)} 
+        />
       )}
     </div>
   );

@@ -205,11 +205,11 @@ export async function generateDecisionTree(problem: string): Promise<DecisionTre
     
     REQUIREMENTS:
     1. STRUCTURE: Create a node-link diagram (Decision Tree).
-    2. DEPTH: The tree must go at least 3 levels deep from the root.
-    3. NODES: Each node represents a state or scenario. It must have a unique 'id' and a 'label' (scenario description).
-    4. POSITIONS: Assign (x, y) coordinates to each node for a clear, hierarchical top-down layout (Root at top-center).
-    5. EDGES: Each edge represents a choice or causal link. It must have a unique 'id', 'source' node ID, and 'target' node ID.
-    6. LABELS (Optional): Edges can have labels representing the decision made (e.g., "High Investment", "Wait and See").
+    2. DEPTH & BRANCHING: The tree must go 4-5 levels deep. At each level, explore multiple divergent scenarios (at least 2-3 branches per node).
+    3. SCENARIOS: Explicitly model different choices (e.g., Aggressive vs Conservative) and their cascading effects on Cost, Risk, and Strategic Impact.
+    4. NODES: Each node represents a specific state, consequence, or scenario description.
+    5. LAYOUT: Provide (x, y) coordinates for a clean, hierarchical vertical layout. (Root at top-center).
+    6. EDGES: Each edge represents the causal link or choice. Provide clear labels for these choices.
     7. OUTPUT: Return ONLY a strict JSON object matching the schema.
   `;
   try {
