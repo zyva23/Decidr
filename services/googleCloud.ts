@@ -50,16 +50,37 @@ const getBrowserSessionId = () => {
   return id;
 };
 
+let cachedLocation: any = null;
+
+const getApproxLocation = async () => {
+  if (cachedLocation) return cachedLocation;
+  try {
+    const response = await fetch('https://ipapi.co/json/');
+    const data = await response.json();
+    cachedLocation = {
+      city: data.city,
+      region: data.region,
+      country: data.country_name,
+      ip: data.ip
+    };
+    return cachedLocation;
+  } catch (e) {
+    return { error: 'Location unavailable' };
+  }
+};
+
 export const logActivity = async (userId: string | null | undefined, actionType: string, details: any = {}) => {
   if (!db) return;
   try {
     const anonId = getAnonymousId();
     const sessionId = getBrowserSessionId();
+    const location = await getApproxLocation();
     
     await addDoc(collection(db, "activity_logs"), {
       userId: userId || anonId,
       isGuest: !userId,
       browserSessionId: sessionId,
+      location,
       actionType,
       details,
       timestamp: serverTimestamp()
