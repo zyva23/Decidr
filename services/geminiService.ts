@@ -81,8 +81,8 @@ export async function analyzeDecision(
     REQUIREMENTS:
     1. VERDICT: A clear, high-level summary of the best direction.
     2. RECOMMENDATION: Detailed justification for the verdict.
-    3. REFINED PATHS: Provide 3-4 distinct, high-fidelity analyzed strategic paths based on the council's deliberation. Each path should be a short, actionable title (e.g., "The Conservative Pivot").
-    4. METRICS: Provide scores between 0 and 100 for the radar chart.
+    3. REFINED PATHS: Provide 3-4 distinct strategic paths.
+    4. METRICS: Provide scores 0-100 for risk, speed, cost, impact, feasibility.
   `;
 
   try {
@@ -93,15 +93,42 @@ export async function analyzeDecision(
       config: {
         responseMimeType: "application/json",
         responseSchema: synthesisSchema as any,
-        temperature: 0.5,
+        temperature: 0.4, // Reduced slightly for more deterministic synthesis
       }
     });
 
     const synthesisData = JSON.parse(response.text || "{}");
     return { analyst, strategist, skeptic, mediator, synthesis: synthesisData };
   } catch (error) {
-    console.error("Error in synthesis:", error);
-    throw error;
+    console.warn("Primary synthesis failed, attempting safe fallback...", error);
+    
+    // FALLBACK: If JSON mode fails (common with complex schemas), try a simpler unstructured synthesis
+    try {
+      const ai = getAI();
+      const fallbackResponse = await ai.models.generateContent({
+        model: MASTER_MODEL,
+        contents: `${prompt}\n\nIMPORTANT: Return a valid JSON object. If you cannot fulfill all requirements, focus on providing a clear Verdict and Recommendation at minimum.`,
+        config: {
+          responseMimeType: "application/json",
+          temperature: 0.7, // Higher temperature for the retry to explore a different path
+        }
+      });
+      
+      const synthesisData = JSON.parse(fallbackResponse.text || "{}");
+      
+      // Ensure minimum fields exist
+      const finalizedSynthesis = {
+        verdict: synthesisData.verdict || "Conditional Proceed",
+        recommendation: synthesisData.recommendation || "Synthesis partially failed. Please review individual agent perspectives for full context.",
+        refinedPaths: synthesisData.refinedPaths || ["Proceed with caution", "Re-evaluate constraints"],
+        metrics: synthesisData.metrics || { risk: 50, speed: 50, cost: 50, impact: 50, feasibility: 50 }
+      };
+
+      return { analyst, strategist, skeptic, mediator, synthesis: finalizedSynthesis };
+    } catch (fallbackError) {
+      console.error("Critical Failure: Master Model Deadlock", fallbackError);
+      throw new Error("Council Deadlock: The Master Model failed to synthesize perspectives even after fallback.");
+    }
   }
 }
 
