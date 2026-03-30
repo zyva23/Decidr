@@ -3,7 +3,7 @@ import html2canvas from 'html2canvas';
 import * as pdfjsLib from 'pdfjs-dist';
 import React from 'react';
 import { CouncilResult, DecisionInput, ActionPlan } from '../types';
-import { StrategicReportPDF } from '../components/StrategicReportPDF';
+import { DecisionPDF } from '../components/StrategicReportPDF';
 
 // Configure worker for pdfjs
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@4.4.168/build/pdf.worker.min.mjs`;
@@ -54,7 +54,7 @@ export async function generateDecisionPDF(input: DecisionInput, result: CouncilR
   try {
     // Generate PDF blob using @react-pdf/renderer
     const blob = await pdf(
-      React.createElement(StrategicReportPDF, {
+      React.createElement(DecisionPDF, {
         input,
         result,
         actionPlan,
