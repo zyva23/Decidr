@@ -216,27 +216,99 @@ const InputForm: React.FC<InputFormProps> = ({ initialValues, onSubmit, isLoadin
 
   const categorizedTemplates: Record<string, any[]> = {
     'Personal': [
-      { label: 'Buying a Home', title: 'Acquiring a Primary Residence vs. Geographic Liquidity', context: 'I am currently renting in a vibrant urban center. The opportunity to purchase a home has arisen, which would anchor me to this geography for at least 5-7 years...', constraints: 'Mortgage rates high. Down payment is 80% of liquid net worth.', options: 'Path A: Purchase residence. Path B: Continue renting. Path C: Rent-to-own.' },
-      { label: 'Parenthood', title: 'Initiating Parenthood: Expanding the Family Unit', context: 'We are contemplating having our first child. We value our autonomy and deep focus, but feel a growing desire for the profound meaning of legacy...', constraints: 'Childcare costs $3k/mo. No family support nearby. Biological window factor.', options: 'Path A: Start now. Path B: Freeze embryos. Path C: Defer for 18 months.' },
-      { label: 'Relationships', title: 'Terminating a Partnership vs. Salvaging Resonance', context: ' partnership for seven years. Deep history but diverging visions. Operating on different emotional frequencies...', constraints: 'Shared lease. One partner in professional crisis. Emotional exhaustion.', options: 'Path A: Conscious decoupling. Path B: intensive therapy. Path C: Separation trial.' },
-      { label: 'Risking a Connection', title: ' Friend to Romance: The Direct Ask', context: 'Developed feelings for a close friend. current dynamic is restorative. Risking awkwardness vs living in repression...', constraints: 'Tight-knit social group. They recently ended a relationship.', options: 'Path A: Direct Disclosure. Path B: Subtle escalation. Path C: Compartmentalization.' }
+      { 
+        label: 'Buying a Home', 
+        title: 'Primary Residence vs. Geographic Liquidity', 
+        context: 'I am currently renting in a vibrant urban center that provides high optionality. An opportunity to purchase a home has arisen in a quieter district. This would stabilize my long-term costs but anchor me to this geography for 7-10 years. I worry about "lifestyle creep" and the loss of the psychological freedom that comes with renting. My partner is eager for the stability, but I feel an underlying dread about the finality of the decision.', 
+        constraints: 'Mortgage rates are at a 10-year high. The down payment represents 75% of my liquid safety net. One of our incomes is variable (freelance).', 
+        options: 'Path A: Commit to the purchase and lean into stability. Path B: Continue renting to maintain geographic agility. Path C: Look for a smaller "starter" investment property elsewhere.' 
+      },
+      { 
+        label: 'Parenthood', 
+        title: 'The Leap to Parenthood: Identity & Meaning', 
+        context: 'We are contemplating having our first child. We both value our current autonomy, deep creative focus, and spontaneous travel. We feel a growing desire for the profound meaning of legacy, but also fear the "identity death" that often accompanies early parenthood. We are high-performers who are used to being in control of our schedules, and the inherent chaos of a child feels both beautiful and terrifying.', 
+        constraints: 'Private childcare in our city is $3.5k/month. We have no family support within a 5-hour radius. We are both in high-stress career phases.', 
+        options: 'Path A: Initiate the journey now. Path B: Freeze embryos to extend the biological window and revisit in 24 months. Path C: Defer indefinitely and focus on child-free meaning.' 
+      },
+      { 
+        label: 'Relationships', 
+        title: 'Partnership Divergence: Growth vs. Comfort', 
+        context: 'I have been in a partnership for eight years. We have a deep, restorative history, but our visions for the future are beginning to diverge significantly on core values (location, ambition, social circles). We are operating on different emotional frequencies; I am in a phase of rapid expansion while they prefer the current equilibrium. There is no "crisis," just a slow, quiet drift that feels like a betrayal of our past.', 
+        constraints: 'We share a mortgage and a tight social circle. One partner is currently navigating a professional transition and is emotionally fragile.', 
+        options: 'Path A: Initiate a "Conscious Decoupling" process. Path B: Commit to a 6-month intensive therapy sprint. Path C: Trial a 3-month physical separation to test the "missing" factor.' 
+      }
     ],
     'Career': [
-      { label: 'Starting a Company', title: 'Entrepreneurial Risk: Burning the Boats', context: 'Validated idea for a new category. Currently in high-paying exec role. known ceiling vs unknown floor...', constraints: '12 months runway. No outside funding. Spouse values stability.', options: 'Path A: Resign and fund MVP. Path B: Side-quest build. Path C: Seek lead investor first.' },
-      { label: 'Industry Pivot', title: 'Changing Industry: Transferring Human Capital', context: '10 years expertise in Finance. Want to pivot into Climate Tech. Pay cut for higher meaning vs re-entry friction...', constraints: 'Domain gaps. Network is 90% in old industry.', options: 'Path A: Aggressive pivot. Path B: Bridge Strategy. Path C: Academic Reset.' },
-      { label: 'Internal Shift', title: 'IC to Management: Changing the Nature of Craft', context: 'Top IC offered Management role. enjoy the craft vs leverage through leading others. Loss of flow state...', constraints: '20% raise. Team under-performing. No training.', options: 'Path A: Leadership leap. Path B: Principal IC path. Path C: Trial management project.' }
+      { 
+        label: 'Starting a Company', 
+        title: 'Entrepreneurial Risk: The Known Ceiling vs. Unknown Floor', 
+        context: 'I have validated a "pain point" in a niche market and have a working MVP. I am currently a high-paid Director at a stable tech firm. I have reached a "known ceiling" where my growth is incremental. Leaving would mean trading a $300k salary for the "unknown floor" of a self-funded startup. I have the technical skill, but the psychological weight of being the sole provider for my household is creating significant friction.', 
+        constraints: '14 months of personal runway. No outside funding secured yet. Non-compete clause in current contract may limit initial client list.', 
+        options: 'Path A: Resign immediately and burn the boats. Path B: Moonlight for 6 months to reach a revenue milestone first. Path C: Seek a lead investor/cofounder before quitting.' 
+      },
+      { 
+        label: 'Industry Pivot', 
+        title: 'The Mid-Career Pivot: Re-indexing Human Capital', 
+        context: 'After 12 years in traditional Finance, I want to pivot into Climate Tech. I am highly competent in my current domain, but I find no "soul-resonance" in the work. A pivot would likely require a 40% pay cut and a "re-entry friction" where I am seen as a generalist rather than an expert. I am weighing the "regret of inaction" against the risk of professional irrelevance if the pivot fails.', 
+        constraints: 'Domain gap in technical climate science. My professional network is 95% legacy finance. Family expenses are calibrated to current high salary.', 
+        options: 'Path A: Aggressive pivot into a Series A startup. Path B: "Bridge Strategy" (Consulting in Finance for Climate firms). Path C: 1-year specialized Master’s program.' 
+      },
+      { 
+        label: 'Leadership Leap', 
+        title: 'IC to Management: The Loss of the Craft', 
+        context: 'I am a top-performing individual contributor (IC) who has been offered a VP of Engineering role. I love the "flow state" of deep technical work, which I would lose in favor of "people systems" and organizational politics. I am attracted to the increased leverage and scale of impact, but I fear that my technical skills will atrophy, making me less employable if the leadership path doesn't suit my temperament.', 
+        constraints: '25% compensation increase. The team is currently under-performing and requires a cultural overhaul. No formal management training provided.', 
+        options: 'Path A: Accept the leadership leap. Path B: Push for a "Principal Engineer" track that stays technical. Path C: Negotiate a 6-month "Acting VP" trial.' 
+      }
     ],
     'Business': [
-      { label: 'Picking a Cofounder', title: 'Strategic Partner: Competence vs. Compatibility', context: 'technical cofounder search. World-class engineer vs value-aligned partner. velocity vs stability...', constraints: 'Alpha in 3 months. Equity split now. Competing offers.', options: 'Path A: Select Candidate A. Path B: Select Candidate B. Path C: Trial sprint.' },
-      { label: 'US Entry', title: 'Geographic Expansion: Launching into the US', context: 'Ready for US entry. Massive capital outlay vs speculative global dominance. Relocating leadership...', constraints: '$2M budget. 10x larger competitors. Regulatory hurdles.', options: 'Path A: Full US Launch. Path B: Digital beachhead. Path C: Partnership.' },
-      { label: 'Integrating AI', title: 'Technological Evolution: Adding AI to Core Product', context: 'Legacy SaaS platform needs AI relevance. build proprietary model vs API wrapper. Defensibility vs Speed...', constraints: 'Limited LLM experience. Investors demand roadmap. Inference costs.', options: 'Path A: Custom fine-tuned layer. Path B: API Integration. Path C: Acquisition.' }
+      { 
+        label: 'Picking a Cofounder', 
+        title: 'The Cofounder Dilemma: Competence vs. Compatibility', 
+        context: 'I am choosing between two potential cofounders for a new AI venture. Candidate A is a world-class researcher with "alpha" temperament but low emotional intelligence. Candidate B is a long-term friend with high value-alignment and solid (but not elite) technical skills. I am weighing the "velocity" provided by Candidate A against the "stability" and trust of Candidate B. In high-stress environments, I tend to value loyalty over raw output.', 
+        constraints: 'Need to ship an Alpha in 10 weeks. Equity split must be decided now. Candidate A has a competing offer from a Big Tech firm.', 
+        options: 'Path A: Partner with Candidate A for maximum velocity. Path B: Partner with Candidate B for long-term resilience. Path C: Proceed as a solo founder and hire A as a lead.' 
+      },
+      { 
+        label: 'Market Expansion', 
+        title: 'Geographic Expansion: Launching into the US Market', 
+        context: 'Our European SaaS has reached a plateau. A US entry is the only path to "venture-scale" growth, but it requires a massive capital outlay and the relocation of our founding team. The US market is 10x larger but significantly more aggressive. We risk our core European stability for the chance of global dominance. Our leadership team is split: some want to "defend the fort," others want to "conquer the world."', 
+        constraints: '$2.5M dedicated expansion budget. No existing US network. Domestic competitors are 5x better funded.', 
+        options: 'Path A: Full US HQ relocation. Path B: "Digital Beachhead" (Remote US sales team). Path C: Joint Venture with a US partner.' 
+      },
+      { 
+        label: 'Integrating AI', 
+        title: 'Technological Evolution: Proprietary Model vs. API Wrapper', 
+        context: 'Our legacy product needs a generative AI layer to remain relevant. We are debating whether to build a proprietary fine-tuned model (high defensibility, high cost, slow) or use an "API wrapper" approach (low cost, fast, zero defensibility). Our investors are demanding an "AI Roadmap" by next quarter. We have limited internal LLM expertise but a massive proprietary dataset.', 
+        constraints: 'Inference costs could kill our margins. Talent for custom model training is expensive and scarce. 3-month window before competitors launch.', 
+        options: 'Path A: Custom fine-tuned proprietary layer. Path B: Rapid "wrapper" deployment using GPT-4. Path C: Acquisition of a smaller AI-first startup.' 
+      }
     ],
     'Life & Legacy': [
-      { label: 'Activism', title: 'The Act of Dissent: Civic Protest vs. Professional Safety', context: 'Moral imperative to participate in high-visibility protest. Professional role values neutrality. job loss risk...', constraints: 'Strict conduct policy. Primary earner. Controversial movement.', options: 'Path A: Full Participation. Path B: Silent Support. Path C: Internal Reform.' },
-      { label: 'Strategic Voting', title: 'Voting: Principal Alignment vs. Pragmatic Outcomes', context: 'Idealist candidate with no chance vs Flawed candidate who can win and block a catastrophic alternative...', constraints: 'First-past-the-post system. Industry stakes. Family split.', options: 'Path A: Vote Idealist. Path B: Vote Pragmatist. Path C: Abstention.' },
-      { label: 'Sabbatical', title: 'Experiential Expansion: The 3-Month Reset', context: 'Worked at high intensity for six years. Solo journey to reconnect. re-entry friction vs promotion track...', constraints: 'Total cost $15k. AI-driven industry shifts. 4-week role guarantee.', options: 'Path A: Full reset. Path B: Intensive mini-break. Path C: Remote-work sabbatical.' }
+      { 
+        label: 'The Act of Dissent', 
+        title: 'Moral Imperative vs. Professional Safety', 
+        context: 'I feel a deep moral imperative to participate in a high-visibility civic protest regarding a controversial human rights issue. However, my professional role requires a high degree of "perceived neutrality," and my employer has a history of retaliating against political activism. I am weighing my "historical integrity"—the person I want to be able to look back on—against the immediate risk of losing my primary income and professional reputation.', 
+        constraints: 'Strict "Code of Conduct" policy. I am the primary earner for my household. No "safe" anonymous way to participate.', 
+        options: 'Path A: Full public participation. Path B: Anonymous financial/logistical support. Path C: Internal reform advocacy within the company.' 
+      },
+      { 
+        label: 'The Sabbatical', 
+        title: 'The Experiential Reset: 6 Months of Unstructured Time', 
+        context: 'I have worked at a high intensity for eight years without a break longer than a week. I am experiencing "soul-fatigue." I want to take a 6-month sabbatical to travel solo and reconnect with my non-professional self. I fear the "re-entry friction"—that the industry will move past me, or that I will lose the "hunger" that made me successful. But I also fear that if I don't stop now, I will reach a point of permanent burnout.', 
+        constraints: 'Total cost $25k. No "guaranteed" role upon return. AI is rapidly shifting my industry’s talent requirements.', 
+        options: 'Path A: Full unstructured sabbatical. Path B: "Prototyping" break (1 month off, then assess). Path C: Remote-work "Workation" to maintain relevance.' 
+      },
+      { 
+        label: 'Legacy Endowment', 
+        title: 'Capital Allocation: Immediate Impact vs. Perpetual Endowment', 
+        context: 'I have come into a significant windfall. I am debating whether to deploy 90% of it immediately into a high-impact, high-risk philanthropic project (direct action) or to create a perpetual endowment/trust that provides smaller, steady support for 50+ years. I am weighing the "now" (urgent human need) against the "forever" (institutional legacy). I distrust large institutions, but I also worry about the "efficiency of deployment" for immediate cash.', 
+        constraints: 'Complexity of managing a private foundation. High inflation eroding future value. Urgent crisis in the target domain.', 
+        options: 'Path A: Direct Immediate Deployment. Path B: Perpetual Endowment structure. Path C: 5-year aggressive "Spend-Down" trust.' 
+      }
     ]
   };
+
 
   return (
     <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 shadow-2xl backdrop-blur-xl h-full flex flex-col overflow-hidden">

@@ -7,7 +7,7 @@ Decidr is a sophisticated, intellectually-toned Decision Support System (DSS). I
 - **Frontend**: React 19, Tailwind CSS, Recharts (Visualizations).
 - **AI Core**: `@google/genai` (Gemini API) using parallel streaming agents.
 - **Backend/DB**: Firebase Firestore for session persistence, user profiles, and activity logging.
-- **PDF Core**: `jspdf` & `html2canvas` for reporting; `pdfjs-dist` (legacy build) for extraction.
+- **PDF Core**: `@react-pdf/renderer` & `html2canvas` for reporting; `pdfjs-dist` (legacy build) for extraction.
 - **OCR**: `tesseract.js` for image-based text extraction.
 
 ## Core Philosophical Workflows
