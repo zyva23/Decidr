@@ -295,7 +295,7 @@ const InputForm: React.FC<InputFormProps> = ({ initialValues, onSubmit, isLoadin
       { 
         label: 'The Sabbatical', 
         title: 'The Experiential Reset: 6 Months of Unstructured Time', 
-        context: 'I have worked at a high intensity for eight years without a break longer than a week. I am experiencing "soul-fatigue." I want to take a 6-month sabbatical to travel solo and reconnect with my non-professional self. I fear the "re-entry friction"—that the industry will move past me, or that I will lose the "hunger" that made me successful. But I also fear that if I don't stop now, I will reach a point of permanent burnout.', 
+        context: 'I have worked at a high intensity for eight years without a break longer than a week. I am experiencing "soul-fatigue." I want to take a 6-month sabbatical to travel solo and reconnect with my non-professional self. I fear the "re-entry friction"—that the industry will move past me, or that I will lose the "hunger" that made me successful. But I also fear that if I don\'t stop now, I will reach a point of permanent burnout.', 
         constraints: 'Total cost $25k. No "guaranteed" role upon return. AI is rapidly shifting my industry\'s talent requirements.', 
         options: 'Path A: Full unstructured sabbatical. Path B: "Prototyping" break (1 month off, then assess). Path C: Remote-work "Workation" to maintain relevance.' 
       },
@@ -377,7 +377,7 @@ const InputForm: React.FC<InputFormProps> = ({ initialValues, onSubmit, isLoadin
             <div className="p-4 bg-indigo-500/5 border border-indigo-500/20 rounded-xl animate-fade-in">
                <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2 text-[9px] font-black text-indigo-400 uppercase tracking-widest">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.7 1.5-1.7 1.5-2.7 0-1.5-1-2.8-2.5-2.8-1.7 0-2.5 1-2.5 2.8M9 14c-.2-1-.7-1.7-1.5-2.5-1-.7-1.5-1.7-1.5-2.7 0-1.5 1-2.8 2.5-2.8 1.7 0 2.5 1 2.5 2.8M12 21v-4M12 3v4"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.7 1.5-1.7 1.5-2.7 0-1.5-1-2.8-2.5-2.8-1.7 0-2.5 1-2.5 2.8M9 14c-.2-1-.7-1.7-1.5-2.5-1-.7-1.5-1.7-1.5-2.7 0-1.5-1-2.8-2.5-2.8 1.7 0 2.5 1 2.5 2.8M12 21v-4M12 3v4"/></svg>
                     Evolutionary Branch
                   </div>
                   <button type="button" onClick={handleUnlink} className="text-[10px] text-slate-500 hover:text-red-400 font-bold transition-colors">Unlink</button>
