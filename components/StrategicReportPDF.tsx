@@ -199,7 +199,7 @@ const styles = StyleSheet.create({
   },
   // --- ROADMAP SPECIFIC STYLES ---
   phaseBox: {
-    marginBottom: 20,
+    marginBottom: 25,
     padding: 15,
     backgroundColor: '#F8FAFC',
     borderRadius: 8,
@@ -232,31 +232,51 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: 'bold',
     color: '#1E293B',
-    marginBottom: 8,
+    marginBottom: 10,
     fontFamily: 'Helvetica-Bold',
   },
-  tagContainer: {
+  listLabel: {
+    fontSize: 8,
+    fontWeight: 'bold',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginBottom: 5,
+    marginTop: 10,
+  },
+  pitfallItem: {
     flexDirection: 'row',
-    gap: 5,
-    marginTop: 8,
-  },
-  errorTag: {
-    fontSize: 7,
-    backgroundColor: '#FEE2E2',
+    marginBottom: 4,
     color: '#B91C1C',
-    padding: '2 6',
-    borderRadius: 4,
-    textTransform: 'uppercase',
-    fontWeight: 'bold',
+    fontSize: 8,
+    paddingLeft: 5,
   },
-  successTag: {
-    fontSize: 7,
-    backgroundColor: '#D1FAE5',
+  successItem: {
+    flexDirection: 'row',
+    marginBottom: 4,
     color: '#065F46',
-    padding: '2 6',
-    borderRadius: 4,
-    textTransform: 'uppercase',
+    fontSize: 8,
+    paddingLeft: 5,
+  },
+  pivotBox: {
+    marginBottom: 15,
+    padding: 12,
+    backgroundColor: '#FFFBEB', // Light amber background
+    borderRadius: 6,
+    borderLeftWidth: 4,
+    borderLeftColor: '#F59E0B',
+    borderLeftStyle: 'solid',
+  },
+  pivotTrigger: {
+    fontSize: 9,
     fontWeight: 'bold',
+    color: '#92400E',
+    fontFamily: 'Helvetica-Bold',
+    marginBottom: 4,
+  },
+  pivotReaction: {
+    fontSize: 9,
+    color: '#B45309',
+    lineHeight: 1.4,
   }
 });
 
@@ -437,7 +457,7 @@ export const DecisionPDF = ({ input, result, actionPlan, radarImage }: {
               
               <Text style={styles.phaseObjective}>Objective: {phase.objective}</Text>
               
-              <View style={{ marginBottom: 10 }}>
+              <View style={{ marginBottom: 5 }}>
                 {phase.tasks.map((task, ti) => (
                   <View key={ti} style={styles.bulletPoint}>
                     <Text style={styles.bulletDot}>→</Text>
@@ -449,17 +469,29 @@ export const DecisionPDF = ({ input, result, actionPlan, radarImage }: {
                 ))}
               </View>
 
-              <View style={styles.tagContainer}>
-                {phase.pitfalls.map((p, pi) => (
-                  <Text key={pi} style={styles.errorTag}>✕ {p}</Text>
-                ))}
-              </View>
+              {phase.pitfalls.length > 0 && (
+                <View style={{ marginTop: 10 }}>
+                  <Text style={[styles.listLabel, { color: '#991B1B' }]}>Critical Pitfalls to Avoid</Text>
+                  {phase.pitfalls.map((p, pi) => (
+                    <View key={pi} style={styles.pitfallItem}>
+                      <Text style={{ width: 10 }}>✕</Text>
+                      <Text style={{ flex: 1 }}>{p}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
               
-              <View style={styles.tagContainer}>
-                {phase.successCriteria.map((s, si) => (
-                  <Text key={si} style={styles.successTag}>✓ {s}</Text>
-                ))}
-              </View>
+              {phase.successCriteria.length > 0 && (
+                <View style={{ marginTop: 10 }}>
+                  <Text style={[styles.listLabel, { color: '#065F46' }]}>Success Criteria</Text>
+                  {phase.successCriteria.map((s, si) => (
+                    <View key={si} style={styles.successItem}>
+                      <Text style={{ width: 10 }}>✓</Text>
+                      <Text style={{ flex: 1 }}>{s}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
             </View>
           ))}
 
@@ -468,12 +500,9 @@ export const DecisionPDF = ({ input, result, actionPlan, radarImage }: {
             <>
               <Text style={[styles.sectionTitle, { marginTop: 10 }]}>4. Strategic Pivot Points</Text>
               {data.actionPlan.pivotPoints.map((pivot, index) => (
-                <View key={`pivot-${index}`} style={styles.bulletPoint} wrap={false}>
-                  <Text style={styles.bulletDot}>↳</Text>
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.bulletText, { fontFamily: 'Helvetica-Bold', color: '#B45309' }]}>IF: {pivot.trigger}</Text>
-                    <Text style={styles.bulletText}>THEN: {pivot.reaction}</Text>
-                  </View>
+                <View key={`pivot-${index}`} style={styles.pivotBox} wrap={false}>
+                  <Text style={styles.pivotTrigger}>IF: {pivot.trigger}</Text>
+                  <Text style={styles.pivotReaction}>THEN: {pivot.reaction}</Text>
                 </View>
               ))}
             </>
