@@ -251,12 +251,12 @@ const InputForm: React.FC<InputFormProps> = ({ initialValues, onSubmit, isLoadin
         title: 'The Mid-Career Pivot: Re-indexing Human Capital', 
         context: 'After 12 years in traditional Finance, I want to pivot into Climate Tech. I am highly competent in my current domain, but I find no "soul-resonance" in the work. A pivot would likely require a 40% pay cut and a "re-entry friction" where I am seen as a generalist rather than an expert. I am weighing the "regret of inaction" against the risk of professional irrelevance if the pivot fails.', 
         constraints: 'Domain gap in technical climate science. My professional network is 95% legacy finance. Family expenses are calibrated to current high salary.', 
-        options: 'Path A: Aggressive pivot into a Series A startup. Path B: "Bridge Strategy" (Consulting in Finance for Climate firms). Path C: 1-year specialized Master’s program.' 
+        options: 'Path A: Aggressive pivot into a Series A startup. Path B: "Bridge Strategy" (Consulting in Finance for Climate firms). Path C: 1-year specialized Master\'s program.' 
       },
       { 
         label: 'Leadership Leap', 
         title: 'IC to Management: The Loss of the Craft', 
-        context: 'I am a top-performing individual contributor (IC) who has been offered a VP of Engineering role. I love the "flow state" of deep technical work, which I would lose in favor of "people systems" and organizational politics. I am attracted to the increased leverage and scale of impact, but I fear that my technical skills will atrophy, making me less employable if the leadership path doesn't suit my temperament.', 
+        context: 'I am a top-performing individual contributor (IC) who has been offered a VP of Engineering role. I love the "flow state" of deep technical work, which I would lose in favor of "people systems" and organizational politics. I am attracted to the increased leverage and scale of impact, but I fear that my technical skills will atrophy, making me less employable if the leadership path doesn\'t suit my temperament.', 
         constraints: '25% compensation increase. The team is currently under-performing and requires a cultural overhaul. No formal management training provided.', 
         options: 'Path A: Accept the leadership leap. Path B: Push for a "Principal Engineer" track that stays technical. Path C: Negotiate a 6-month "Acting VP" trial.' 
       }
