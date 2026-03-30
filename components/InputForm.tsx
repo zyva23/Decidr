@@ -296,7 +296,7 @@ const InputForm: React.FC<InputFormProps> = ({ initialValues, onSubmit, isLoadin
         label: 'The Sabbatical', 
         title: 'The Experiential Reset: 6 Months of Unstructured Time', 
         context: 'I have worked at a high intensity for eight years without a break longer than a week. I am experiencing "soul-fatigue." I want to take a 6-month sabbatical to travel solo and reconnect with my non-professional self. I fear the "re-entry friction"—that the industry will move past me, or that I will lose the "hunger" that made me successful. But I also fear that if I don't stop now, I will reach a point of permanent burnout.', 
-        constraints: 'Total cost $25k. No "guaranteed" role upon return. AI is rapidly shifting my industry’s talent requirements.', 
+        constraints: 'Total cost $25k. No "guaranteed" role upon return. AI is rapidly shifting my industry\'s talent requirements.', 
         options: 'Path A: Full unstructured sabbatical. Path B: "Prototyping" break (1 month off, then assess). Path C: Remote-work "Workation" to maintain relevance.' 
       },
       { 
