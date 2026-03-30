@@ -28,6 +28,68 @@ const truncateContext = (text: string, maxChars: number = 2000): string => {
   return text.substring(0, maxChars) + "... [Context truncated for efficiency]";
 };
 
+export async function synthesizeOnly(input: DecisionInput, agents: PartialCouncilResult): Promise<CouncilResult> {
+  const { analyst, strategist, skeptic, mediator } = agents;
+  if (!analyst || !strategist || !skeptic || !mediator) {
+    throw new Error("Missing agent perspectives for synthesis.");
+  }
+
+  const prompt = `
+    DECISION: "${input.title}"
+    AGENT REPORTS:
+    1. Analyst: ${analyst.analysis} (Score: ${analyst.score})
+    2. Strategist: ${strategist.analysis} (Score: ${strategist.score})
+    3. Skeptic: ${skeptic.analysis} (Score: ${skeptic.score})
+    4. Mediator: ${mediator.analysis} (Score: ${mediator.score})
+
+    Synthesize into a final recommendation.
+    
+    REQUIREMENTS:
+    1. VERDICT: A clear, high-level summary of the best direction.
+    2. RECOMMENDATION: Detailed justification for the verdict.
+    3. REFINED PATHS: Provide 3-4 distinct strategic paths.
+    4. METRICS: Provide scores 0-100 for risk, speed, cost, impact, feasibility.
+  `;
+
+  try {
+    const ai = getAI();
+    const response = await ai.models.generateContent({
+      model: MASTER_MODEL,
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: synthesisSchema as any,
+        temperature: 0.4,
+      }
+    });
+
+    const synthesisData = JSON.parse(response.text || "{}");
+    return { analyst, strategist, skeptic, mediator, synthesis: synthesisData };
+  } catch (error) {
+    console.warn("Synthesis fallback triggered in synthesizeOnly...", error);
+    try {
+      const ai = getAI();
+      const fallbackResponse = await ai.models.generateContent({
+        model: MASTER_MODEL,
+        contents: `${prompt}\n\nIMPORTANT: Return a valid JSON object. Focus on Verdict and Recommendation.`,
+        config: { responseMimeType: "application/json", temperature: 0.7 }
+      });
+      const synthesisData = JSON.parse(fallbackResponse.text || "{}");
+      return { 
+        analyst, strategist, skeptic, mediator, 
+        synthesis: {
+          verdict: synthesisData.verdict || "Conditional Proceed",
+          recommendation: synthesisData.recommendation || "Synthesis partially failed.",
+          refinedPaths: synthesisData.refinedPaths || ["Proceed with caution"],
+          metrics: synthesisData.metrics || { risk: 50, speed: 50, cost: 50, impact: 50, feasibility: 50 }
+        }
+      };
+    } catch (fallbackError) {
+      throw new Error("Council Deadlock: Persistent synthesis failure.");
+    }
+  }
+}
+
 export async function analyzeDecision(
   input: DecisionInput, 
   onProgress?: (partial: PartialCouncilResult) => void

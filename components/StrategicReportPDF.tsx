@@ -17,8 +17,7 @@ export interface ReportData {
     analyst: string;
     strategist: string;
   };
-  roadmap: string[];
-  pivotPoints: string[];
+  actionPlan?: ActionPlan;
   verdict: string;
   recommendation: string;
   radarImage?: string;
@@ -152,18 +151,18 @@ const styles = StyleSheet.create({
   
   bulletPoint: {
     flexDirection: 'row',
-    marginBottom: 8,
+    marginBottom: 6,
     paddingLeft: 10,
   },
   bulletDot: {
-    width: 20,
+    width: 15,
     fontWeight: 'bold',
     color: '#6366F1',
     fontFamily: 'Helvetica-Bold',
   },
   bulletText: {
     flex: 1,
-    fontSize: 10,
+    fontSize: 9,
     lineHeight: 1.4,
   },
   radarContainer: {
@@ -194,10 +193,69 @@ const styles = StyleSheet.create({
   avatarContainer: {
     width: 32,
     height: 32,
+  },
+  // --- ROADMAP SPECIFIC STYLES ---
+  phaseBox: {
+    marginBottom: 20,
+    padding: 15,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 8,
+    border: 1,
+    borderColor: '#E2E8F0',
+  },
+  phaseHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+    borderBottom: 1,
+    borderBottomColor: '#CBD5E1',
+    paddingBottom: 5,
+  },
+  phaseTitle: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#4F46E5',
+    fontFamily: 'Helvetica-Bold',
+  },
+  phaseDuration: {
+    fontSize: 9,
+    color: '#64748B',
+    fontStyle: 'italic',
+  },
+  phaseObjective: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: '#1E293B',
+    marginBottom: 8,
+    fontFamily: 'Helvetica-Bold',
+  },
+  tagContainer: {
+    flexDirection: 'row',
+    gap: 5,
+    marginTop: 8,
+  },
+  errorTag: {
+    fontSize: 7,
+    backgroundColor: '#FEE2E2',
+    color: '#B91C1C',
+    padding: '2 6',
+    borderRadius: 4,
+    textTransform: 'uppercase',
+    fontWeight: 'bold',
+  },
+  successTag: {
+    fontSize: 7,
+    backgroundColor: '#D1FAE5',
+    color: '#065F46',
+    padding: '2 6',
+    borderRadius: 4,
+    textTransform: 'uppercase',
+    fontWeight: 'bold',
   }
 });
 
-// --- AGENT AVATARS (Replicated from AgentCard.tsx) ---
+// --- AGENT AVATARS ---
 const AnalystAvatar = () => (
   <Svg viewBox="0 0 100 100" style={styles.avatarContainer}>
     <Circle cx="50" cy="50" r="45" fill="#0f172a" stroke="#3b82f6" strokeWidth="2" />
@@ -258,8 +316,7 @@ export const DecisionPDF = ({ input, result, actionPlan, radarImage }: {
       analyst: result.analyst.name,
       strategist: result.strategist.name,
     },
-    roadmap: actionPlan?.phases.flatMap(p => p.tasks.map(t => t.description)) || [],
-    pivotPoints: actionPlan?.pivotPoints.map(pp => `${pp.trigger}: ${pp.reaction}`) || [],
+    actionPlan,
     radarImage
   };
 
@@ -350,32 +407,6 @@ export const DecisionPDF = ({ input, result, actionPlan, radarImage }: {
           <Text style={styles.bodyText}>{data.agents.mediator}</Text>
         </View>
 
-        {/* Roadmap */}
-        {data.roadmap.length > 0 && (
-          <>
-            <Text style={styles.sectionTitle} break>3. Execution Roadmap</Text>
-            {data.roadmap.map((step, index) => (
-              <View key={`roadmap-${index}`} style={styles.bulletPoint} wrap={false}>
-                <Text style={styles.bulletDot}>{index + 1}.</Text>
-                <Text style={styles.bulletText}>{step}</Text>
-              </View>
-            ))}
-          </>
-        )}
-
-        {/* Pivot Points */}
-        {data.pivotPoints.length > 0 && (
-          <>
-            <Text style={styles.sectionTitle}>4. Strategic Pivot Points</Text>
-            {data.pivotPoints.map((pivot, index) => (
-              <View key={`pivot-${index}`} style={styles.bulletPoint} wrap={false}>
-                <Text style={styles.bulletDot}>↳</Text>
-                <Text style={styles.bulletText}>{pivot}</Text>
-              </View>
-            ))}
-          </>
-        )}
-
         {/* Footer */}
         <View style={styles.footer} fixed>
           <Text style={styles.footerText}>Decidr Strategic Briefing: {data.title.substring(0, 40)}...</Text>
@@ -384,6 +415,73 @@ export const DecisionPDF = ({ input, result, actionPlan, radarImage }: {
           )} />
         </View>
       </Page>
+
+      {/* ROADMAP PAGE(S) */}
+      {data.actionPlan && (
+        <Page size="A4" style={styles.page}>
+          <View style={styles.pageTopAccent} />
+          <Text style={styles.sectionTitle}>3. Execution Roadmap</Text>
+          <Text style={[styles.bodyText, { marginBottom: 20 }]}>{data.actionPlan.executiveSummary}</Text>
+
+          {data.actionPlan.phases.map((phase, idx) => (
+            <View key={idx} style={styles.phaseBox} wrap={false}>
+              <View style={styles.phaseHeader}>
+                <Text style={styles.phaseTitle}>PHASE {idx + 1}: {phase.name.toUpperCase()}</Text>
+                <Text style={styles.phaseDuration}>{phase.duration}</Text>
+              </View>
+              
+              <Text style={styles.phaseObjective}>Objective: {phase.objective}</Text>
+              
+              <View style={{ marginBottom: 10 }}>
+                {phase.tasks.map((task, ti) => (
+                  <View key={ti} style={styles.bulletPoint}>
+                    <Text style={styles.bulletDot}>→</Text>
+                    <Text style={styles.bulletText}>
+                      <Text style={{ fontFamily: 'Helvetica-Bold' }}>{task.description}</Text>
+                      {task.kpi && <Text style={{ color: '#6366F1' }}> (KPI: {task.kpi})</Text>}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+
+              <View style={styles.tagContainer}>
+                {phase.pitfalls.map((p, pi) => (
+                  <Text key={pi} style={styles.errorTag}>✕ {p}</Text>
+                ))}
+              </View>
+              
+              <View style={styles.tagContainer}>
+                {phase.successCriteria.map((s, si) => (
+                  <Text key={si} style={styles.successTag}>✓ {s}</Text>
+                ))}
+              </View>
+            </View>
+          ))}
+
+          {/* Pivot Points */}
+          {data.actionPlan.pivotPoints && data.actionPlan.pivotPoints.length > 0 && (
+            <>
+              <Text style={[styles.sectionTitle, { marginTop: 10 }]}>4. Strategic Pivot Points</Text>
+              {data.actionPlan.pivotPoints.map((pivot, index) => (
+                <View key={`pivot-${index}`} style={styles.bulletPoint} wrap={false}>
+                  <Text style={styles.bulletDot}>↳</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.bulletText, { fontFamily: 'Helvetica-Bold', color: '#B45309' }]}>IF: {pivot.trigger}</Text>
+                    <Text style={styles.bulletText}>THEN: {pivot.reaction}</Text>
+                  </View>
+                </View>
+              ))}
+            </>
+          )}
+
+          <View style={styles.footer} fixed>
+            <Text style={styles.footerText}>Decidr Strategic Briefing: {data.title.substring(0, 40)}...</Text>
+            <Text style={styles.footerText} render={({ pageNumber, totalPages }) => (
+              `Page ${pageNumber - 1} of ${totalPages - 1}`
+            )} />
+          </View>
+        </Page>
+      )}
     </Document>
   );
 };

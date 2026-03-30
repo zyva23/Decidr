@@ -13,11 +13,11 @@ import CommitmentPanel from './components/CommitmentPanel';
 import DecisionTreeViz from './components/DecisionTreeViz';
 import Auth from './components/Auth';
 import { UI_CONTENT } from './src/constants/uiContent';
-import { analyzeDecision, generateActionPlan } from './services/geminiService';
+import { analyzeDecision, generateActionPlan, generateDecisionTree, synthesizeOnly } from './services/geminiService';
 import { saveSession, getSessions, deleteSession, getLocalSessions } from './services/storageService';
 import { auth, logActivity, onAuthStateChanged, signOut, isGCPConfigured, saveDetailedFeedback, saveToWaitlist, getUserProfile, saveUserProfile } from './services/googleCloud';
 import { generateDecisionPDF } from './services/pdfService';
-import { DecisionInput, CouncilResult, AnalysisStatus, DecisionSession, ChatMessage, UserProfile, ActionPlan, PartialCouncilResult } from './types';
+import { DecisionInput, CouncilResult, AnalysisStatus, DecisionSession, ChatMessage, UserProfile, ActionPlan, PartialCouncilResult, DecisionTree } from './types';
 
 /**
  * ERROR BOUNDARY
@@ -74,6 +74,11 @@ const DecidrApp: React.FC = () => {
   const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
   const [showWaitlist, setShowWaitlist] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [hasDownloadedPDF, setHasDownloadedPDF] = useState(false);
+  const [confirmationDialog, setConfirmationDialog] = useState<{
+    type: 'cancel_analysis' | 'download_first';
+    pendingAction: () => void;
+  } | null>(null);
   const [feedbackComment, setFeedbackComment] = useState('');
   const [showFeedbackForm, setShowFeedbackForm] = useState(false);
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
@@ -87,24 +92,15 @@ const DecidrApp: React.FC = () => {
     if (!isGCPConfigured || !auth) { setIsAuthChecking(false); return; }
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
-        // Sync with Cloud Profile
         const cloudProfile = await getUserProfile(firebaseUser.uid);
         const localXp = parseInt(localStorage.getItem(`dc_xp_${firebaseUser.uid}`) || '0', 10);
-        
-        // Cloud is truth, but if local is higher (e.g. offline work), we should push local
         const finalXp = Math.max(cloudProfile?.xp || 0, localXp);
         const finalLevel = Math.floor(finalXp / 500) + 1;
-
         setUser({ id: firebaseUser.uid, email: firebaseUser.email || "User", xp: finalXp, level: finalLevel });
         setXp(finalXp); setLevel(finalLevel);
-        
         localStorage.setItem(`dc_xp_${firebaseUser.uid}`, finalXp.toString());
         localStorage.setItem(`dc_level_${firebaseUser.uid}`, finalLevel.toString());
-        
-        if (!cloudProfile || cloudProfile.xp < finalXp) {
-          await saveUserProfile(firebaseUser.uid, finalXp, finalLevel);
-        }
-
+        if (!cloudProfile || cloudProfile.xp < finalXp) { await saveUserProfile(firebaseUser.uid, finalXp, finalLevel); }
         logActivity(firebaseUser.uid, 'login');
         setSessions(await getSessions(firebaseUser.uid));
       } else {
@@ -133,13 +129,9 @@ const DecidrApp: React.FC = () => {
     const newLevel = Math.floor(newXp / 500) + 1;
     setXp(newXp);
     if (newLevel > level) { setLevel(newLevel); setShowLevelUp(true); setTimeout(() => setShowLevelUp(false), 5000); }
-    
     localStorage.setItem(user ? `dc_xp_${user.id}` : 'dc_xp_guest', newXp.toString());
     localStorage.setItem(user ? `dc_level_${user.id}` : 'dc_level_guest', newLevel.toString());
-    
-    if (user) {
-      await saveUserProfile(user.id, newXp, newLevel);
-    }
+    if (user) { await saveUserProfile(user.id, newXp, newLevel); }
   };
 
   const handleFeedback = async (type: 'helpful' | 'not-helpful') => {
@@ -167,26 +159,24 @@ const DecidrApp: React.FC = () => {
     if (!session) return;
     const commitment = { selectedOption: selected, justification: why, timestamp: Date.now() };
     const updatedSession = { ...session, commitment };
-    
     await updateProgression(150);
-    
     await saveSession(updatedSession);
     setSessions(await getSessions(user?.id));
     logActivity(user?.id, 'commitment_made', { selected, title: session.input.title });
   };
 
-    const handleBranch = (newContext: string) => {
-      const parentId = currentSessionId || undefined;
-      const oldTitle = inputValues.title;
-      startNewSession();
-      setInputValues(prev => ({ 
-        title: oldTitle, 
-        context: `${newContext} `, 
-        constraints: prev.constraints, 
-        options: '',
-        parentId: parentId
-      }));
-    };
+  const handleBranch = (newContext: string) => {
+    const parentId = currentSessionId || undefined;
+    const oldTitle = inputValues.title;
+    executeStartNewSession();
+    setInputValues(prev => ({ 
+      title: oldTitle, 
+      context: `${newContext} `, 
+      constraints: prev.constraints, 
+      options: '',
+      parentId: parentId
+    }));
+  };
 
   const handleDevelopPlan = async () => {
     if (!result || !inputValues) return;
@@ -229,18 +219,41 @@ const DecidrApp: React.FC = () => {
     }
   };
 
-  const startNewSession = () => {
+  const executeStartNewSession = () => {
     setCurrentSessionId(null); setInputValues({ title: '', context: '', constraints: '', options: '' });
     setResult(null); setPartialResult(null); setChatHistory([]); setStatus(AnalysisStatus.IDLE);
-    setIsChatOpen(false); setIsElaborationOpen(false); setCurrentPlan(null);
+    setIsChatOpen(false); setIsElaborationOpen(false); setCurrentPlan(null); setHasDownloadedPDF(false);
   };
 
-  const loadSession = (session: DecisionSession) => {
+  const startNewSession = () => {
+    if (status === AnalysisStatus.ANALYZING) {
+      setConfirmationDialog({ type: 'cancel_analysis', pendingAction: executeStartNewSession });
+      return;
+    }
+    if (status === AnalysisStatus.COMPLETE && !hasDownloadedPDF) {
+      setConfirmationDialog({ type: 'download_first', pendingAction: executeStartNewSession });
+      return;
+    }
+    executeStartNewSession();
+  };
+
+  const executeLoadSession = (session: DecisionSession) => {
     setCurrentSessionId(session.id); setInputValues(session.input);
     setResult(session.result); setPartialResult(null); setChatHistory(session.chatHistory || []);
     setStatus(session.status); setIsChatOpen(false); setIsElaborationOpen(false);
-    setCurrentPlan(session.actionPlan || null);
-    setIsHistoryOpen(false);
+    setCurrentPlan(session.actionPlan || null); setIsHistoryOpen(false); setHasDownloadedPDF(true); // Assuming historical ones are safe or already handled
+  };
+
+  const loadSession = (session: DecisionSession) => {
+    if (status === AnalysisStatus.ANALYZING) {
+      setConfirmationDialog({ type: 'cancel_analysis', pendingAction: () => executeLoadSession(session) });
+      return;
+    }
+    if (status === AnalysisStatus.COMPLETE && !hasDownloadedPDF && currentSessionId !== session.id) {
+      setConfirmationDialog({ type: 'download_first', pendingAction: () => executeLoadSession(session) });
+      return;
+    }
+    executeLoadSession(session);
   };
 
   const handleAnalysis = async (input: DecisionInput) => {
@@ -248,18 +261,30 @@ const DecidrApp: React.FC = () => {
       if (user && user.email && !hasJoinedWaitlist) { await handleWaitlistJoin(user.email); }
       setShowWaitlist(true); return;
     }
-    setStatus(AnalysisStatus.ANALYZING); setInputValues(input); setResult(null); setPartialResult(null);
-    logActivity(user?.id, 'analysis_started', { title: input.title });
+    
+    const canRetrySynthesis = partialResult && 
+      partialResult.analyst && partialResult.strategist && 
+      partialResult.skeptic && partialResult.mediator;
+
+    setStatus(AnalysisStatus.ANALYZING); setInputValues(input); 
+    if (!canRetrySynthesis) { setResult(null); setPartialResult(null); }
+    setHasDownloadedPDF(false);
+    
+    logActivity(user?.id, canRetrySynthesis ? 'retry_synthesis' : 'analysis_started', { title: input.title });
+    
     try {
-      const data = await analyzeDecision(input, (partial) => {
-        try {
-          setPartialResult(prev => ({ ...(prev || {}), ...partial }));
-        } catch (e) { console.warn("Partial state update skipped due to malformed data", e); }
-      });
+      let data: CouncilResult;
+      if (canRetrySynthesis) {
+        data = await synthesizeOnly(input, partialResult);
+      } else {
+        data = await analyzeDecision(input, (partial) => {
+          try { setPartialResult(prev => ({ ...(prev || {}), ...partial })); } catch (e) { console.warn("Partial state update skipped", e); }
+        });
+      }
+
       setResult(data); setPartialResult(null); setStatus(AnalysisStatus.COMPLETE);
       const newCredits = credits + 1; setCredits(newCredits);
       localStorage.setItem('dc_credits_used', newCredits.toString());
-      
       await updateProgression(100);
 
       const sessionId = currentSessionId || crypto.randomUUID();
@@ -270,27 +295,19 @@ const DecidrApp: React.FC = () => {
       await saveSession(newSession); setCurrentSessionId(sessionId);
       setSessions(await getSessions(user?.id));
 
-      // BACKGROUND GENERATION: Plan & Decision Tree
       (async () => {
         try {
           const [plan, tree] = await Promise.all([
             generateActionPlan(input, data),
             generateDecisionTree(input.title, data)
           ]);
-          
           const session = (await getSessions(user?.id)).find(s => s.id === sessionId);
           if (session) {
             await saveSession({ ...session, actionPlan: plan, decisionTree: tree });
-            if (sessionId === currentSessionId) {
-              setCurrentPlan(plan);
-              setSessions(await getSessions(user?.id));
-            }
+            if (sessionId === currentSessionId) { setCurrentPlan(plan); setSessions(await getSessions(user?.id)); }
           }
-        } catch (bgError) {
-          console.error("Background Generation Error:", bgError);
-        }
+        } catch (bgError) { console.error("Background Gen Error:", bgError); }
       })();
-
     } catch (error: any) {
       setStatus(AnalysisStatus.ERROR);
       logActivity(user?.id, 'error', { message: error.message });
@@ -300,37 +317,26 @@ const DecidrApp: React.FC = () => {
   const handleExportPDF = async () => {
     if (!result || !inputValues) return;
     setIsExporting(true);
-    try { await generateDecisionPDF(inputValues, result, currentPlan || undefined); } catch (e) { console.error(e); } finally { setIsExporting(false); }
+    try { 
+      await generateDecisionPDF(inputValues, result, currentPlan || undefined); 
+      setHasDownloadedPDF(true);
+    } catch (e) { console.error(e); } finally { setIsExporting(false); }
   };
 
   const handleSignOut = async () => {
     logActivity(user?.id, 'logout');
     if (auth) await signOut(auth);
-    setIsGuestMode(false);
-    setUser(null);
-    setSessions([]);
-    setCurrentSessionId(null);
-    setResult(null);
-    setPartialResult(null);
-    setStatus(AnalysisStatus.IDLE);
-    setCredits(0);
-    setXp(0);
-    setLevel(1);
+    setIsGuestMode(false); setUser(null); setSessions([]); setCurrentSessionId(null);
+    setResult(null); setPartialResult(null); setStatus(AnalysisStatus.IDLE);
+    setCredits(0); setXp(0); setLevel(1);
   };
 
   if (isAuthChecking) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-slate-950">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
-      </div>
-    );
+    return <div className="flex items-center justify-center h-screen bg-slate-950"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div></div>;
   }
 
   if (!user && !isGuestMode) { 
-    return <Auth onContinueAsGuest={() => { 
-      setIsGuestMode(true); 
-      logActivity(null, 'guest_session_start'); 
-    }} />; 
+    return <Auth onContinueAsGuest={() => { setIsGuestMode(true); logActivity(null, 'guest_session_start'); }} />; 
   }
 
   return (
@@ -343,6 +349,48 @@ const DecidrApp: React.FC = () => {
       />
       <FrameworkLibrary isOpen={isLibraryOpen} onClose={() => setIsLibraryOpen(false)} />
       
+      {/* Confirmation Dialog Modal */}
+      {confirmationDialog && (
+        <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+          <div className="bg-slate-900 border border-slate-800 p-8 rounded-3xl max-w-sm shadow-2xl animate-fade-in text-center">
+            <div className="w-16 h-16 bg-amber-500/20 rounded-full flex items-center justify-center mx-auto mb-6 border border-amber-500/40">
+              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-500"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+            </div>
+            <h3 className="text-xl font-bold text-white mb-2">
+              {confirmationDialog.type === 'cancel_analysis' ? 'Cancel Analysis?' : 'Download Report?'}
+            </h3>
+            <p className="text-slate-400 mb-8 text-sm leading-relaxed">
+              {confirmationDialog.type === 'cancel_analysis' 
+                ? 'Your current deliberation is in progress. Moving away will terminate the active session.' 
+                : 'You have a completed strategic analysis. Would you like to export the PDF before starting something new?'}
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <button 
+                onClick={() => setConfirmationDialog(null)} 
+                className="py-3 bg-slate-800 text-white font-bold rounded-xl text-xs uppercase tracking-widest"
+              >
+                Go Back
+              </button>
+              <button 
+                onClick={() => { confirmationDialog.pendingAction(); setConfirmationDialog(null); }} 
+                className="py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-xs uppercase tracking-widest transition-all"
+              >
+                {confirmationDialog.type === 'cancel_analysis' ? 'Terminate' : 'Skip & Move'}
+              </button>
+            </div>
+            {confirmationDialog.type === 'download_first' && (
+              <button 
+                onClick={async () => { await handleExportPDF(); confirmationDialog.pendingAction(); setConfirmationDialog(null); }}
+                className="w-full mt-3 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                Download & Move
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {showWaitlist && (
         <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md text-center">
           <div className="bg-slate-900 border border-slate-800 p-10 rounded-3xl max-w-md shadow-2xl animate-fade-in">
