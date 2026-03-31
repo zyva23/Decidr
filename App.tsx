@@ -87,6 +87,7 @@ const DecidrApp: React.FC = () => {
   const [hasJoinedWaitlist, setHasJoinedWaitlist] = useState(false);
 
   // Collaboration State
+  const [isSharedLoading, setIsSharedLoading] = useState(false);
   const [isPublicSession, setIsPublicSession] = useState(false);
   const [contributions, setContributions] = useState<Contribution[]>([]);
   const [isContributing, setIsContributing] = useState(false);
