@@ -1,7 +1,7 @@
 import { initializeApp, getApp, getApps } from "firebase/app";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
-import { getFirestore, collection, addDoc, serverTimestamp, doc, getDoc, setDoc, updateDoc, arrayUnion } from \"firebase/firestore\";
-import { DecisionSession, Contribution, AnalysisStatus } from \"../types\";
+import { getFirestore, collection, addDoc, serverTimestamp, doc, getDoc, setDoc, updateDoc, arrayUnion } from "firebase/firestore";
+import { DecisionSession, Contribution, AnalysisStatus } from "../types";
 
 const firebaseConfig = {
 
