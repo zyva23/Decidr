@@ -12,11 +12,12 @@ import GamifiedHeader from './components/GamifiedHeader';
 import CommitmentPanel from './components/CommitmentPanel';
 import DecisionTreeViz from './components/DecisionTreeViz';
 import ShareModal from './components/ShareModal';
+import CollaborationModal from './components/CollaborationModal';
 import Auth from './components/Auth';
 import { UI_CONTENT } from './src/constants/uiContent';
 import { analyzeDecision, generateActionPlan, generateDecisionTree, synthesizeOnly } from './services/geminiService';
 import { saveSession, getSessions, deleteSession, getLocalSessions } from './services/storageService';
-import { auth, logActivity, onAuthStateChanged, signOut, isGCPConfigured, saveDetailedFeedback, saveToWaitlist, getUserProfile, saveUserProfile, getPublicSession, addSessionContribution } from './services/googleCloud';
+import { auth, logActivity, onAuthStateChanged, signOut, isGCPConfigured, saveDetailedFeedback, saveToWaitlist, getUserProfile, saveUserProfile, getPublicSession, addSessionContribution, updateContributionStatuses } from './services/googleCloud';
 import { generateDecisionPDF } from './services/pdfService';
 import { DecisionInput, CouncilResult, AnalysisStatus, DecisionSession, ChatMessage, UserProfile, ActionPlan, PartialCouncilResult, DecisionTree, Contribution } from './types';
 
@@ -93,6 +94,8 @@ const DecidrApp: React.FC = () => {
   const [isContributing, setIsContributing] = useState(false);
   const [contributionName, setContributionName] = useState('');
   const [contributionContent, setContributionContent] = useState('');
+  const [isCollaborationModalOpen, setIsCollaborationModalOpen] = useState(false);
+  const [isPeerSynthesizing, setIsPeerSynthesizing] = useState(false);
 
   // DETECT SHARED LINK
   useEffect(() => {
@@ -104,7 +107,7 @@ const DecidrApp: React.FC = () => {
   }, []);
 
   const handleLoadSharedSession = async (shareId: string) => {
-    setStatus(AnalysisStatus.ANALYZING); // Use as loading state
+    setIsSharedLoading(true);
     try {
       const session = await getPublicSession(shareId);
       if (session) {
@@ -121,6 +124,37 @@ const DecidrApp: React.FC = () => {
     } catch (e) {
       console.error(e);
       setStatus(AnalysisStatus.IDLE);
+    } finally {
+      setIsSharedLoading(false);
+    }
+  };
+
+  const handlePeerSynthesis = async (selectedIds: string[], notify: boolean) => {
+    if (!currentSessionId || !result) return;
+    setIsPeerSynthesizing(true);
+    const selectedPeers = contributions.filter(c => selectedIds.includes(c.id));
+    
+    try {
+      const updatedResult = await synthesizeOnly(inputValues, result, selectedPeers);
+      setResult(updatedResult);
+      
+      const session = sessions.find(s => s.id === currentSessionId);
+      if (session) {
+        const updatedContributions = (session.contributions || []).map(c => 
+          selectedIds.includes(c.id) ? { ...c, status: 'accepted' as const, notified: notify } : c
+        );
+        const updatedSession = { ...session, result: updatedResult, contributions: updatedContributions };
+        await saveSession(updatedSession);
+        setSessions(await getSessions(user?.id));
+        setContributions(updatedContributions);
+      }
+      setIsCollaborationModalOpen(false);
+      await updateProgression(200);
+    } catch (e) {
+      console.error(e);
+      alert("Council failed to incorporate peer insights.");
+    } finally {
+      setIsPeerSynthesizing(false);
     }
   };
 
@@ -556,9 +590,9 @@ const DecidrApp: React.FC = () => {
                             </button>
                           )}
                           {isOwner && contributions.length > 0 && (
-                            <button onClick={handleIncorporateContributions} className="p-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl active:scale-95 flex items-center justify-center transition-all group shadow-lg shadow-indigo-900/40">
-                              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22v-5"/><path d="M9 18H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2h-5"/><path d="m15 13-3 3-3-3"/><path d="M12 16V2"/></svg>
-                              <span className="max-w-0 overflow-hidden group-hover:max-w-xs group-hover:ml-2 transition-all duration-300 font-bold whitespace-nowrap">Incorporate Peer Insights</span>
+                            <button onClick={() => setIsCollaborationModalOpen(true)} className="p-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl active:scale-95 flex items-center justify-center transition-all group shadow-lg shadow-indigo-900/40">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                              <span className="max-w-0 overflow-hidden group-hover:max-w-xs group-hover:ml-2 transition-all duration-300 font-bold whitespace-nowrap">Manage Peer Insights</span>
                             </button>
                           )}
                           <div className="ml-auto flex items-center gap-2">
@@ -648,23 +682,25 @@ const DecidrApp: React.FC = () => {
                     <AgentCard role="Skeptic" agent={result?.skeptic} color="red" isLoading={!result?.skeptic && !partialResult?.skeptic} />
                     <AgentCard role="Mediator" agent={result?.mediator} color="emerald" isLoading={!result?.mediator && !partialResult?.mediator} />
                     
-                    {/* Render Contributions as Human Agent Cards */}
-                    {contributions.map((c) => (
-                      <AgentCard 
-                        key={c.id}
-                        role="Human" 
-                        agent={{
-                          name: c.name,
-                          role: "Human Perspective",
-                          analysis: c.content,
-                          keyPoints: ["External Peer Insight"],
-                          score: 100,
-                          sequence: []
-                        }} 
-                        color="indigo" 
-                        isLoading={false} 
-                      />
-                    ))}
+                    {/* Render Contributions ONLY for Owner, or if previously accepted for all */}
+                    {contributions
+                      .filter(c => isOwner || c.status === 'accepted')
+                      .map((c) => (
+                        <AgentCard 
+                          key={c.id}
+                          role="Human" 
+                          agent={{
+                            name: c.name,
+                            role: "Human Perspective",
+                            analysis: c.content,
+                            keyPoints: ["External Peer Insight"],
+                            score: 100,
+                            sequence: []
+                          }} 
+                          color="indigo" 
+                          isLoading={false} 
+                        />
+                      ))}
                   </div>
 
                   {(status === AnalysisStatus.COMPLETE || status === AnalysisStatus.SHARED_VIEW) && result && (
@@ -715,6 +751,15 @@ const DecidrApp: React.FC = () => {
           initialTree={currentSessionId ? sessions.find(s => s.id === currentSessionId)?.decisionTree : undefined}
           onSave={handleSaveTree} 
           onClose={() => setIsTreeOpen(false)} 
+        />
+      )}
+      {isCollaborationModalOpen && currentSessionId && (
+        <CollaborationModal 
+          isOpen={isCollaborationModalOpen} 
+          onClose={() => setIsCollaborationModalOpen(false)} 
+          session={sessions.find(s => s.id === currentSessionId)!}
+          onSynthesize={handlePeerSynthesis}
+          isSynthesizing={isPeerSynthesizing}
         />
       )}
     </div>

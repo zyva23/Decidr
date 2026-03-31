@@ -24,6 +24,68 @@ const SessionHistory: React.FC<Props> = ({
   onDeleteSession,
   onSignOut
 }) => {
+  const renderSessionItem = (session: DecisionSession) => {
+    const contributionCount = session.contributions?.length || 0;
+    const hasUnreadContributions = session.contributions?.some(c => c.status === 'pending');
+
+    return (
+      <div 
+        key={session.id}
+        onClick={() => {
+          onSelectSession(session);
+          if (window.innerWidth < 1024) onClose();
+        }}
+        className={`group relative p-3 rounded-lg cursor-pointer border transition-all duration-200 ${
+          currentSessionId === session.id 
+            ? 'bg-slate-800 border-indigo-500/50 shadow-md ring-1 ring-indigo-500/20' 
+            : 'bg-transparent border-transparent hover:bg-slate-900 hover:border-slate-800'
+        }`}
+      >
+        <div className="pr-6">
+           <h3 className={`text-sm font-medium truncate mb-1 ${currentSessionId === session.id ? 'text-indigo-300' : 'text-slate-300 group-hover:text-white'}`}>
+            {session.input.title || "Untitled Decision"}
+           </h3>
+           <div className="flex flex-wrap items-center gap-2">
+             <span className={`text-[10px] ${currentSessionId === session.id ? 'text-slate-400' : 'text-slate-500'}`}>
+               {new Date(session.timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+             </span>
+             
+             {session.isPublic && (
+               <span className="flex items-center gap-1 text-[8px] font-black uppercase tracking-widest text-indigo-400 bg-indigo-500/10 px-1.5 py-0.5 rounded-sm border border-indigo-500/20">
+                 Shared
+               </span>
+             )}
+
+             {contributionCount > 0 && (
+               <span className={`flex items-center gap-1 text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-sm border ${hasUnreadContributions ? 'text-amber-400 bg-amber-500/10 border-amber-500/20' : 'text-slate-400 bg-slate-800 border-slate-700'}`}>
+                 {contributionCount} {contributionCount === 1 ? 'Peer' : 'Peers'}
+               </span>
+             )}
+
+             {session.commitment && (
+               <span className="flex items-center gap-1 text-[8px] font-black uppercase tracking-widest text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-sm border border-emerald-500/20">
+                 Locked
+               </span>
+             )}
+           </div>
+        </div>
+
+        <button 
+          onClick={(e) => {
+            e.stopPropagation();
+            if (confirm("Delete this inquiry history?")) {
+              onDeleteSession(session.id, e);
+            }
+          }}
+          className="absolute right-2 top-3 p-1.5 text-slate-600 hover:text-red-400 hover:bg-red-500/10 transition-all rounded-md lg:opacity-0 group-hover:opacity-100"
+          title="Delete Session"
+        >
+           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+        </button>
+      </div>
+    );
+  };
+
   return (
     <>
       {/* Backdrop: Visible on mobile (dimmed), Invisible on desktop (transparent) */}
@@ -69,7 +131,7 @@ const SessionHistory: React.FC<Props> = ({
         </div>
 
         {/* Session List */}
-        <div className="flex-1 overflow-y-auto px-3 pb-4 space-y-2 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto px-3 pb-4 space-y-6 custom-scrollbar">
           {sessions.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-40 text-center px-6">
               <div className="w-10 h-10 rounded-full bg-slate-900 flex items-center justify-center mb-3 text-slate-600">
@@ -80,56 +142,25 @@ const SessionHistory: React.FC<Props> = ({
             </div>
           ) : (
             <>
-               <div className="px-3 py-2 text-xs font-bold text-slate-500 uppercase tracking-wider">Recent</div>
-               {sessions.map(session => (
-                <div 
-                  key={session.id}
-                  onClick={() => {
-                    onSelectSession(session);
-                    if (window.innerWidth < 1024) onClose();
-                  }}
-                  className={`group relative p-3 rounded-lg cursor-pointer border transition-all duration-200 ${
-                    currentSessionId === session.id 
-                      ? 'bg-slate-800 border-indigo-500/50 shadow-md ring-1 ring-indigo-500/20' 
-                      : 'bg-transparent border-transparent hover:bg-slate-900 hover:border-slate-800'
-                  }`}
-                >
-                  <div className="pr-6">
-                     <h3 className={`text-sm font-medium truncate mb-1 ${currentSessionId === session.id ? 'text-indigo-300' : 'text-slate-300 group-hover:text-white'}`}>
-                      {session.input.title || "Untitled Decision"}
-                     </h3>
-                     <div className="flex flex-wrap items-center gap-2">
-                       <span className={`text-[10px] ${currentSessionId === session.id ? 'text-slate-400' : 'text-slate-500'}`}>
-                         {new Date(session.timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                       </span>
-                       {session.commitment && (
-                         <span className="flex items-center gap-1 text-[10px] text-indigo-400 bg-indigo-500/10 px-1.5 rounded-sm font-bold border border-indigo-500/20">
-                           <svg xmlns="http://www.w3.org/2000/svg" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                           Intent Locked
-                         </span>
-                       )}
-                       {session.status === 'COMPLETE' && !session.commitment && (
-                         <span className="flex items-center gap-1 text-[10px] text-emerald-500/80 bg-emerald-500/10 px-1.5 rounded-sm">
-                           Analyzed
-                         </span>
-                       )}
-                     </div>
-                  </div>
+               {/* PERSONAL DELIBERATIONS SECTION */}
+               <div className="space-y-2">
+                 <div className="px-3 py-2 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] flex justify-between items-center">
+                   <span>Personal Inquiry</span>
+                   <span className="bg-slate-800 px-1.5 py-0.5 rounded text-slate-400">{sessions.filter(s => !s.isPublic).length}</span>
+                 </div>
+                 {sessions.filter(s => !s.isPublic).map(session => renderSessionItem(session))}
+               </div>
 
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (confirm("Delete this inquiry history?")) {
-                        onDeleteSession(session.id, e);
-                      }
-                    }}
-                    className="absolute right-2 top-3 p-1.5 text-slate-600 hover:text-red-400 hover:bg-red-500/10 transition-all rounded-md lg:opacity-0 group-hover:opacity-100"
-                    title="Delete Session"
-                  >
-                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                  </button>
-                </div>
-              ))}
+               {/* COLLABORATIVE INSIGHTS SECTION */}
+               {sessions.some(s => s.isPublic) && (
+                 <div className="space-y-2">
+                   <div className="px-3 py-2 text-[10px] font-black text-indigo-500 uppercase tracking-[0.2em] flex justify-between items-center border-t border-slate-900 pt-6">
+                     <span>Shared Council</span>
+                     <span className="bg-indigo-500/10 px-1.5 py-0.5 rounded text-indigo-400 border border-indigo-500/20">{sessions.filter(s => s.isPublic).length}</span>
+                   </div>
+                   {sessions.filter(s => s.isPublic).map(session => renderSessionItem(session))}
+                 </div>
+               )}
             </>
           )}
         </div>

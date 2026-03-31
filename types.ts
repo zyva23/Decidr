@@ -91,6 +91,8 @@ export interface Contribution {
   name: string;
   content: string;
   timestamp: number;
+  status?: 'pending' | 'accepted' | 'dismissed';
+  notified?: boolean;
 }
 
 export enum AnalysisStatus {

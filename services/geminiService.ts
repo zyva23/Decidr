@@ -28,10 +28,20 @@ const truncateContext = (text: string, maxChars: number = 2000): string => {
   return text.substring(0, maxChars) + "... [Context truncated for efficiency]";
 };
 
-export async function synthesizeOnly(input: DecisionInput, agents: PartialCouncilResult): Promise<CouncilResult> {
+export async function synthesizeOnly(input: DecisionInput, agents: PartialCouncilResult, humanPerspectives?: Contribution[]): Promise<CouncilResult> {
   const { analyst, strategist, skeptic, mediator } = agents;
   if (!analyst || !strategist || !skeptic || !mediator) {
     throw new Error("Missing agent perspectives for synthesis.");
+  }
+
+  let humanInsightAddendum = "";
+  if (humanPerspectives && humanPerspectives.length > 0) {
+    humanInsightAddendum = `
+    INCORPORATED HUMAN PERSPECTIVES:
+    ${humanPerspectives.map(p => `- ${p.name}: ${p.content}`).join('\n    ')}
+    
+    IMPORTANT: Integrate these human insights into your final verdict and refined paths. Weigh their contextual nuances against the agent models.
+    `;
   }
 
   const prompt = `
@@ -41,6 +51,7 @@ export async function synthesizeOnly(input: DecisionInput, agents: PartialCounci
     2. Strategist: ${strategist.analysis} (Score: ${strategist.score})
     3. Skeptic: ${skeptic.analysis} (Score: ${skeptic.score})
     4. Mediator: ${mediator.analysis} (Score: ${mediator.score})
+    ${humanInsightAddendum}
 
     Synthesize into a final recommendation.
     

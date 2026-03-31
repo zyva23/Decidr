@@ -184,3 +184,20 @@ export const addSessionContribution = async (sessionId: string, contribution: Co
     console.error("Error adding contribution:", e);
   }
 };
+
+export const updateContributionStatuses = async (sessionId: string, contributionIds: string[], updates: Partial<Contribution>) => {
+  if (!db) return;
+  try {
+    const docRef = doc(db, "sessions", sessionId);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      const data = docSnap.data() as DecisionSession;
+      const updatedContributions = (data.contributions || []).map(c => 
+        contributionIds.includes(c.id) ? { ...c, ...updates } : c
+      );
+      await updateDoc(docRef, { contributions: updatedContributions });
+    }
+  } catch (e) {
+    console.error("Error updating contribution statuses:", e);
+  }
+};
