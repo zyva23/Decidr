@@ -99,6 +99,320 @@ const DecidrApp: React.FC = () => {
   const [isCollaborationModalOpen, setIsCollaborationModalOpen] = useState(false);
   const [isPeerSynthesizing, setIsPeerSynthesizing] = useState(false);
 
+  // AUTH EFFECT
+  useEffect(() => {
+    if (!isGCPConfigured || !auth) { setIsAuthChecking(false); return; }
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        const cloudProfile = await getUserProfile(firebaseUser.uid);
+        const localXp = parseInt(localStorage.getItem(`dc_xp_${firebaseUser.uid}`) || '0', 10);
+        const finalXp = Math.max(cloudProfile?.xp || 0, localXp);
+        const finalLevel = Math.floor(finalXp / 500) + 1;
+        setUser({ id: firebaseUser.uid, email: firebaseUser.email || "User", xp: finalXp, level: finalLevel });
+        setXp(finalXp); setLevel(finalLevel);
+        localStorage.setItem(`dc_xp_${firebaseUser.uid}`, finalXp.toString());
+        localStorage.setItem(`dc_level_${firebaseUser.uid}`, finalLevel.toString());
+        if (!cloudProfile || cloudProfile.xp < finalXp) { await saveUserProfile(firebaseUser.uid, finalXp, finalLevel); }
+        logActivity(firebaseUser.uid, 'login');
+        setSessions(await getSessions(firebaseUser.uid));
+      } else {
+        setUser(null); setSessions(getLocalSessions());
+        setXp(parseInt(localStorage.getItem('dc_xp_guest') || '0', 10));
+        setLevel(parseInt(localStorage.getItem('dc_level_guest') || '1', 10));
+      }
+      setIsAuthChecking(false);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // SHARED LINK EFFECT
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const shareId = params.get('share');
+    if (shareId) {
+      handleLoadSharedSession(shareId);
+    }
+  }, []);
+
+  const handleLoadSharedSession = async (shareId: string) => {
+    setIsSharedLoading(true);
+    try {
+      const session = await getPublicSession(shareId);
+      if (session) {
+        setCurrentSessionId(session.id);
+        setInputValues(session.input);
+        setResult(session.result);
+        setStatus(AnalysisStatus.SHARED_VIEW);
+        setContributions(session.contributions || []);
+        setIsPublicSession(true);
+      } else {
+        alert("Shared deliberation not found or private.");
+        setStatus(AnalysisStatus.IDLE);
+      }
+    } catch (e) {
+      console.error(e);
+      setStatus(AnalysisStatus.IDLE);
+    } finally {
+      setIsSharedLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (localStorage.getItem('dc_waitlist_joined') === 'true') { setHasJoinedWaitlist(true); }
+  }, []);
+
+  useEffect(() => {
+    const used = localStorage.getItem('dc_credits_used');
+    setCredits(used ? parseInt(used, 10) : 0);
+  }, []);
+
+  const handleWaitlistJoin = async (email: string) => {
+    await saveToWaitlist(email, user?.id);
+    setHasJoinedWaitlist(true);
+    localStorage.setItem('dc_waitlist_joined', 'true');
+  };
+
+  const updateProgression = async (addedXp: number) => {
+    const newXp = xp + addedXp;
+    const newLevel = Math.floor(newXp / 500) + 1;
+    setXp(newXp);
+    if (newLevel > level) { setLevel(newLevel); setShowLevelUp(true); setTimeout(() => setShowLevelUp(false), 5000); }
+    localStorage.setItem(user ? `dc_xp_${user.id}` : 'dc_xp_guest', newXp.toString());
+    localStorage.setItem(user ? `dc_level_${user.id}` : 'dc_level_guest', newLevel.toString());
+    if (user) { await saveUserProfile(user.id, newXp, newLevel); }
+  };
+
+  const handleFeedback = async (type: 'helpful' | 'not-helpful') => {
+    if (!result) return;
+    const newResult = { ...result, feedback: type };
+    setResult(newResult); setShowFeedbackForm(true); setFeedbackSubmitted(false);
+    logActivity(user?.id, 'feedback_click', { verdict: result.synthesis.verdict, type });
+    if (currentSessionId) {
+      const session = sessions.find(s => s.id === currentSessionId);
+      if (session) await saveSession({ ...session, result: newResult });
+    }
+  };
+
+  const submitDetailedFeedback = async () => {
+     if (!currentSessionId || !result?.feedback) return;
+     await saveDetailedFeedback(user?.id, currentSessionId, result.feedback, feedbackComment);
+     setFeedbackSubmitted(true);
+     setTimeout(() => setShowFeedbackForm(false), 2000);
+     setFeedbackComment('');
+  };
+
+  const handleCommitment = async (selected: string, why: string) => {
+    if (!currentSessionId) return;
+    const session = sessions.find(s => s.id === currentSessionId);
+    if (!session) return;
+    const commitment = { selectedOption: selected, justification: why, timestamp: Date.now() };
+    const updatedSession = { ...session, commitment };
+    await updateProgression(150);
+    await saveSession(updatedSession);
+    setSessions(await getSessions(user?.id));
+    logActivity(user?.id, 'commitment_made', { selected, title: session.input.title });
+  };
+
+  const handleBranch = (newContext: string) => {
+    const parentId = currentSessionId || undefined;
+    const oldTitle = inputValues.title;
+    executeStartNewSession();
+    setInputValues(prev => ({ 
+      title: oldTitle, 
+      context: `${newContext} `, 
+      constraints: prev.constraints, 
+      options: '',
+      parentId: parentId
+    }));
+  };
+
+  const handleDevelopPlan = async () => {
+    if (!result || !inputValues) return;
+    const existingSession = sessions.find(s => s.id === currentSessionId);
+    if (existingSession?.actionPlan) { setCurrentPlan(existingSession.actionPlan); setIsPlanModalOpen(true); return; }
+    setIsGeneratingPlan(true);
+    try {
+      const plan = await generateActionPlan(inputValues, result);
+      setCurrentPlan(plan); setIsPlanModalOpen(true);
+      if (currentSessionId) {
+        const session = sessions.find(s => s.id === currentSessionId);
+        if (session) {
+          const updatedSession = { ...session, actionPlan: plan };
+          await saveSession(updatedSession);
+          setSessions(await getSessions(user?.id));
+        }
+      }
+    } catch (e) { console.error(e); } finally { setIsGeneratingPlan(false); }
+  };
+
+  const handleSavePlan = async (updatedPlan: ActionPlan) => {
+    if (!currentSessionId) return;
+    const session = sessions.find(s => s.id === currentSessionId);
+    if (session) {
+      const updatedSession = { ...session, actionPlan: updatedPlan };
+      await saveSession(updatedSession);
+      setCurrentPlan(updatedPlan);
+      setSessions(await getSessions(user?.id));
+    }
+  };
+
+  const handleSaveTree = async (tree: DecisionTree, shouldClose: boolean = true) => {
+    if (!currentSessionId) return;
+    const session = sessions.find(s => s.id === currentSessionId);
+    if (session) {
+      const updatedSession = { ...session, decisionTree: tree };
+      await saveSession(updatedSession);
+      if (shouldClose) setIsTreeOpen(false);
+      setSessions(await getSessions(user?.id));
+    }
+  };
+
+  const executeStartNewSession = () => {
+    window.history.pushState({}, '', window.location.pathname); // Clear share ID
+    setCurrentSessionId(null); setInputValues({ title: '', context: '', constraints: '', options: '' });
+    setResult(null); setPartialResult(null); setChatHistory([]); setStatus(AnalysisStatus.IDLE);
+    setIsChatOpen(false); setIsElaborationOpen(false); setCurrentPlan(null); setHasDownloadedPDF(false);
+    setContributions([]); setIsPublicSession(false);
+  };
+
+  const startNewSession = () => {
+    if (status === AnalysisStatus.ANALYZING) {
+      setConfirmationDialog({ type: 'cancel_analysis', pendingAction: executeStartNewSession });
+      return;
+    }
+    if (status === AnalysisStatus.COMPLETE && !hasDownloadedPDF) {
+      setConfirmationDialog({ type: 'download_first', pendingAction: executeStartNewSession });
+      return;
+    }
+    executeStartNewSession();
+  };
+
+  const executeLoadSession = (session: DecisionSession) => {
+    window.history.pushState({}, '', window.location.pathname); // Clear share ID
+    setCurrentSessionId(session.id); setInputValues(session.input);
+    setResult(session.result); setPartialResult(null); setChatHistory(session.chatHistory || []);
+    setStatus(session.status); setIsChatOpen(false); setIsElaborationOpen(false);
+    setCurrentPlan(session.actionPlan || null); setIsHistoryOpen(false); setHasDownloadedPDF(true);
+    setContributions(session.contributions || []); setIsPublicSession(session.isPublic || false);
+  };
+
+  const loadSession = (session: DecisionSession) => {
+    if (status === AnalysisStatus.ANALYZING) {
+      setConfirmationDialog({ type: 'cancel_analysis', pendingAction: () => executeLoadSession(session) });
+      return;
+    }
+    if (status === AnalysisStatus.COMPLETE && !hasDownloadedPDF && currentSessionId !== session.id) {
+      setConfirmationDialog({ type: 'download_first', pendingAction: () => executeLoadSession(session) });
+      return;
+    }
+    executeLoadSession(session);
+  };
+
+  const handleAnalysis = async (input: DecisionInput) => {
+    if (credits >= MAX_FREE_CREDITS) {
+      if (user && user.email && !hasJoinedWaitlist) { await handleWaitlistJoin(user.email); }
+      setShowWaitlist(true); return;
+    }
+    
+    const canRetrySynthesis = partialResult && 
+      partialResult.analyst && partialResult.strategist && 
+      partialResult.skeptic && partialResult.mediator;
+
+    setStatus(AnalysisStatus.ANALYZING); setInputValues(input); 
+    if (!canRetrySynthesis) { setResult(null); setPartialResult(null); }
+    setHasDownloadedPDF(false);
+    
+    logActivity(user?.id, canRetrySynthesis ? 'retry_synthesis' : 'analysis_started', { title: input.title });
+    
+    try {
+      let data: CouncilResult;
+      if (canRetrySynthesis) {
+        data = await synthesizeOnly(input, partialResult);
+      } else {
+        data = await analyzeDecision(input, (partial) => {
+          try { setPartialResult(prev => ({ ...(prev || {}), ...partial })); } catch (e) { console.warn("Partial state update skipped", e); }
+        });
+      }
+
+      setResult(data); setPartialResult(null); setStatus(AnalysisStatus.COMPLETE);
+      const newCredits = credits + 1; setCredits(newCredits);
+      localStorage.setItem('dc_credits_used', newCredits.toString());
+      await updateProgression(100);
+
+      const sessionId = currentSessionId || crypto.randomUUID();
+      const newSession: DecisionSession = {
+        id: sessionId, user_id: user?.id, timestamp: Date.now(),
+        input: input, result: data, status: AnalysisStatus.COMPLETE, chatHistory: [],
+        isPublic: false, contributions: []
+      };
+      await saveSession(newSession); setCurrentSessionId(sessionId);
+      setSessions(await getSessions(user?.id));
+
+      (async () => {
+        try {
+          const [plan, tree] = await Promise.all([
+            generateActionPlan(input, data),
+            generateDecisionTree(input.title, data)
+          ]);
+          const session = (await getSessions(user?.id)).find(s => s.id === sessionId);
+          if (session) {
+            await saveSession({ ...session, actionPlan: plan, decisionTree: tree });
+            if (sessionId === currentSessionId) { setCurrentPlan(plan); setSessions(await getSessions(user?.id)); }
+          }
+        } catch (bgError) { console.error("Background Gen Error:", bgError); }
+      })();
+    } catch (error: any) {
+      setStatus(AnalysisStatus.ERROR);
+      logActivity(user?.id, 'error', { message: error.message });
+    }
+  };
+
+  const handleExportPDF = async () => {
+    if (!result || !inputValues) return;
+    setIsExporting(true);
+    try { 
+      await generateDecisionPDF(inputValues, result, currentPlan || undefined); 
+      setHasDownloadedPDF(true);
+    } catch (e) { console.error(e); } finally { setIsExporting(false); }
+  };
+
+  const handleSignOut = async () => {
+    logActivity(user?.id, 'logout');
+    if (auth) await signOut(auth);
+    setIsGuestMode(false); setUser(null); setSessions([]); setCurrentSessionId(null);
+    setResult(null); setPartialResult(null); setStatus(AnalysisStatus.IDLE);
+    setCredits(0); setXp(0); setLevel(1);
+  };
+
+  const handlePeerSynthesis = async (selectedIds: string[], notify: boolean) => {
+    if (!currentSessionId || !result) return;
+    setIsPeerSynthesizing(true);
+    const selectedPeers = contributions.filter(c => selectedIds.includes(c.id));
+    
+    try {
+      const updatedResult = await synthesizeOnly(inputValues, result, selectedPeers);
+      setResult(updatedResult);
+      
+      const session = sessions.find(s => s.id === currentSessionId);
+      if (session) {
+        const updatedContributions = (session.contributions || []).map(c => 
+          selectedIds.includes(c.id) ? { ...c, status: 'accepted' as const, notified: notify } : c
+        );
+        const updatedSession = { ...session, result: updatedResult, contributions: updatedContributions };
+        await saveSession(updatedSession);
+        setSessions(await getSessions(user?.id));
+        setContributions(updatedContributions);
+      }
+      setIsCollaborationModalOpen(false);
+      await updateProgression(200);
+    } catch (e) {
+      console.error(e);
+      alert("Council failed to incorporate peer insights.");
+    } finally {
+      setIsPeerSynthesizing(false);
+    }
+  };
+
   // Sync contribution name with user profile if not anonymous
   useEffect(() => {
     if (user && !isAnonymous && !contributionName) {
