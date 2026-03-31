@@ -27,13 +27,13 @@ const RadarViz: React.FC<RadarVizProps> = ({ metrics }) => {
 
   return (
     <div id="decision-radar-chart" className="h-64 w-full relative p-2 bg-slate-900/40 rounded-xl overflow-visible">
-        <h4 className="text-slate-400 text-[10px] font-bold uppercase tracking-widest absolute top-2 left-3 z-10">Decision Profile</h4>
+        <h4 className="text-slate-500 text-[10px] font-bold uppercase tracking-widest absolute top-2 left-3 z-10">Decision Profile</h4>
       <ResponsiveContainer width="100%" height="100%">
         <RadarChart cx="50%" cy="50%" outerRadius="70%" data={data}>
           <PolarGrid stroke="#334155" strokeWidth={1} />
           <PolarAngleAxis 
             dataKey="subject" 
-            tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 700 }} 
+            tick={{ fill: '#475569', fontSize: 10, fontWeight: 800 }} 
           />
           <PolarRadiusAxis angle={90} domain={[0, 100]} tick={false} axisLine={false} />
           <Radar
