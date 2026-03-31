@@ -11,13 +11,14 @@ import ActionPlanModal from './components/ActionPlanModal';
 import GamifiedHeader from './components/GamifiedHeader';
 import CommitmentPanel from './components/CommitmentPanel';
 import DecisionTreeViz from './components/DecisionTreeViz';
+import ShareModal from './components/ShareModal';
 import Auth from './components/Auth';
 import { UI_CONTENT } from './src/constants/uiContent';
 import { analyzeDecision, generateActionPlan, generateDecisionTree, synthesizeOnly } from './services/geminiService';
 import { saveSession, getSessions, deleteSession, getLocalSessions } from './services/storageService';
-import { auth, logActivity, onAuthStateChanged, signOut, isGCPConfigured, saveDetailedFeedback, saveToWaitlist, getUserProfile, saveUserProfile } from './services/googleCloud';
+import { auth, logActivity, onAuthStateChanged, signOut, isGCPConfigured, saveDetailedFeedback, saveToWaitlist, getUserProfile, saveUserProfile, getPublicSession, addSessionContribution } from './services/googleCloud';
 import { generateDecisionPDF } from './services/pdfService';
-import { DecisionInput, CouncilResult, AnalysisStatus, DecisionSession, ChatMessage, UserProfile, ActionPlan, PartialCouncilResult, DecisionTree } from './types';
+import { DecisionInput, CouncilResult, AnalysisStatus, DecisionSession, ChatMessage, UserProfile, ActionPlan, PartialCouncilResult, DecisionTree, Contribution } from './types';
 
 /**
  * ERROR BOUNDARY
@@ -75,6 +76,7 @@ const DecidrApp: React.FC = () => {
   const [showWaitlist, setShowWaitlist] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [hasDownloadedPDF, setHasDownloadedPDF] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [confirmationDialog, setConfirmationDialog] = useState<{
     type: 'cancel_analysis' | 'download_first';
     pendingAction: () => void;
@@ -83,6 +85,43 @@ const DecidrApp: React.FC = () => {
   const [showFeedbackForm, setShowFeedbackForm] = useState(false);
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
   const [hasJoinedWaitlist, setHasJoinedWaitlist] = useState(false);
+
+  // Collaboration State
+  const [isPublicSession, setIsPublicSession] = useState(false);
+  const [contributions, setContributions] = useState<Contribution[]>([]);
+  const [isContributing, setIsContributing] = useState(false);
+  const [contributionName, setContributionName] = useState('');
+  const [contributionContent, setContributionContent] = useState('');
+
+  // DETECT SHARED LINK
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const shareId = params.get('share');
+    if (shareId) {
+      handleLoadSharedSession(shareId);
+    }
+  }, []);
+
+  const handleLoadSharedSession = async (shareId: string) => {
+    setStatus(AnalysisStatus.ANALYZING); // Use as loading state
+    try {
+      const session = await getPublicSession(shareId);
+      if (session) {
+        setCurrentSessionId(session.id);
+        setInputValues(session.input);
+        setResult(session.result);
+        setStatus(AnalysisStatus.SHARED_VIEW);
+        setContributions(session.contributions || []);
+        setIsPublicSession(true);
+      } else {
+        alert("Shared deliberation not found or private.");
+        setStatus(AnalysisStatus.IDLE);
+      }
+    } catch (e) {
+      console.error(e);
+      setStatus(AnalysisStatus.IDLE);
+    }
+  };
 
   useEffect(() => {
     if (localStorage.getItem('dc_waitlist_joined') === 'true') { setHasJoinedWaitlist(true); }
@@ -220,9 +259,11 @@ const DecidrApp: React.FC = () => {
   };
 
   const executeStartNewSession = () => {
+    window.history.pushState({}, '', window.location.pathname); // Clear share ID
     setCurrentSessionId(null); setInputValues({ title: '', context: '', constraints: '', options: '' });
     setResult(null); setPartialResult(null); setChatHistory([]); setStatus(AnalysisStatus.IDLE);
     setIsChatOpen(false); setIsElaborationOpen(false); setCurrentPlan(null); setHasDownloadedPDF(false);
+    setContributions([]); setIsPublicSession(false);
   };
 
   const startNewSession = () => {
@@ -238,10 +279,12 @@ const DecidrApp: React.FC = () => {
   };
 
   const executeLoadSession = (session: DecisionSession) => {
+    window.history.pushState({}, '', window.location.pathname); // Clear share ID
     setCurrentSessionId(session.id); setInputValues(session.input);
     setResult(session.result); setPartialResult(null); setChatHistory(session.chatHistory || []);
     setStatus(session.status); setIsChatOpen(false); setIsElaborationOpen(false);
-    setCurrentPlan(session.actionPlan || null); setIsHistoryOpen(false); setHasDownloadedPDF(true); // Assuming historical ones are safe or already handled
+    setCurrentPlan(session.actionPlan || null); setIsHistoryOpen(false); setHasDownloadedPDF(true);
+    setContributions(session.contributions || []); setIsPublicSession(session.isPublic || false);
   };
 
   const loadSession = (session: DecisionSession) => {
@@ -290,7 +333,8 @@ const DecidrApp: React.FC = () => {
       const sessionId = currentSessionId || crypto.randomUUID();
       const newSession: DecisionSession = {
         id: sessionId, user_id: user?.id, timestamp: Date.now(),
-        input: input, result: data, status: AnalysisStatus.COMPLETE, chatHistory: []
+        input: input, result: data, status: AnalysisStatus.COMPLETE, chatHistory: [],
+        isPublic: false, contributions: []
       };
       await saveSession(newSession); setCurrentSessionId(sessionId);
       setSessions(await getSessions(user?.id));
@@ -331,22 +375,51 @@ const DecidrApp: React.FC = () => {
     setCredits(0); setXp(0); setLevel(1);
   };
 
+  const handleSubmitContribution = async () => {
+    if (!currentSessionId || !contributionContent.trim()) return;
+    setIsContributing(true);
+    const contribution: Contribution = {
+      id: crypto.randomUUID(),
+      name: contributionName.trim() || "Anonymous Expert",
+      content: contributionContent.trim(),
+      timestamp: Date.now()
+    };
+    try {
+      await addSessionContribution(currentSessionId, contribution);
+      setContributions(prev => [...prev, contribution]);
+      setContributionName('');
+      setContributionContent('');
+      alert("Your perspective has been submitted to the Council.");
+    } catch (e) { console.error(e); } finally { setIsContributing(false); }
+  };
+
+  const handleIncorporateContributions = () => {
+    if (contributions.length === 0) return;
+    const peerInsights = contributions.map(c => `[PEER INSIGHT from ${c.name}]: ${c.content}`).join("\n\n");
+    const newContext = `${inputValues.context}\n\n--- INCORPORATED PEER REVIEW ---\n${peerInsights}`;
+    handleBranch(newContext);
+  };
+
   if (isAuthChecking) {
     return <div className="flex items-center justify-center h-screen bg-slate-950"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div></div>;
   }
 
-  if (!user && !isGuestMode) { 
+  if (!user && !isGuestMode && status !== AnalysisStatus.SHARED_VIEW) { 
     return <Auth onContinueAsGuest={() => { setIsGuestMode(true); logActivity(null, 'guest_session_start'); }} />; 
   }
 
+  const isOwner = sessions.some(s => s.id === currentSessionId);
+
   return (
     <div className="flex flex-col h-screen w-full bg-slate-950 text-slate-200 font-sans overflow-hidden">
-      <SessionHistory 
-        isOpen={isHistoryOpen} sessions={sessions} currentSessionId={currentSessionId} user={user}
-        onSelectSession={loadSession} onNewSession={startNewSession} onClose={() => setIsHistoryOpen(false)}
-        onDeleteSession={async (id) => { await deleteSession(id); setSessions(await getSessions(user?.id)); }}
-        onSignOut={handleSignOut}
-      />
+      {!isPublicSession && (
+        <SessionHistory 
+          isOpen={isHistoryOpen} sessions={sessions} currentSessionId={currentSessionId} user={user}
+          onSelectSession={loadSession} onNewSession={startNewSession} onClose={() => setIsHistoryOpen(false)}
+          onDeleteSession={async (id) => { await deleteSession(id); setSessions(await getSessions(user?.id)); }}
+          onSignOut={handleSignOut}
+        />
+      )}
       <FrameworkLibrary isOpen={isLibraryOpen} onClose={() => setIsLibraryOpen(false)} />
       
       {/* Confirmation Dialog Modal */}
@@ -391,6 +464,16 @@ const DecidrApp: React.FC = () => {
         </div>
       )}
 
+      {/* Share Modal */}
+      {isShareModalOpen && currentSessionId && (
+        <ShareModal 
+          isOpen={isShareModalOpen} 
+          onClose={() => setIsShareModalOpen(false)} 
+          sessionId={currentSessionId} 
+          isPublicInitial={isPublicSession}
+        />
+      )}
+
       {showWaitlist && (
         <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md text-center">
           <div className="bg-slate-900 border border-slate-800 p-10 rounded-3xl max-w-md shadow-2xl animate-fade-in">
@@ -428,36 +511,55 @@ const DecidrApp: React.FC = () => {
       )}
       <header className="flex-shrink-0 h-16 border-b border-slate-800 bg-slate-900/50 backdrop-blur-md flex items-center justify-between px-4 lg:px-6 z-30">
                 <div className="flex items-center gap-4">
-                  <button 
-                    onClick={() => setIsHistoryOpen(true)} 
-                    aria-label="Open History"
-                    className="p-2 -ml-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
-                  </button>
-                  <h1 className="hidden sm:block text-lg font-bold text-white tracking-tight">{UI_CONTENT.APP_NAME}</h1>
+                  {!isPublicSession && (
+                    <button 
+                      onClick={() => setIsHistoryOpen(true)} 
+                      aria-label="Open History"
+                      className="p-2 -ml-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                    </button>
+                  )}
+                  <h1 className="text-lg font-bold text-white tracking-tight">{UI_CONTENT.APP_NAME}</h1>
+                  {isPublicSession && <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest border border-indigo-500/30 px-2 py-0.5 rounded bg-indigo-500/10">Shared Deliberation</span>}
                 </div>
-        <div className="flex items-center gap-6"><GamifiedHeader xp={xp} level={level} /></div>
+        <div className="flex items-center gap-6">
+          {!isPublicSession ? <GamifiedHeader xp={xp} level={level} /> : (
+            <button onClick={startNewSession} className="text-xs font-bold text-indigo-400 hover:text-indigo-300 transition-all uppercase tracking-widest">Start My Own Analysis</button>
+          )}
+        </div>
       </header>
       <main className="flex-1 overflow-hidden relative p-4 lg:p-6">
         <ResizableSplitPane 
-          isResultReady={status === AnalysisStatus.COMPLETE}
+          isResultReady={status === AnalysisStatus.COMPLETE || status === AnalysisStatus.SHARED_VIEW}
           left={<InputForm initialValues={inputValues} onSubmit={handleAnalysis} isLoading={status === AnalysisStatus.ANALYZING} sessions={sessions} />}
           right={
             <div className="h-full overflow-y-auto custom-scrollbar">
-              {(status === AnalysisStatus.COMPLETE || status === AnalysisStatus.ANALYZING || status === AnalysisStatus.ERROR) && (result || partialResult || status === AnalysisStatus.ERROR) && (
+              {(status === AnalysisStatus.COMPLETE || status === AnalysisStatus.ANALYZING || status === AnalysisStatus.ERROR || status === AnalysisStatus.SHARED_VIEW) && (result || partialResult || status === AnalysisStatus.ERROR) && (
                 <div className="space-y-6 animate-fade-in pb-12">
-                  {status === AnalysisStatus.COMPLETE && result ? (
+                  {(status === AnalysisStatus.COMPLETE || status === AnalysisStatus.SHARED_VIEW) && result ? (
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                       <div className="md:col-span-2 bg-gradient-to-br from-indigo-900/40 to-slate-900/40 border border-indigo-500/30 rounded-xl p-8 flex flex-col shadow-2xl">
                         <h2 className="text-indigo-300 text-xs font-bold uppercase tracking-widest mb-4">{UI_CONTENT.RESULTS.FINAL_VERDICT}</h2>
                         <h3 className="text-3xl font-black text-white mb-4 leading-tight">{result.synthesis?.verdict}</h3>
                         <p className="text-slate-300 leading-relaxed text-lg mb-8">{result.synthesis?.recommendation}</p>
                         <div className="flex flex-wrap gap-3 mt-auto">
-                          <button onClick={() => setIsChatOpen(true)} className="p-3 bg-white text-slate-950 rounded-xl active:scale-95 transition-all hover:bg-slate-100 flex items-center justify-center group"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 21 1.9-5.7a8.5 8.5 0 1 1 3.8 3.8z"/></svg><span className="max-w-0 overflow-hidden group-hover:max-w-xs group-hover:ml-2 transition-all duration-300 font-bold whitespace-nowrap">{UI_CONTENT.RESULTS.CONSULT_COUNCIL}</span></button>
+                          {isOwner && <button onClick={() => setIsChatOpen(true)} className="p-3 bg-white text-slate-950 rounded-xl active:scale-95 transition-all hover:bg-slate-100 flex items-center justify-center group"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 21 1.9-5.7a8.5 8.5 0 1 1 3.8 3.8z"/></svg><span className="max-w-0 overflow-hidden group-hover:max-w-xs group-hover:ml-2 transition-all duration-300 font-bold whitespace-nowrap">{UI_CONTENT.RESULTS.CONSULT_COUNCIL}</span></button>}
                           <button onClick={() => setIsElaborationOpen(!isElaborationOpen)} className={`p-3 border rounded-xl active:scale-95 transition-all flex items-center justify-center group ${isElaborationOpen ? 'bg-indigo-600 border-indigo-400 text-white' : 'border-indigo-500/50 text-indigo-300 hover:bg-indigo-500/10'}`}><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg><span className="max-w-0 overflow-hidden group-hover:max-w-xs group-hover:ml-2 transition-all duration-300 font-bold whitespace-nowrap">{isElaborationOpen ? UI_CONTENT.RESULTS.HIDE : UI_CONTENT.RESULTS.ELABORATION}</span></button>
-                          <button onClick={handleDevelopPlan} disabled={isGeneratingPlan} className="p-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl active:scale-95 flex items-center justify-center transition-all disabled:opacity-50 group">{isGeneratingPlan ? <svg className="animate-spin h-6 w-6" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> : <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line><path d="m9 16 2 2 4-4"/></svg>}<span className="max-w-0 overflow-hidden group-hover:max-w-xs group-hover:ml-2 transition-all duration-300 font-bold whitespace-nowrap">{UI_CONTENT.RESULTS.PLANNING}</span></button>
-                          <button onClick={handleExportPDF} disabled={isExporting} className="p-3 border border-indigo-500/50 text-indigo-300 hover:bg-indigo-500/10 rounded-xl active:scale-95 flex items-center justify-center transition-all disabled:opacity-50 group">{isExporting ? <svg className="animate-spin h-5 w-5 text-indigo-300" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> : <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>}<span className="max-w-0 overflow-hidden group-hover:max-w-xs group-hover:ml-2 transition-all duration-300 font-bold whitespace-nowrap">{UI_CONTENT.RESULTS.EXPORT}</span></button>
+                          {isOwner && <button onClick={handleDevelopPlan} disabled={isGeneratingPlan} className="p-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl active:scale-95 flex items-center justify-center transition-all disabled:opacity-50 group">{isGeneratingPlan ? <svg className="animate-spin h-6 w-6" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> : <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line><path d="m9 16 2 2 4-4"/></svg>}<span className="max-w-0 overflow-hidden group-hover:max-w-xs group-hover:ml-2 transition-all duration-300 font-bold whitespace-nowrap">{UI_CONTENT.RESULTS.PLANNING}</span></button>}
+                          <button onClick={handleExportPDF} disabled={isExporting} className="p-3 border border-indigo-500/50 text-indigo-300 hover:bg-indigo-500/10 rounded-xl active:scale-95 flex items-center justify-center transition-all disabled:opacity-50 group">{isExporting ? <svg className="animate-spin h-5 w-5 text-indigo-300" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> : <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" x2="12" y1="15" x2="12" y2="3"></line></svg>}<span className="max-w-0 overflow-hidden group-hover:max-w-xs group-hover:ml-2 transition-all duration-300 font-bold whitespace-nowrap">{UI_CONTENT.RESULTS.EXPORT}</span></button>
+                          {isOwner && (
+                            <button onClick={() => setIsShareModalOpen(true)} className="p-3 border border-indigo-500/50 text-indigo-300 hover:bg-indigo-500/10 rounded-xl active:scale-95 flex items-center justify-center transition-all group">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+                              <span className="max-w-0 overflow-hidden group-hover:max-w-xs group-hover:ml-2 transition-all duration-300 font-bold whitespace-nowrap">Share</span>
+                            </button>
+                          )}
+                          {isOwner && contributions.length > 0 && (
+                            <button onClick={handleIncorporateContributions} className="p-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl active:scale-95 flex items-center justify-center transition-all group shadow-lg shadow-indigo-900/40">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22v-5"/><path d="M9 18H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2h-5"/><path d="m15 13-3 3-3-3"/><path d="M12 16V2"/></svg>
+                              <span className="max-w-0 overflow-hidden group-hover:max-w-xs group-hover:ml-2 transition-all duration-300 font-bold whitespace-nowrap">Incorporate Peer Insights</span>
+                            </button>
+                          )}
                           <div className="ml-auto flex items-center gap-2">
                              <button onClick={() => handleFeedback('helpful')} className={`p-3 rounded-xl border ${result?.feedback === 'helpful' ? 'bg-emerald-500 border-emerald-400 text-white' : 'bg-slate-800 border-slate-700 text-slate-500'}`}><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M7 10v12"></path><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2h0a3.13 3.13 0 0 1 3 3.88Z"></path></svg></button>
                              <button onClick={() => handleFeedback('not-helpful')} className={`p-3 rounded-xl border ${result?.feedback === 'not-helpful' ? 'bg-red-500 border-red-400 text-white' : 'bg-slate-800 border-slate-700 text-slate-500'}`}><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 14V2"></path><path d="M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79-1.11L12 22h0a3.13 3.13 0 0 1-3-3.88Z"></path></svg></button>
@@ -505,14 +607,66 @@ const DecidrApp: React.FC = () => {
                        </div>
                     </div>
                   )}
-                  {status === AnalysisStatus.COMPLETE && result && isElaborationOpen && <VerdictElaboration result={result} />}
+                  
+                  {/* Contribution Form for Public View */}
+                  {isPublicSession && !isOwner && (
+                    <div className="bg-indigo-500/5 border border-indigo-500/20 rounded-2xl p-8 animate-fade-in">
+                      <h3 className="text-lg font-bold text-white mb-4">Contribute Your Perspective</h3>
+                      <p className="text-slate-400 text-sm mb-6">Your insights will be shared with the deliberation owner to help refine their decision.</p>
+                      <div className="space-y-4">
+                        <input 
+                          type="text" 
+                          value={contributionName} 
+                          onChange={(e) => setContributionName(e.target.value)} 
+                          placeholder="Your Name (Optional)" 
+                          className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white placeholder-slate-600 focus:border-indigo-500 outline-none transition-all"
+                        />
+                        <textarea 
+                          value={contributionContent} 
+                          onChange={(e) => setContributionContent(e.target.value)} 
+                          rows={4} 
+                          placeholder="Provide expert commentary or highlight missing risks..." 
+                          className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white placeholder-slate-600 focus:border-indigo-500 outline-none transition-all resize-none"
+                        />
+                        <button 
+                          onClick={handleSubmitContribution}
+                          disabled={isContributing || !contributionContent.trim()}
+                          className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-all disabled:opacity-50"
+                        >
+                          {isContributing ? "Submitting..." : "Submit to Council"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {(status === AnalysisStatus.COMPLETE || status === AnalysisStatus.SHARED_VIEW) && result && isElaborationOpen && <VerdictElaboration result={result} />}
+                  
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    <AgentCard role="Analyst" agent={result?.analyst || partialResult?.analyst} color="blue" isLoading={!result?.analyst && !partialResult?.analyst} />
-                    <AgentCard role="Strategist" agent={result?.strategist || partialResult?.strategist} color="purple" isLoading={!result?.strategist && !partialResult?.strategist} />
-                    <AgentCard role="Skeptic" agent={result?.skeptic || partialResult?.skeptic} color="red" isLoading={!result?.skeptic && !partialResult?.skeptic} />
-                    <AgentCard role="Mediator" agent={result?.mediator || partialResult?.mediator} color="emerald" isLoading={!result?.mediator && !partialResult?.mediator} />
+                    <AgentCard role="Analyst" agent={result?.analyst} color="blue" isLoading={!result?.analyst && !partialResult?.analyst} />
+                    <AgentCard role="Strategist" agent={result?.strategist} color="purple" isLoading={!result?.strategist && !partialResult?.strategist} />
+                    <AgentCard role="Skeptic" agent={result?.skeptic} color="red" isLoading={!result?.skeptic && !partialResult?.skeptic} />
+                    <AgentCard role="Mediator" agent={result?.mediator} color="emerald" isLoading={!result?.mediator && !partialResult?.mediator} />
+                    
+                    {/* Render Contributions as Human Agent Cards */}
+                    {contributions.map((c) => (
+                      <AgentCard 
+                        key={c.id}
+                        role="Human" 
+                        agent={{
+                          name: c.name,
+                          role: "Human Perspective",
+                          analysis: c.content,
+                          keyPoints: ["External Peer Insight"],
+                          score: 100,
+                          sequence: []
+                        }} 
+                        color="indigo" 
+                        isLoading={false} 
+                      />
+                    ))}
                   </div>
-                  {status === AnalysisStatus.COMPLETE && result && (
+
+                  {(status === AnalysisStatus.COMPLETE || status === AnalysisStatus.SHARED_VIEW) && result && (
                     <div className="pt-8 pb-20 border-t border-slate-800/50 mt-12">
                       <CommitmentPanel 
                           options={inputValues.options} 

@@ -86,12 +86,20 @@ export interface ChatMessage {
   timestamp: number;
 }
 
+export interface Contribution {
+  id: string;
+  name: string;
+  content: string;
+  timestamp: number;
+}
+
 export enum AnalysisStatus {
   IDLE = 'IDLE',
   ANALYZING = 'ANALYZING',
   COMPLETE = 'COMPLETE',
   ERROR = 'ERROR',
-  OUT_OF_CREDITS = 'OUT_OF_CREDITS'
+  OUT_OF_CREDITS = 'OUT_OF_CREDITS',
+  SHARED_VIEW = 'SHARED_VIEW'
 }
 
 export interface DecisionSession {
@@ -104,6 +112,8 @@ export interface DecisionSession {
   chatHistory?: ChatMessage[];
   actionPlan?: ActionPlan;
   decisionTree?: DecisionTree;
+  isPublic?: boolean;
+  contributions?: Contribution[];
   commitment?: {
     selectedOption: string;
     justification: string;

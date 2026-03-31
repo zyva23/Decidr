@@ -1,8 +1,10 @@
 import { initializeApp, getApp, getApps } from "firebase/app";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
-import { getFirestore, collection, addDoc, serverTimestamp, doc, getDoc, setDoc } from "firebase/firestore";
+import { getFirestore, collection, addDoc, serverTimestamp, doc, getDoc, setDoc, updateDoc, arrayUnion } from \"firebase/firestore\";
+import { DecisionSession, Contribution, AnalysisStatus } from \"../types\";
 
 const firebaseConfig = {
+
   apiKey: process.env.VITE_FIREBASE_API_KEY,
   authDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN,
   projectId: process.env.VITE_FIREBASE_PROJECT_ID,
@@ -147,3 +149,38 @@ export const saveUserProfile = async (userId: string, xp: number, level: number)
 };
 
 export { signInWithPopup, signOut, onAuthStateChanged };
+
+export const toggleSessionPublic = async (sessionId: string, isPublic: boolean) => {
+  if (!db) return;
+  try {
+    await updateDoc(doc(db, "sessions", sessionId), { isPublic });
+  } catch (e) {
+    console.error("Error toggling public status:", e);
+  }
+};
+
+export const getPublicSession = async (sessionId: string): Promise<DecisionSession | null> => {
+  if (!db) return null;
+  try {
+    const docSnap = await getDoc(doc(db, "sessions", sessionId));
+    if (docSnap.exists()) {
+      const data = docSnap.data() as DecisionSession;
+      if (data.isPublic) return data;
+    }
+    return null;
+  } catch (e) {
+    console.error("Error fetching public session:", e);
+    return null;
+  }
+};
+
+export const addSessionContribution = async (sessionId: string, contribution: Contribution) => {
+  if (!db) return;
+  try {
+    await updateDoc(doc(db, "sessions", sessionId), {
+      contributions: arrayUnion(contribution)
+    });
+  } catch (e) {
+    console.error("Error adding contribution:", e);
+  }
+};

@@ -5,8 +5,8 @@ import SourcesModal from './SourcesModal';
 
 interface AgentCardProps {
   agent?: AgentResponse;
-  role: 'Analyst' | 'Strategist' | 'Skeptic' | 'Mediator';
-  color: 'blue' | 'purple' | 'red' | 'emerald';
+  role: 'Analyst' | 'Strategist' | 'Skeptic' | 'Mediator' | 'Human';
+  color: 'blue' | 'purple' | 'red' | 'emerald' | 'indigo';
   isLoading?: boolean;
 }
 
@@ -14,8 +14,16 @@ const colorMap = {
   blue: { border: 'border-blue-500/30', bg: 'bg-blue-900/10', glow: 'bg-blue-500/10', text: 'text-blue-400', title: 'text-blue-200', badge: 'bg-blue-500/20 text-blue-300', hover: 'hover:border-blue-500/60', stepBg: 'bg-blue-900/20' },
   purple: { border: 'border-purple-500/30', bg: 'bg-purple-900/10', glow: 'bg-purple-500/10', text: 'text-purple-400', title: 'text-purple-200', badge: 'bg-purple-500/20 text-purple-300', hover: 'hover:border-purple-500/60', stepBg: 'bg-purple-900/20' },
   red: { border: 'border-red-500/30', bg: 'bg-red-900/10', glow: 'bg-red-500/10', text: 'text-red-400', title: 'text-red-200', badge: 'bg-red-500/20 text-red-300', hover: 'hover:border-red-500/60', stepBg: 'bg-red-900/20' },
-  emerald: { border: 'border-emerald-500/30', bg: 'bg-emerald-900/10', glow: 'bg-emerald-500/10', text: 'text-emerald-400', title: 'text-emerald-200', badge: 'bg-emerald-500/20 text-emerald-300', hover: 'hover:border-emerald-500/60', stepBg: 'bg-emerald-900/20' }
+  emerald: { border: 'border-emerald-500/30', bg: 'bg-emerald-900/10', glow: 'bg-emerald-500/10', text: 'text-emerald-400', title: 'text-emerald-200', badge: 'bg-emerald-500/20 text-emerald-300', hover: 'hover:border-emerald-500/60', stepBg: 'bg-emerald-900/20' },
+  indigo: { border: 'border-indigo-500/30', bg: 'bg-indigo-900/10', glow: 'bg-indigo-500/10', text: 'text-indigo-400', title: 'text-indigo-200', badge: 'bg-indigo-500/20 text-indigo-300', hover: 'hover:border-indigo-500/60', stepBg: 'bg-indigo-900/20' }
 };
+
+const HumanAvatar = () => (
+  <svg viewBox="0 0 100 100" className="w-14 h-14 drop-shadow-[0_0_8px_rgba(99,102,241,0.5)]">
+    <circle cx="50" cy="50" r="45" fill="#0f172a" stroke="#6366f1" strokeWidth="2" />
+    <path d="M50 30 A15 15 0 1 1 50 60 A15 15 0 1 1 50 30 M30 85 C30 70 70 70 70 85" stroke="#818cf8" strokeWidth="4" fill="none" strokeLinecap="round" />
+  </svg>
+);
 
 const AnalystAvatar = () => (
   <svg viewBox="0 0 100 100" className="w-14 h-14 drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]">
@@ -56,6 +64,7 @@ const AgentCard: React.FC<AgentCardProps> = ({ agent, role, color, isLoading }) 
       case 'Strategist': return <StrategistAvatar />;
       case 'Skeptic': return <SkepticAvatar />;
       case 'Mediator': return <MediatorAvatar />;
+      case 'Human': return <HumanAvatar />;
       default: return null;
     }
   };
