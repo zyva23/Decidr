@@ -51,6 +51,7 @@ class ErrorBoundary extends Component<{children: ReactNode}, {hasError: boolean,
 
 const MAX_FREE_CREDITS = 5;
 
+// Vercel build trigger: Advanced Collaboration Features
 const DecidrApp: React.FC = () => {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isAuthChecking, setIsAuthChecking] = useState(true);
