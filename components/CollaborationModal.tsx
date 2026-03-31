@@ -9,6 +9,12 @@ interface Props {
   isSynthesizing: boolean;
 }
 
+const typeFlagMap = {
+  risk: { label: '🚩 Risk', color: 'bg-red-500/20 text-red-400 border-red-500/30' },
+  variable: { label: '🧩 Variable', color: 'bg-blue-500/20 text-blue-400 border-blue-500/30' },
+  alternative: { label: '💡 Alternative', color: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' }
+};
+
 const CollaborationModal: React.FC<Props> = ({ isOpen, onClose, session, onSynthesize, isSynthesizing }) => {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [notify, setNotify] = useState(true);
@@ -62,8 +68,13 @@ const CollaborationModal: React.FC<Props> = ({ isOpen, onClose, session, onSynth
                       {selectedIds.includes(c.id) && <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>}
                     </div>
                     <div>
-                      <span className="text-sm font-bold text-white">{c.name}</span>
-                      {c.status === 'accepted' && <span className="ml-2 text-[8px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded uppercase font-black tracking-tighter">Incorporated</span>}
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <span className="text-sm font-bold text-white">{c.name}</span>
+                        {c.status === 'accepted' && <span className="text-[8px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded uppercase font-black tracking-tighter">Incorporated</span>}
+                      </div>
+                      <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border ${typeFlagMap[c.type].color}`}>
+                        {typeFlagMap[c.type].label}
+                      </span>
                     </div>
                   </div>
                   <span className="text-[10px] text-slate-600">{new Date(c.timestamp).toLocaleDateString()}</span>

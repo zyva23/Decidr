@@ -8,6 +8,7 @@ interface AgentCardProps {
   role: 'Analyst' | 'Strategist' | 'Skeptic' | 'Mediator' | 'Human';
   color: 'blue' | 'purple' | 'red' | 'emerald' | 'indigo';
   isLoading?: boolean;
+  type?: Contribution['type'];
 }
 
 const colorMap = {
@@ -16,6 +17,12 @@ const colorMap = {
   red: { border: 'border-red-500/30', bg: 'bg-red-900/10', glow: 'bg-red-500/10', text: 'text-red-400', title: 'text-red-200', badge: 'bg-red-500/20 text-red-300', hover: 'hover:border-red-500/60', stepBg: 'bg-red-900/20' },
   emerald: { border: 'border-emerald-500/30', bg: 'bg-emerald-900/10', glow: 'bg-emerald-500/10', text: 'text-emerald-400', title: 'text-emerald-200', badge: 'bg-emerald-500/20 text-emerald-300', hover: 'hover:border-emerald-500/60', stepBg: 'bg-emerald-900/20' },
   indigo: { border: 'border-indigo-500/30', bg: 'bg-indigo-900/10', glow: 'bg-indigo-500/10', text: 'text-indigo-400', title: 'text-indigo-200', badge: 'bg-indigo-500/20 text-indigo-300', hover: 'hover:border-indigo-500/60', stepBg: 'bg-indigo-900/20' }
+};
+
+const typeFlagMap = {
+  risk: { label: '🚩 Risk', color: 'bg-red-500/20 text-red-400 border-red-500/30' },
+  variable: { label: '🧩 Variable', color: 'bg-blue-500/20 text-blue-400 border-blue-500/30' },
+  alternative: { label: '💡 Alternative', color: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' }
 };
 
 const HumanAvatar = () => (
@@ -53,7 +60,7 @@ const MediatorAvatar = () => (
   </svg>
 );
 
-const AgentCard: React.FC<AgentCardProps> = ({ agent, role, color, isLoading }) => {
+const AgentCard: React.FC<AgentCardProps> = ({ agent, role, color, isLoading, type }) => {
   const styles = colorMap[color];
   const [isSequenceOpen, setIsSequenceOpen] = useState(false);
   const [isSourcesOpen, setIsSourcesOpen] = useState(false);
@@ -88,9 +95,16 @@ const AgentCard: React.FC<AgentCardProps> = ({ agent, role, color, isLoading }) 
               <div className="flex gap-4 items-center">
                 <div className="transform group-hover:scale-110 transition-transform duration-500">{renderAvatar()}</div>
                 <div>
-                  <h3 className={`font-black text-xl tracking-tight ${styles.title}`}>{agent.name}</h3>
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className={`font-black text-xl tracking-tight ${styles.title}`}>{agent.name}</h3>
+                    {role === 'Human' && type && (
+                      <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border ${typeFlagMap[type].color}`}>
+                        {typeFlagMap[type].label}
+                      </span>
+                    )}
+                  </div>
                   <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">
-                    {role === 'Analyst' ? 'The Rationalist' : role === 'Strategist' ? 'The Architect' : role === 'Skeptic' ? 'The Realist' : 'The Ethicist'}
+                    {role === 'Analyst' ? 'The Rationalist' : role === 'Strategist' ? 'The Architect' : role === 'Skeptic' ? 'The Realist' : role === 'Mediator' ? 'The Ethicist' : 'Human Perspective'}
                   </p>
                 </div>
               </div>

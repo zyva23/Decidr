@@ -94,335 +94,33 @@ const DecidrApp: React.FC = () => {
   const [isContributing, setIsContributing] = useState(false);
   const [contributionName, setContributionName] = useState('');
   const [contributionContent, setContributionContent] = useState('');
+  const [contributionType, setContributionType] = useState<Contribution['type']>('variable');
+  const [isAnonymous, setIsAnonymous] = useState(false);
   const [isCollaborationModalOpen, setIsCollaborationModalOpen] = useState(false);
   const [isPeerSynthesizing, setIsPeerSynthesizing] = useState(false);
 
-  // DETECT SHARED LINK
+  // Sync contribution name with user profile if not anonymous
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const shareId = params.get('share');
-    if (shareId) {
-      handleLoadSharedSession(shareId);
+    if (user && !isAnonymous && !contributionName) {
+      setContributionName(user.email.split('@')[0]);
     }
-  }, []);
-
-  const handleLoadSharedSession = async (shareId: string) => {
-    setIsSharedLoading(true);
-    try {
-      const session = await getPublicSession(shareId);
-      if (session) {
-        setCurrentSessionId(session.id);
-        setInputValues(session.input);
-        setResult(session.result);
-        setStatus(AnalysisStatus.SHARED_VIEW);
-        setContributions(session.contributions || []);
-        setIsPublicSession(true);
-      } else {
-        alert("Shared deliberation not found or private.");
-        setStatus(AnalysisStatus.IDLE);
-      }
-    } catch (e) {
-      console.error(e);
-      setStatus(AnalysisStatus.IDLE);
-    } finally {
-      setIsSharedLoading(false);
-    }
-  };
-
-  const handlePeerSynthesis = async (selectedIds: string[], notify: boolean) => {
-    if (!currentSessionId || !result) return;
-    setIsPeerSynthesizing(true);
-    const selectedPeers = contributions.filter(c => selectedIds.includes(c.id));
-    
-    try {
-      const updatedResult = await synthesizeOnly(inputValues, result, selectedPeers);
-      setResult(updatedResult);
-      
-      const session = sessions.find(s => s.id === currentSessionId);
-      if (session) {
-        const updatedContributions = (session.contributions || []).map(c => 
-          selectedIds.includes(c.id) ? { ...c, status: 'accepted' as const, notified: notify } : c
-        );
-        const updatedSession = { ...session, result: updatedResult, contributions: updatedContributions };
-        await saveSession(updatedSession);
-        setSessions(await getSessions(user?.id));
-        setContributions(updatedContributions);
-      }
-      setIsCollaborationModalOpen(false);
-      await updateProgression(200);
-    } catch (e) {
-      console.error(e);
-      alert("Council failed to incorporate peer insights.");
-    } finally {
-      setIsPeerSynthesizing(false);
-    }
-  };
-
-  useEffect(() => {
-    if (localStorage.getItem('dc_waitlist_joined') === 'true') { setHasJoinedWaitlist(true); }
-  }, []);
-
-  useEffect(() => {
-    if (!isGCPConfigured || !auth) { setIsAuthChecking(false); return; }
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        const cloudProfile = await getUserProfile(firebaseUser.uid);
-        const localXp = parseInt(localStorage.getItem(`dc_xp_${firebaseUser.uid}`) || '0', 10);
-        const finalXp = Math.max(cloudProfile?.xp || 0, localXp);
-        const finalLevel = Math.floor(finalXp / 500) + 1;
-        setUser({ id: firebaseUser.uid, email: firebaseUser.email || "User", xp: finalXp, level: finalLevel });
-        setXp(finalXp); setLevel(finalLevel);
-        localStorage.setItem(`dc_xp_${firebaseUser.uid}`, finalXp.toString());
-        localStorage.setItem(`dc_level_${firebaseUser.uid}`, finalLevel.toString());
-        if (!cloudProfile || cloudProfile.xp < finalXp) { await saveUserProfile(firebaseUser.uid, finalXp, finalLevel); }
-        logActivity(firebaseUser.uid, 'login');
-        setSessions(await getSessions(firebaseUser.uid));
-      } else {
-        setUser(null); setSessions(getLocalSessions());
-        setXp(parseInt(localStorage.getItem('dc_xp_guest') || '0', 10));
-        setLevel(parseInt(localStorage.getItem('dc_level_guest') || '1', 10));
-      }
-      setIsAuthChecking(false);
-    });
-    return () => unsubscribe();
-  }, []);
-
-  useEffect(() => {
-    const used = localStorage.getItem('dc_credits_used');
-    setCredits(used ? parseInt(used, 10) : 0);
-  }, []);
-
-  const handleWaitlistJoin = async (email: string) => {
-    await saveToWaitlist(email, user?.id);
-    setHasJoinedWaitlist(true);
-    localStorage.setItem('dc_waitlist_joined', 'true');
-  };
-
-  const updateProgression = async (addedXp: number) => {
-    const newXp = xp + addedXp;
-    const newLevel = Math.floor(newXp / 500) + 1;
-    setXp(newXp);
-    if (newLevel > level) { setLevel(newLevel); setShowLevelUp(true); setTimeout(() => setShowLevelUp(false), 5000); }
-    localStorage.setItem(user ? `dc_xp_${user.id}` : 'dc_xp_guest', newXp.toString());
-    localStorage.setItem(user ? `dc_level_${user.id}` : 'dc_level_guest', newLevel.toString());
-    if (user) { await saveUserProfile(user.id, newXp, newLevel); }
-  };
-
-  const handleFeedback = async (type: 'helpful' | 'not-helpful') => {
-    if (!result) return;
-    const newResult = { ...result, feedback: type };
-    setResult(newResult); setShowFeedbackForm(true); setFeedbackSubmitted(false);
-    logActivity(user?.id, 'feedback_click', { verdict: result.synthesis.verdict, type });
-    if (currentSessionId) {
-      const session = sessions.find(s => s.id === currentSessionId);
-      if (session) await saveSession({ ...session, result: newResult });
-    }
-  };
-
-  const submitDetailedFeedback = async () => {
-     if (!currentSessionId || !result?.feedback) return;
-     await saveDetailedFeedback(user?.id, currentSessionId, result.feedback, feedbackComment);
-     setFeedbackSubmitted(true);
-     setTimeout(() => setShowFeedbackForm(false), 2000);
-     setFeedbackComment('');
-  };
-
-  const handleCommitment = async (selected: string, why: string) => {
-    if (!currentSessionId) return;
-    const session = sessions.find(s => s.id === currentSessionId);
-    if (!session) return;
-    const commitment = { selectedOption: selected, justification: why, timestamp: Date.now() };
-    const updatedSession = { ...session, commitment };
-    await updateProgression(150);
-    await saveSession(updatedSession);
-    setSessions(await getSessions(user?.id));
-    logActivity(user?.id, 'commitment_made', { selected, title: session.input.title });
-  };
-
-  const handleBranch = (newContext: string) => {
-    const parentId = currentSessionId || undefined;
-    const oldTitle = inputValues.title;
-    executeStartNewSession();
-    setInputValues(prev => ({ 
-      title: oldTitle, 
-      context: `${newContext} `, 
-      constraints: prev.constraints, 
-      options: '',
-      parentId: parentId
-    }));
-  };
-
-  const handleDevelopPlan = async () => {
-    if (!result || !inputValues) return;
-    const existingSession = sessions.find(s => s.id === currentSessionId);
-    if (existingSession?.actionPlan) { setCurrentPlan(existingSession.actionPlan); setIsPlanModalOpen(true); return; }
-    setIsGeneratingPlan(true);
-    try {
-      const plan = await generateActionPlan(inputValues, result);
-      setCurrentPlan(plan); setIsPlanModalOpen(true);
-      if (currentSessionId) {
-        const session = sessions.find(s => s.id === currentSessionId);
-        if (session) {
-          const updatedSession = { ...session, actionPlan: plan };
-          await saveSession(updatedSession);
-          setSessions(await getSessions(user?.id));
-        }
-      }
-    } catch (e) { console.error(e); } finally { setIsGeneratingPlan(false); }
-  };
-
-  const handleSavePlan = async (updatedPlan: ActionPlan) => {
-    if (!currentSessionId) return;
-    const session = sessions.find(s => s.id === currentSessionId);
-    if (session) {
-      const updatedSession = { ...session, actionPlan: updatedPlan };
-      await saveSession(updatedSession);
-      setCurrentPlan(updatedPlan);
-      setSessions(await getSessions(user?.id));
-    }
-  };
-
-  const handleSaveTree = async (tree: DecisionTree, shouldClose: boolean = true) => {
-    if (!currentSessionId) return;
-    const session = sessions.find(s => s.id === currentSessionId);
-    if (session) {
-      const updatedSession = { ...session, decisionTree: tree };
-      await saveSession(updatedSession);
-      if (shouldClose) setIsTreeOpen(false);
-      setSessions(await getSessions(user?.id));
-    }
-  };
-
-  const executeStartNewSession = () => {
-    window.history.pushState({}, '', window.location.pathname); // Clear share ID
-    setCurrentSessionId(null); setInputValues({ title: '', context: '', constraints: '', options: '' });
-    setResult(null); setPartialResult(null); setChatHistory([]); setStatus(AnalysisStatus.IDLE);
-    setIsChatOpen(false); setIsElaborationOpen(false); setCurrentPlan(null); setHasDownloadedPDF(false);
-    setContributions([]); setIsPublicSession(false);
-  };
-
-  const startNewSession = () => {
-    if (status === AnalysisStatus.ANALYZING) {
-      setConfirmationDialog({ type: 'cancel_analysis', pendingAction: executeStartNewSession });
-      return;
-    }
-    if (status === AnalysisStatus.COMPLETE && !hasDownloadedPDF) {
-      setConfirmationDialog({ type: 'download_first', pendingAction: executeStartNewSession });
-      return;
-    }
-    executeStartNewSession();
-  };
-
-  const executeLoadSession = (session: DecisionSession) => {
-    window.history.pushState({}, '', window.location.pathname); // Clear share ID
-    setCurrentSessionId(session.id); setInputValues(session.input);
-    setResult(session.result); setPartialResult(null); setChatHistory(session.chatHistory || []);
-    setStatus(session.status); setIsChatOpen(false); setIsElaborationOpen(false);
-    setCurrentPlan(session.actionPlan || null); setIsHistoryOpen(false); setHasDownloadedPDF(true);
-    setContributions(session.contributions || []); setIsPublicSession(session.isPublic || false);
-  };
-
-  const loadSession = (session: DecisionSession) => {
-    if (status === AnalysisStatus.ANALYZING) {
-      setConfirmationDialog({ type: 'cancel_analysis', pendingAction: () => executeLoadSession(session) });
-      return;
-    }
-    if (status === AnalysisStatus.COMPLETE && !hasDownloadedPDF && currentSessionId !== session.id) {
-      setConfirmationDialog({ type: 'download_first', pendingAction: () => executeLoadSession(session) });
-      return;
-    }
-    executeLoadSession(session);
-  };
-
-  const handleAnalysis = async (input: DecisionInput) => {
-    if (credits >= MAX_FREE_CREDITS) {
-      if (user && user.email && !hasJoinedWaitlist) { await handleWaitlistJoin(user.email); }
-      setShowWaitlist(true); return;
-    }
-    
-    const canRetrySynthesis = partialResult && 
-      partialResult.analyst && partialResult.strategist && 
-      partialResult.skeptic && partialResult.mediator;
-
-    setStatus(AnalysisStatus.ANALYZING); setInputValues(input); 
-    if (!canRetrySynthesis) { setResult(null); setPartialResult(null); }
-    setHasDownloadedPDF(false);
-    
-    logActivity(user?.id, canRetrySynthesis ? 'retry_synthesis' : 'analysis_started', { title: input.title });
-    
-    try {
-      let data: CouncilResult;
-      if (canRetrySynthesis) {
-        data = await synthesizeOnly(input, partialResult);
-      } else {
-        data = await analyzeDecision(input, (partial) => {
-          try { setPartialResult(prev => ({ ...(prev || {}), ...partial })); } catch (e) { console.warn("Partial state update skipped", e); }
-        });
-      }
-
-      setResult(data); setPartialResult(null); setStatus(AnalysisStatus.COMPLETE);
-      const newCredits = credits + 1; setCredits(newCredits);
-      localStorage.setItem('dc_credits_used', newCredits.toString());
-      await updateProgression(100);
-
-      const sessionId = currentSessionId || crypto.randomUUID();
-      const newSession: DecisionSession = {
-        id: sessionId, user_id: user?.id, timestamp: Date.now(),
-        input: input, result: data, status: AnalysisStatus.COMPLETE, chatHistory: [],
-        isPublic: false, contributions: []
-      };
-      await saveSession(newSession); setCurrentSessionId(sessionId);
-      setSessions(await getSessions(user?.id));
-
-      (async () => {
-        try {
-          const [plan, tree] = await Promise.all([
-            generateActionPlan(input, data),
-            generateDecisionTree(input.title, data)
-          ]);
-          const session = (await getSessions(user?.id)).find(s => s.id === sessionId);
-          if (session) {
-            await saveSession({ ...session, actionPlan: plan, decisionTree: tree });
-            if (sessionId === currentSessionId) { setCurrentPlan(plan); setSessions(await getSessions(user?.id)); }
-          }
-        } catch (bgError) { console.error("Background Gen Error:", bgError); }
-      })();
-    } catch (error: any) {
-      setStatus(AnalysisStatus.ERROR);
-      logActivity(user?.id, 'error', { message: error.message });
-    }
-  };
-
-  const handleExportPDF = async () => {
-    if (!result || !inputValues) return;
-    setIsExporting(true);
-    try { 
-      await generateDecisionPDF(inputValues, result, currentPlan || undefined); 
-      setHasDownloadedPDF(true);
-    } catch (e) { console.error(e); } finally { setIsExporting(false); }
-  };
-
-  const handleSignOut = async () => {
-    logActivity(user?.id, 'logout');
-    if (auth) await signOut(auth);
-    setIsGuestMode(false); setUser(null); setSessions([]); setCurrentSessionId(null);
-    setResult(null); setPartialResult(null); setStatus(AnalysisStatus.IDLE);
-    setCredits(0); setXp(0); setLevel(1);
-  };
+  }, [user, isAnonymous]);
 
   const handleSubmitContribution = async () => {
     if (!currentSessionId || !contributionContent.trim()) return;
     setIsContributing(true);
+    const finalName = isAnonymous ? "Anonymous Expert" : (contributionName.trim() || "Anonymous Expert");
     const contribution: Contribution = {
       id: crypto.randomUUID(),
-      name: contributionName.trim() || "Anonymous Expert",
+      name: finalName,
       content: contributionContent.trim(),
-      timestamp: Date.now()
+      type: contributionType,
+      timestamp: Date.now(),
+      status: 'pending'
     };
     try {
       await addSessionContribution(currentSessionId, contribution);
       setContributions(prev => [...prev, contribution]);
-      setContributionName('');
       setContributionContent('');
       alert("Your perspective has been submitted to the Council.");
     } catch (e) { console.error(e); } finally { setIsContributing(false); }
@@ -430,7 +128,7 @@ const DecidrApp: React.FC = () => {
 
   const handleIncorporateContributions = () => {
     if (contributions.length === 0) return;
-    const peerInsights = contributions.map(c => `[PEER INSIGHT from ${c.name}]: ${c.content}`).join("\n\n");
+    const peerInsights = contributions.map(c => `[PEER INSIGHT - ${c.type.toUpperCase()} from ${c.name}]: ${c.content}`).join("\n\n");
     const newContext = `${inputValues.context}\n\n--- INCORPORATED PEER REVIEW ---\n${peerInsights}`;
     handleBranch(newContext);
   };
@@ -505,6 +203,7 @@ const DecidrApp: React.FC = () => {
           isOpen={isShareModalOpen} 
           onClose={() => setIsShareModalOpen(false)} 
           sessionId={currentSessionId} 
+          title={inputValues.title}
           isPublicInitial={isPublicSession}
         />
       )}
@@ -646,27 +345,65 @@ const DecidrApp: React.FC = () => {
                   {/* Contribution Form for Public View */}
                   {isPublicSession && !isOwner && (
                     <div className="bg-indigo-500/5 border border-indigo-500/20 rounded-2xl p-8 animate-fade-in">
-                      <h3 className="text-lg font-bold text-white mb-4">Contribute Your Perspective</h3>
+                      <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-lg font-bold text-white">Contribute Your Perspective</h3>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Post as Anonymous</span>
+                          <button 
+                            onClick={() => setIsAnonymous(!isAnonymous)}
+                            className={`w-10 h-5 rounded-full transition-all relative ${isAnonymous ? 'bg-indigo-600' : 'bg-slate-700'}`}
+                          >
+                            <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${isAnonymous ? 'left-6' : 'left-1'}`} />
+                          </button>
+                        </div>
+                      </div>
+                      
                       <p className="text-slate-400 text-sm mb-6">Your insights will be shared with the deliberation owner to help refine their decision.</p>
+                      
                       <div className="space-y-4">
-                        <input 
-                          type="text" 
-                          value={contributionName} 
-                          onChange={(e) => setContributionName(e.target.value)} 
-                          placeholder="Your Name (Optional)" 
-                          className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white placeholder-slate-600 focus:border-indigo-500 outline-none transition-all"
-                        />
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          {!isAnonymous && (
+                            <input 
+                              type="text" 
+                              value={contributionName} 
+                              onChange={(e) => setContributionName(e.target.value)} 
+                              placeholder="Your Name (Optional)" 
+                              className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white placeholder-slate-600 focus:border-indigo-500 outline-none transition-all"
+                            />
+                          )}
+                          <div className={`flex gap-2 p-1 bg-slate-950 border border-slate-800 rounded-xl ${isAnonymous ? 'col-span-2' : ''}`}>
+                            {[
+                              { id: 'risk', label: '🚩 Risk', color: 'text-red-400' },
+                              { id: 'variable', label: '🧩 Variable', color: 'text-blue-400' },
+                              { id: 'alternative', label: '💡 Alternative', color: 'text-emerald-400' }
+                            ].map((t) => (
+                              <button
+                                key={t.id}
+                                onClick={() => setContributionType(t.id as any)}
+                                className={`flex-1 py-2 px-3 rounded-lg text-[10px] font-black uppercase tracking-tighter transition-all ${contributionType === t.id ? 'bg-slate-800 text-white border border-slate-700 shadow-xl' : 'text-slate-500 hover:text-slate-300'}`}
+                              >
+                                <span className={contributionType === t.id ? t.color : ''}>{t.label}</span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
                         <textarea 
                           value={contributionContent} 
                           onChange={(e) => setContributionContent(e.target.value)} 
                           rows={4} 
-                          placeholder="Provide expert commentary or highlight missing risks..." 
+                          placeholder={
+                            contributionType === 'risk' ? "What critical failure mode or risk has been overlooked?" :
+                            contributionType === 'variable' ? "What new variable or context should the council consider?" :
+                            "Suggest an alternative strategic path or specific action..."
+                          }
                           className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white placeholder-slate-600 focus:border-indigo-500 outline-none transition-all resize-none"
                         />
+                        
                         <button 
                           onClick={handleSubmitContribution}
                           disabled={isContributing || !contributionContent.trim()}
-                          className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-all disabled:opacity-50"
+                          className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-all disabled:opacity-50 shadow-xl shadow-indigo-900/20"
                         >
                           {isContributing ? "Submitting..." : "Submit to Council"}
                         </button>
@@ -682,18 +419,17 @@ const DecidrApp: React.FC = () => {
                     <AgentCard role="Skeptic" agent={result?.skeptic} color="red" isLoading={!result?.skeptic && !partialResult?.skeptic} />
                     <AgentCard role="Mediator" agent={result?.mediator} color="emerald" isLoading={!result?.mediator && !partialResult?.mediator} />
                     
-                    {/* Render Contributions ONLY for Owner, or if previously accepted for all */}
-                    {contributions
-                      .filter(c => isOwner || c.status === 'accepted')
-                      .map((c) => (
+                    {/* Render Contributions ONLY for Owner */}
+                    {isOwner && contributions.map((c) => (
                         <AgentCard 
                           key={c.id}
                           role="Human" 
+                          type={c.type}
                           agent={{
                             name: c.name,
                             role: "Human Perspective",
                             analysis: c.content,
-                            keyPoints: ["External Peer Insight"],
+                            keyPoints: [c.status === 'accepted' ? "Incorporated into Synthesis" : "Pending Review"],
                             score: 100,
                             sequence: []
                           }} 

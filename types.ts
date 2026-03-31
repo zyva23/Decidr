@@ -91,6 +91,7 @@ export interface Contribution {
   name: string;
   content: string;
   timestamp: number;
+  type: 'risk' | 'variable' | 'alternative';
   status?: 'pending' | 'accepted' | 'dismissed';
   notified?: boolean;
 }
