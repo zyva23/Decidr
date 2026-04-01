@@ -97,6 +97,7 @@ const DecidrApp: React.FC = () => {
   const [isPeerSynthesizing, setIsPeerSynthesizing] = useState(false);
   const [selectedContributionIds, setSelectedContributionIds] = useState<string[]>([]);
   const [notifyContributors, setNotifyContributors] = useState(true);
+  const [currentSynthesisIndex, setCurrentSynthesisIndex] = useState(0);
 
   // Notification State
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -475,8 +476,50 @@ const DecidrApp: React.FC = () => {
               {(status === AnalysisStatus.COMPLETE || status === AnalysisStatus.SHARED_VIEW) && result && (
                 <div className="space-y-6 animate-fade-in pb-12 text-left">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
-                    <div className="md:col-span-2 bg-gradient-to-br from-indigo-900/40 to-slate-900/40 border border-indigo-500/30 rounded-xl p-8 flex flex-col shadow-2xl text-left">
-                      <h2 className="text-indigo-300 text-xs font-bold uppercase tracking-widest mb-4">Master Verdict</h2><h3 className="text-3xl font-black text-white mb-4 leading-tight">{result.synthesis?.verdict}</h3><p className="text-slate-300 leading-relaxed text-lg mb-8">{result.synthesis?.recommendation}</p>
+                    <div className="md:col-span-2 bg-gradient-to-br from-indigo-900/40 to-slate-900/40 border border-indigo-500/30 rounded-xl p-8 flex flex-col shadow-2xl text-left relative overflow-hidden">
+                      <div className="flex justify-between items-center mb-4">
+                        <h2 className="text-indigo-300 text-xs font-bold uppercase tracking-widest">Master Verdict</h2>
+                        {(result.synthesisHistory && result.synthesisHistory.length > 0) && (
+                          <div className="flex items-center gap-2 bg-slate-950/50 px-3 py-1.5 rounded-full border border-slate-800 shadow-inner">
+                            <button 
+                              onClick={() => setCurrentSynthesisIndex(prev => Math.max(0, prev - 1))}
+                              disabled={currentSynthesisIndex === 0}
+                              className="p-1 text-slate-500 hover:text-white disabled:opacity-20 disabled:cursor-not-allowed transition-colors"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                            </button>
+                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">
+                              Version {currentSynthesisIndex + 1} / {(result.synthesisHistory?.length || 0) + 1}
+                            </span>
+                            <button 
+                              onClick={() => setCurrentSynthesisIndex(prev => Math.min((result.synthesisHistory?.length || 0), prev + 1))}
+                              disabled={currentSynthesisIndex === (result.synthesisHistory?.length || 0)}
+                              className="p-1 text-slate-500 hover:text-white disabled:opacity-20 disabled:cursor-not-allowed transition-colors"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Display content based on index */}
+                      {(() => {
+                        const activeSynthesis = currentSynthesisIndex === (result.synthesisHistory?.length || 0) 
+                          ? result.synthesis 
+                          : result.synthesisHistory![currentSynthesisIndex];
+                        
+                        return (
+                          <div className="animate-fade-in">
+                            <h3 className="text-3xl font-black text-white mb-4 leading-tight">
+                              {activeSynthesis.verdict}
+                            </h3>
+                            <p className="text-slate-300 leading-relaxed text-lg mb-8">
+                              {activeSynthesis.recommendation}
+                            </p>
+                          </div>
+                        );
+                      })()}
+
                       <div className="flex items-center justify-between gap-3 mt-auto text-left relative">
                         <div className="flex items-center gap-2">
                           {isOwner && (

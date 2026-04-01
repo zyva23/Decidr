@@ -60,6 +60,7 @@ export interface CouncilResult {
   skeptic: AgentResponse;
   mediator: AgentResponse;
   synthesis: SynthesisResult;
+  synthesisHistory?: SynthesisResult[]; // To store previous versions
   feedback?: 'helpful' | 'not-helpful'; // User feedback
 }
 

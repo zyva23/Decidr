@@ -63,8 +63,20 @@ const CollaborationModal: React.FC<Props> = ({
 
   return (
     <div className="fixed inset-0 z-[600] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-      <div className="bg-[#1A1D21] border border-slate-700/50 rounded-2xl max-w-2xl w-full shadow-2xl animate-fade-in flex flex-col max-h-[85vh] overflow-hidden">
+      <div className="bg-[#1A1D21] border border-slate-700/50 rounded-2xl max-w-2xl w-full shadow-2xl animate-fade-in flex flex-col max-h-[85vh] overflow-hidden relative">
         
+        {/* Loading Overlay for Synthesis */}
+        {isSynthesizing && (
+          <div className="absolute inset-0 z-[700] bg-slate-950/80 backdrop-blur-md flex flex-col items-center justify-center animate-fade-in">
+            <div className="w-16 h-16 relative mb-6">
+              <div className="absolute inset-0 border-4 border-indigo-500/20 rounded-full" />
+              <div className="absolute inset-0 border-4 border-t-indigo-500 rounded-full animate-spin" />
+            </div>
+            <h3 className="text-xl font-black text-white uppercase tracking-tighter mb-2">Re-Synthesizing</h3>
+            <p className="text-slate-400 text-sm font-medium tracking-wide">Incorporating peer insights into the Master Verdict...</p>
+          </div>
+        )}
+
         {/* Slack-style Header */}
         <div className="px-6 py-4 border-b border-slate-700/50 flex justify-between items-center bg-[#121519]">
           <div className="flex items-center gap-3">
