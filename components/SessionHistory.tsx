@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { DecisionSession, UserProfile } from '../types';
+import React, { useState, useEffect } from 'react';
+import { DecisionSession, UserProfile, Contribution } from '../types';
+import { getSessionContributions } from '../services/googleCloud';
 
 interface Props {
   isOpen: boolean;
@@ -25,12 +26,29 @@ const SessionHistory: React.FC<Props> = ({
   onSignOut
 }) => {
   const [activeTab, setActiveTab] = useState<'personal' | 'shared'>('personal');
+  const [liveCounts, setLiveCounts] = useState<Record<string, number>>({});
+
+  // Fetch live counts for shared sessions when panel opens
+  useEffect(() => {
+    if (isOpen) {
+      const fetchAllCounts = async () => {
+        const counts: Record<string, number> = {};
+        const shared = sessions.filter(s => s.isPublic);
+        await Promise.all(shared.map(async (s) => {
+          const contributions = await getSessionContributions(s.id);
+          counts[s.id] = contributions.length;
+        }));
+        setLiveCounts(counts);
+      };
+      fetchAllCounts();
+    }
+  }, [isOpen, sessions]);
 
   const personalSessions = sessions.filter(s => !s.isPublic);
   const sharedSessions = sessions.filter(s => s.isPublic);
 
   const renderSessionItem = (session: DecisionSession) => {
-    const contributionCount = session.contributions?.length || 0;
+    const contributionCount = liveCounts[session.id] ?? (session.contributions?.length || 0);
     const hasUnreadContributions = session.contributions?.some(c => c.status === 'pending');
 
     return (
