@@ -401,7 +401,18 @@ const DecidrApp: React.FC = () => {
   };
 
   if (isAuthChecking) { return <div className="flex items-center justify-center h-screen bg-slate-950"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div></div>; }
-  if (!user && !isGuestMode && (status !== AnalysisStatus.SHARED_VIEW || shouldStartNewAfterLogin)) { return <Auth onContinueAsGuest={() => { setIsGuestMode(true); setShouldStartNewAfterLogin(false); logActivity(null, 'guest_session_start'); }} />; }
+  if (!user && !isGuestMode && (status !== AnalysisStatus.SHARED_VIEW || shouldStartNewAfterLogin)) { 
+    return (
+      <Auth onContinueAsGuest={() => { 
+        setIsGuestMode(true); 
+        if (shouldStartNewAfterLogin) {
+          executeStartNewSession();
+        }
+        setShouldStartNewAfterLogin(false); 
+        logActivity(null, 'guest_session_start'); 
+      }} />
+    ); 
+  }
 
   return (
     <div className="flex flex-col h-screen w-full bg-slate-950 text-slate-200 font-sans overflow-hidden text-left">
