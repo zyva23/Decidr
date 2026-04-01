@@ -98,6 +98,26 @@ const DecidrApp: React.FC = () => {
   const [selectedContributionIds, setSelectedContributionIds] = useState<string[]>([]);
   const [notifyContributors, setNotifyContributors] = useState(true);
   const [currentSynthesisIndex, setCurrentSynthesisIndex] = useState(0);
+  const [feedbackTargetId, setFeedbackTargetId] = useState<string | null>(null);
+  const [revisionComment, setRevisionComment] = useState('');
+
+  const handleDiscardContribution = async (id: string) => {
+    if (!currentSessionId) return;
+    try {
+      await updateContributionStatus(currentSessionId, id, { status: 'dismissed' });
+      setContributions(prev => prev.map(c => c.id === id ? { ...c, status: 'dismissed' as const } : c));
+    } catch (e) { console.error(e); }
+  };
+
+  const handleRequestRevision = async (id: string) => {
+    if (!currentSessionId || !revisionComment.trim()) return;
+    try {
+      await updateContributionStatus(currentSessionId, id, { status: 'revision_requested', feedbackComment: revisionComment });
+      setContributions(prev => prev.map(c => c.id === id ? { ...c, status: 'revision_requested' as const, feedbackComment: revisionComment } : c));
+      setFeedbackTargetId(null);
+      setRevisionComment('');
+    } catch (e) { console.error(e); }
+  };
 
   // Notification State
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -721,16 +741,58 @@ const DecidrApp: React.FC = () => {
                           )}
 
                           <div className="divide-y divide-slate-800/30 max-h-[400px] overflow-y-auto custom-scrollbar text-left">
-                            {contributions.filter(c => isOwner || c.status === 'accepted').map((c) => (
-                              <div key={c.id} onClick={() => isOwner && toggleContributionSelection(c.id)} className={`flex gap-4 p-5 transition-all text-left ${isOwner ? 'cursor-pointer hover:bg-[#222529]' : ''} ${selectedContributionIds.includes(c.id) ? 'bg-indigo-500/5 border-l-4 border-l-indigo-500 shadow-inner shadow-indigo-900/10' : 'border-l-4 border-l-transparent'} ${c.status === 'accepted' ? 'bg-indigo-500/5' : ''}`}>
-                                <div className="shrink-0 pt-1 text-left"><div className="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center text-slate-400 font-bold text-xs border border-slate-700 shadow-inner">{(c.name?.[0] || 'E').toUpperCase()}</div></div>
-                                <div className="flex-1 min-w-0 text-left">
-                                  <div className="flex items-baseline gap-2 mb-1 text-left"><span className="font-bold text-sm text-slate-200">{c.name}</span><span className="text-[9px] text-slate-600 font-medium opacity-60">{new Date(c.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>{c.status === 'accepted' && <span className="text-[7px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-1.5 rounded uppercase font-black tracking-widest shadow-inner">Incorporated</span>}</div>
-                                  <div className="mb-2 text-left"><span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider border shadow-sm ${c.type === 'risk' ? 'bg-red-500/10 text-red-400 border-red-500/20' : c.type === 'variable' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'}`}>{c.type === 'risk' ? '🚩 Risk' : c.type === 'variable' ? '🧩 Variable' : '💡 Alternative'}</span></div>
-                                  <p className="text-slate-300 text-sm leading-relaxed text-left opacity-90">{c.content}</p>
-                                  {isOwner && (
-                                    <div className="mt-3 flex items-center gap-2 text-left"><div className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-all ${selectedContributionIds.includes(c.id) ? 'bg-indigo-500 border-indigo-400 scale-110' : 'border-slate-700 hover:border-slate-500 shadow-inner'}`}>{selectedContributionIds.includes(c.id) && <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>}</div><span className={`text-[8px] font-black uppercase tracking-widest ${selectedContributionIds.includes(c.id) ? 'text-indigo-400' : 'text-slate-600'}`}>{selectedContributionIds.includes(c.id) ? 'Selected for Council Update' : 'Select to Incorporate'}</span></div>
-                                  )}
+                            {contributions.filter(c => isOwner || c.status === 'accepted' || (c.status === 'revision_requested' && !isOwner)).map((c) => (
+                              <div key={c.id} className={`p-5 transition-all text-left ${selectedContributionIds.includes(c.id) ? 'bg-indigo-500/5 border-l-4 border-l-indigo-500 shadow-inner shadow-indigo-900/10' : 'border-l-4 border-l-transparent'} ${c.status === 'accepted' ? 'bg-indigo-500/5' : ''}`}>
+                                <div className="flex gap-4">
+                                  <div className="shrink-0 pt-1 text-left"><div className="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center text-slate-400 font-bold text-xs border border-slate-700 shadow-inner">{(c.name?.[0] || 'E').toUpperCase()}</div></div>
+                                  <div className="flex-1 min-w-0 text-left">
+                                    <div className="flex items-baseline gap-2 mb-1 text-left">
+                                      <span className="font-bold text-sm text-slate-200">{c.name}</span>
+                                      <span className="text-[9px] text-slate-600 font-medium opacity-60">{new Date(c.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                      {c.status === 'accepted' && <span className="text-[7px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-1.5 rounded uppercase font-black tracking-widest shadow-inner">Incorporated</span>}
+                                      {c.status === 'revision_requested' && <span className="text-[7px] bg-amber-500/10 text-amber-400 border border-amber-500/20 px-1.5 rounded uppercase font-black tracking-widest shadow-inner">Revision Requested</span>}
+                                      {c.status === 'dismissed' && <span className="text-[7px] bg-red-500/10 text-red-400 border border-red-500/20 px-1.5 rounded uppercase font-black tracking-widest shadow-inner">Discarded</span>}
+                                    </div>
+                                    <div className="mb-2 text-left"><span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider border shadow-sm ${c.type === 'risk' ? 'bg-red-500/10 text-red-400 border-red-500/20' : c.type === 'variable' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'}`}>{c.type === 'risk' ? '🚩 Risk' : c.type === 'variable' ? '🧩 Variable' : '💡 Alternative'}</span></div>
+                                    <p className="text-slate-300 text-sm leading-relaxed text-left opacity-90">{c.content}</p>
+                                    
+                                    {c.feedbackComment && (
+                                      <div className="mt-3 p-3 bg-amber-500/5 border border-amber-500/20 rounded-lg text-left">
+                                        <span className="text-[8px] font-black text-amber-500 uppercase tracking-widest block mb-1">Owner Feedback</span>
+                                        <p className="text-xs text-amber-200/70 italic leading-relaxed">"{c.feedbackComment}"</p>
+                                      </div>
+                                    )}
+
+                                    {isOwner && c.status === 'pending' && (
+                                      <div className="mt-4 flex flex-wrap items-center gap-3 text-left">
+                                        <button onClick={() => toggleContributionSelection(c.id)} className={`px-3 py-1.5 rounded-lg border text-[9px] font-black uppercase tracking-widest transition-all ${selectedContributionIds.includes(c.id) ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-indigo-500/10 border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/20'}`}>
+                                          {selectedContributionIds.includes(c.id) ? 'Selected' : 'Select'}
+                                        </button>
+                                        <button onClick={() => setFeedbackTargetId(c.id)} className="px-3 py-1.5 bg-amber-500/10 border border-amber-500/30 text-amber-400 rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-amber-500/20 transition-all">
+                                          Resend with Comment
+                                        </button>
+                                        <button onClick={() => handleDiscardContribution(c.id)} className="px-3 py-1.5 bg-red-500/10 border border-red-500/30 text-red-400 rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-red-500/20 transition-all">
+                                          Discard
+                                        </button>
+                                      </div>
+                                    )}
+
+                                    {isOwner && feedbackTargetId === c.id && (
+                                      <div className="mt-4 p-4 bg-slate-900 border border-slate-800 rounded-xl space-y-3 animate-slide-up">
+                                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Request Revision</span>
+                                        <textarea 
+                                          placeholder="Explain why this needs refinement..."
+                                          value={revisionComment}
+                                          onChange={(e) => setRevisionComment(e.target.value)}
+                                          className="w-full bg-[#1A1D21] border border-slate-700 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-amber-500 transition-all min-h-[60px] resize-none shadow-inner"
+                                        />
+                                        <div className="flex justify-end gap-2">
+                                          <button onClick={() => { setFeedbackTargetId(null); setRevisionComment(''); }} className="px-3 py-1.5 text-[9px] font-bold text-slate-500 uppercase">Cancel</button>
+                                          <button onClick={() => handleRequestRevision(c.id)} disabled={!revisionComment.trim()} className="px-4 py-1.5 bg-amber-600 text-white text-[9px] font-black uppercase rounded-lg disabled:opacity-50">Send Feedback</button>
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
                             ))}

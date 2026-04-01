@@ -104,8 +104,9 @@ export interface Contribution {
   content: string;
   timestamp: number;
   type: 'risk' | 'variable' | 'alternative';
-  status?: 'pending' | 'accepted' | 'dismissed';
+  status?: 'pending' | 'accepted' | 'dismissed' | 'revision_requested';
   notified?: boolean;
+  feedbackComment?: string; // Feedback from the owner
 }
 
 export enum AnalysisStatus {
