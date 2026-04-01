@@ -91,9 +91,15 @@ const CollaborationModal: React.FC<Props> = ({ isOpen, onClose, session, onSynth
                     </div>
 
                     <div className="mb-2">
-                      <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider border ${typeConfig[c.type].bg} ${typeConfig[c.type].color} border-current opacity-70`}>
-                        {typeConfig[c.type].icon} {typeConfig[c.type].label}
-                      </span>
+                      {c.type && typeConfig[c.type] ? (
+                        <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider border ${typeConfig[c.type].bg} ${typeConfig[c.type].color} border-current opacity-70`}>
+                          {typeConfig[c.type].icon} {typeConfig[c.type].label}
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider border bg-slate-800 text-slate-400 border-slate-700 opacity-70">
+                          🧩 Variable
+                        </span>
+                      )}
                     </div>
 
                     <p className="text-slate-300 text-sm leading-relaxed whitespace-pre-wrap">{c.content}</p>
