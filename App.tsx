@@ -107,64 +107,69 @@ const DecidrApp: React.FC = () => {
 
   // NOTIFICATION ENGINE
   useEffect(() => {
-    if (status === AnalysisStatus.SHARED_VIEW) return; // Don't run engine for viewers
+    if (status === AnalysisStatus.SHARED_VIEW) return;
 
-    const newNotifications: Notification[] = [];
-    const now = Date.now();
-    const dayInMs = 24 * 60 * 60 * 1000;
+    const runEngine = async () => {
+      const newNotifications: Notification[] = [];
+      const now = Date.now();
+      const dayInMs = 24 * 60 * 60 * 1000;
 
-    sessions.forEach(session => {
-      // 1. Commitment Nudges
-      if (session.status === AnalysisStatus.COMPLETE && !session.commitment) {
-        const ageInDays = (now - session.timestamp) / dayInMs;
-        if (ageInDays >= 14) {
-          newNotifications.push({
-            id: `nudge-14-${session.id}`,
-            type: 'commitment_nudge',
-            title: 'Critical Stalemate',
-            message: `Decision "${session.input.title.substring(0, 20)}..." has been pending for 2 weeks. Time to lock intent.`,
-            timestamp: now,
-            read: false,
-            linkSessionId: session.id,
-            intensity: 'high'
-          });
-        } else if (ageInDays >= 5) {
-          newNotifications.push({
-            id: `nudge-5-${session.id}`,
-            type: 'commitment_nudge',
-            title: 'Deliberation Stagnation',
-            message: `It's been 5 days since the Council verdict for "${session.input.title.substring(0, 20)}...". Gut resonance check required.`,
-            timestamp: now,
-            read: false,
-            linkSessionId: session.id,
-            intensity: 'medium'
-          });
+      for (const session of sessions) {
+        // 1. Commitment Nudges
+        if (session.status === AnalysisStatus.COMPLETE && !session.commitment) {
+          const ageInDays = (now - session.timestamp) / dayInMs;
+          if (ageInDays >= 14) {
+            newNotifications.push({
+              id: `nudge-14-${session.id}`,
+              type: 'commitment_nudge',
+              title: 'Critical Stalemate',
+              message: `Decision "${session.input.title.substring(0, 20)}..." has been pending for 2 weeks.`,
+              timestamp: now,
+              read: false,
+              linkSessionId: session.id,
+              intensity: 'high'
+            });
+          } else if (ageInDays >= 5) {
+            newNotifications.push({
+              id: `nudge-5-${session.id}`,
+              type: 'commitment_nudge',
+              title: 'Deliberation Stagnation',
+              message: `It's been 5 days since the verdict for "${session.input.title.substring(0, 20)}...".`,
+              timestamp: now,
+              read: false,
+              linkSessionId: session.id,
+              intensity: 'medium'
+            });
+          }
+        }
+
+        // 2. Peer Contribution Alerts (Fetching from sub-collection)
+        if (session.isPublic) {
+          const peerInsights = await getSessionContributions(session.id);
+          const pendingCount = peerInsights.filter(c => c.status === 'pending').length;
+          if (pendingCount > 0) {
+            newNotifications.push({
+              id: `peer-${session.id}`,
+              type: 'peer_contribution',
+              title: 'New Human Perspective',
+              message: `${pendingCount} expert review${pendingCount > 1 ? 's' : ''} pending for "${session.input.title.substring(0, 20)}...".`,
+              timestamp: now,
+              read: false,
+              linkSessionId: session.id,
+              intensity: 'low'
+            });
+          }
         }
       }
 
-      // 2. Peer Contribution Alerts
-      const pendingCount = (session.contributions || []).filter(c => c.status === 'pending').length;
-      if (pendingCount > 0) {
-        newNotifications.push({
-          id: `peer-${session.id}`,
-          type: 'peer_contribution',
-          title: 'Human Perspective Received',
-          message: `${pendingCount} new peer insight${pendingCount > 1 ? 's' : ''} available for "${session.input.title.substring(0, 20)}...".`,
-          timestamp: now,
-          read: false,
-          linkSessionId: session.id,
-          intensity: 'low'
-        });
-      }
-    });
+      setNotifications(prev => {
+        const existingIds = new Set(prev.map(n => n.id));
+        const uniqueNew = newNotifications.filter(n => !existingIds.has(n.id));
+        return [...prev, ...uniqueNew];
+      });
+    };
 
-    // Merge with existing (preserving read/dismissed status if we had persistent storage, for now we just show fresh)
-    setNotifications(prev => {
-      // Very simple merge: add only if ID doesn't exist
-      const existingIds = new Set(prev.map(n => n.id));
-      const uniqueNew = newNotifications.filter(n => !existingIds.has(n.id));
-      return [...prev, ...uniqueNew];
-    });
+    runEngine();
   }, [sessions, status]);
 
   const handleMarkNotificationRead = (id: string) => {
