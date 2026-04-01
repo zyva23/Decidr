@@ -108,16 +108,28 @@ const DecidrApp: React.FC = () => {
 
   const [isHumanInsightsVisible, setIsHumanInsightsVisible] = useState(true);
 
-  // LOAD CONTRIBUTIONS FOR OWNER
+  // LOAD CONTRIBUTIONS FOR OWNER (Unified Merge)
   useEffect(() => {
     if (currentSessionId && isOwner) {
       const fetchInsights = async () => {
-        const insights = await getSessionContributions(currentSessionId);
-        setContributions(insights);
+        // 1. Fetch from sub-collection (Modern source)
+        const subCollectionInsights = await getSessionContributions(currentSessionId);
+        
+        // 2. Extract from main session document (Legacy source)
+        const session = sessions.find(s => s.id === currentSessionId);
+        const legacyInsights = session?.contributions || [];
+
+        // 3. Merge & Deduplicate by ID
+        const mergedMap = new Map<string, Contribution>();
+        legacyInsights.forEach(c => mergedMap.set(c.id, c));
+        subCollectionInsights.forEach(c => mergedMap.set(c.id, c));
+
+        const finalMerged = Array.from(mergedMap.values()).sort((a, b) => b.timestamp - a.timestamp);
+        setContributions(finalMerged);
       };
       fetchInsights();
     }
-  }, [currentSessionId, isOwner]);
+  }, [currentSessionId, isOwner, sessions]);
 
   // NOTIFICATION ENGINE
   useEffect(() => {
@@ -721,27 +733,45 @@ const DecidrApp: React.FC = () => {
                     
                     {/* Render Grouped Human Perspectives */}
                     {(isOwner || contributions.some(c => c.status === 'accepted')) && (
-                      <div className="lg:col-span-2">
-                        <AgentCard 
-                          role="Human" 
-                          color="indigo" 
-                          isLoading={false}
-                          agent={{
-                            name: isOwner ? "Strategic Peer Review" : "Consolidated Human Perspectives",
-                            role: "Human Insights",
-                            analysis: isOwner 
-                              ? `You have ${contributions.length} peer insights in this deliberation. Click 'Manage Peer Insights' to review and incorporate them.`
-                              : contributions
-                                  .filter(c => c.status === 'accepted')
-                                  .map(c => `[${c.type.toUpperCase()}] ${c.name}: ${c.content}`)
-                                  .join("\n\n") || "No human insights incorporated yet.",
-                            keyPoints: isOwner 
-                              ? [`${contributions.filter(c => c.status === 'pending').length} New Pending`, `${contributions.filter(c => c.status === 'accepted').length} Incorporated`]
-                              : ["Community Intelligence", "Stakeholder Feedback"],
-                            score: 100,
-                            sequence: []
-                          }} 
-                        />
+                      <div className={`lg:col-span-2 transition-all duration-500 ${isHumanInsightsVisible ? 'opacity-100' : 'opacity-50'}`}>
+                        <div className="flex justify-between items-center mb-3 px-2">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></div>
+                            <span className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em]">Human Intelligence Layer</span>
+                          </div>
+                          <button 
+                            onClick={() => setIsHumanInsightsVisible(!isHumanInsightsVisible)}
+                            className="p-1.5 text-slate-500 hover:text-white transition-colors rounded-lg bg-slate-900/50 border border-slate-800"
+                            title={isHumanInsightsVisible ? "Hide Insights" : "Show Insights"}
+                          >
+                            {isHumanInsightsVisible ? (
+                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                            ) : (
+                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.52 13.52 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" y1="2" x2="22" y2="22"/></svg>
+                            )}
+                          </button>
+                        </div>
+                        
+                        {isHumanInsightsVisible && (
+                          <AgentCard 
+                            role="Human" 
+                            color="indigo" 
+                            isLoading={false}
+                            agent={{
+                              name: isOwner ? "Strategic Peer Review" : "Consolidated Human Perspectives",
+                              role: "Human Insights",
+                              analysis: contributions
+                                .filter(c => isOwner || c.status === 'accepted')
+                                .map(c => `[${c.type.toUpperCase()} from ${c.name}]: ${c.content}`)
+                                .join("\n\n---\n\n") || "No human insights available.",
+                              keyPoints: isOwner 
+                                ? [`${contributions.filter(c => c.status === 'pending').length} New Pending`, `${contributions.filter(c => c.status === 'accepted').length} Incorporated`]
+                                : ["Community Intelligence", "Stakeholder Feedback"],
+                              score: 100,
+                              sequence: []
+                            }} 
+                          />
+                        )}
                       </div>
                     )}
                   </div>
