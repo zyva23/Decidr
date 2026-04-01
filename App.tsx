@@ -105,9 +105,11 @@ const DecidrApp: React.FC = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
 
+  const isOwner = sessions.some(s => s.id === currentSessionId);
+
   // NOTIFICATION ENGINE
   useEffect(() => {
-    if (status === AnalysisStatus.SHARED_VIEW) return;
+    if (status === AnalysisStatus.SHARED_VIEW && !isOwner) return;
 
     const runEngine = async () => {
       const newNotifications: Notification[] = [];
@@ -170,7 +172,7 @@ const DecidrApp: React.FC = () => {
     };
 
     runEngine();
-  }, [sessions, status]);
+  }, [sessions, status, isOwner]);
 
   const handleMarkNotificationRead = (id: string) => {
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
@@ -556,11 +558,10 @@ const DecidrApp: React.FC = () => {
     return <Auth onContinueAsGuest={() => { setIsGuestMode(true); logActivity(null, 'guest_session_start'); }} />; 
   }
 
-  const isOwner = sessions.some(s => s.id === currentSessionId);
-
   return (
     <div className="flex flex-col h-screen w-full bg-slate-950 text-slate-200 font-sans overflow-hidden">
-      {!isPublicSession && (
+      {/* Sidebar logic: Show for owner or personal sessions, hide for guest shared view */}
+      {(!isPublicSession || isOwner) && (
         <SessionHistory 
           isOpen={isHistoryOpen} sessions={sessions} currentSessionId={currentSessionId} user={user}
           onSelectSession={loadSession} onNewSession={startNewSession} onClose={() => setIsHistoryOpen(false)}
@@ -660,7 +661,7 @@ const DecidrApp: React.FC = () => {
       )}
       <header className="flex-shrink-0 h-16 border-b border-slate-800 bg-slate-900/50 backdrop-blur-md flex items-center justify-between px-4 lg:px-6 z-30">
                 <div className="flex items-center gap-4">
-                  {!isPublicSession && (
+                  {(!isPublicSession || isOwner) && (
                     <button 
                       onClick={() => setIsHistoryOpen(true)} 
                       aria-label="Open History"
@@ -683,15 +684,55 @@ const DecidrApp: React.FC = () => {
               <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-indigo-500 rounded-full border-2 border-slate-900 shadow-[0_0_8px_rgba(99,102,241,0.6)]"></span>
             )}
           </button>
-          {!isPublicSession ? <GamifiedHeader xp={xp} level={level} /> : (
-            <button onClick={startNewSession} className="text-xs font-bold text-indigo-400 hover:text-indigo-300 transition-all uppercase tracking-widest">Start My Own Analysis</button>
+          {(!isPublicSession || isOwner) ? <GamifiedHeader xp={xp} level={level} /> : (
+            <button onClick={startNewSession} className="text-xs font-bold text-indigo-400 hover:text-indigo-300 transition-all uppercase tracking-widest px-4 py-2 rounded-lg border border-indigo-500/30 bg-indigo-500/5">Start My Own Analysis</button>
           )}
         </div>
       </header>
       <main className="flex-1 overflow-hidden relative p-4 lg:p-6">
         <ResizableSplitPane 
           isResultReady={status === AnalysisStatus.COMPLETE || status === AnalysisStatus.SHARED_VIEW}
-          left={<InputForm initialValues={inputValues} onSubmit={handleAnalysis} isLoading={status === AnalysisStatus.ANALYZING} sessions={sessions} />}
+          left={
+            isPublicSession && !isOwner ? (
+              <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-8 shadow-2xl backdrop-blur-xl h-full flex flex-col animate-fade-in overflow-y-auto custom-scrollbar text-left">
+                <div className="mb-8">
+                  <div className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] mb-2">The Inquiry</div>
+                  <h2 className="text-2xl font-black text-white leading-tight mb-4 uppercase">{inputValues.title}</h2>
+                  <div className="w-12 h-1 bg-indigo-500 rounded-full"></div>
+                </div>
+                
+                <div className="space-y-8">
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 text-left">Core Context</h4>
+                    <p className="text-slate-300 leading-relaxed text-sm p-4 bg-slate-950/50 border border-slate-800/50 rounded-xl">{inputValues.context}</p>
+                  </div>
+                  
+                  {inputValues.constraints && (
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 text-left">Known Constraints</h4>
+                      <p className="text-slate-400 leading-relaxed text-xs p-4 border border-slate-800/50 rounded-xl italic">{inputValues.constraints}</p>
+                    </div>
+                  )}
+
+                  {inputValues.options && (
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 text-left">Paths Explored</h4>
+                      <div className="space-y-2">
+                        {inputValues.options.split('\n').filter(o => o.trim()).map((opt, i) => (
+                          <div key={i} className="p-3 bg-indigo-500/5 border border-indigo-500/10 rounded-lg text-xs text-indigo-200/70 flex gap-3">
+                            <span className="font-mono text-indigo-500 opacity-50">0{i+1}</span>
+                            {opt}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <InputForm initialValues={inputValues} onSubmit={handleAnalysis} isLoading={status === AnalysisStatus.ANALYZING} sessions={sessions} />
+            )
+          }
           right={
             <div className="h-full overflow-y-auto custom-scrollbar">
               {(status === AnalysisStatus.COMPLETE || status === AnalysisStatus.ANALYZING || status === AnalysisStatus.ERROR || status === AnalysisStatus.SHARED_VIEW) && (result || partialResult || status === AnalysisStatus.ERROR) && (
@@ -770,7 +811,7 @@ const DecidrApp: React.FC = () => {
                   {/* Contribution Form for Public View */}
                   {isPublicSession && !isOwner && (
                     <div className="bg-indigo-500/5 border border-indigo-500/20 rounded-2xl p-8 animate-fade-in shadow-[0_0_30px_rgba(99,102,241,0.1)]">
-                      <div className="flex justify-between items-center mb-4">
+                      <div className="flex justify-between items-center mb-4 text-left">
                         <div>
                           <h3 className="text-xl font-bold text-white mb-1">Collaborative Strategic Input</h3>
                           <p className="text-slate-500 text-[10px] uppercase tracking-widest font-black italic">Invited Peer Review</p>
@@ -786,7 +827,7 @@ const DecidrApp: React.FC = () => {
                         </div>
                       </div>
                       
-                      <p className="text-slate-400 text-sm mb-8 leading-relaxed">
+                      <p className="text-slate-400 text-sm mb-8 leading-relaxed text-left">
                         The owner of this deliberation has requested your expert perspective. Your insights will be used to refine the Council's final verdict.
                       </p>
                       
