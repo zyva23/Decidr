@@ -402,31 +402,50 @@ const DecidrApp: React.FC = () => {
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
                     <div className="md:col-span-2 bg-gradient-to-br from-indigo-900/40 to-slate-900/40 border border-indigo-500/30 rounded-xl p-8 flex flex-col shadow-2xl text-left">
                       <h2 className="text-indigo-300 text-xs font-bold uppercase tracking-widest mb-4">Master Verdict</h2><h3 className="text-3xl font-black text-white mb-4 leading-tight">{result.synthesis?.verdict}</h3><p className="text-slate-300 leading-relaxed text-lg mb-8">{result.synthesis?.recommendation}</p>
-                      <div className="flex items-center gap-3 mt-auto text-left relative">
-                        {isOwner && (
+                      <div className="flex items-center justify-between gap-3 mt-auto text-left relative">
+                        <div className="flex items-center gap-2">
+                          {isOwner && (
+                            <button 
+                              onClick={() => setIsShareModalOpen(true)} 
+                              className="p-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl active:scale-95 transition-all shadow-lg shadow-emerald-900/40 flex items-center justify-center group"
+                              title="Share Strategic Verdict"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+                            </button>
+                          )}
                           <button 
-                            onClick={() => setIsShareModalOpen(true)} 
-                            className="p-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl active:scale-95 transition-all shadow-lg shadow-emerald-900/40 flex items-center justify-center group"
-                            title="Share Strategic Verdict"
+                            onClick={handleExportPDF} 
+                            disabled={isExporting}
+                            className="p-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl active:scale-95 transition-all shadow-lg shadow-indigo-900/40 flex items-center justify-center gap-3 disabled:opacity-50"
+                            title="Download PDF Report"
                           >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
                           </button>
-                        )}
-                        <button 
-                          onClick={handleExportPDF} 
-                          disabled={isExporting}
-                          className="flex-1 py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl active:scale-95 transition-all shadow-lg shadow-indigo-900/40 flex items-center justify-center gap-3 disabled:opacity-50"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
-                          <span className="font-black uppercase tracking-[0.2em] text-[10px]">Download Report</span>
-                        </button>
+
+                          <div className="flex items-center gap-1 bg-slate-950/40 p-1 rounded-xl border border-slate-800/50">
+                            <button 
+                              onClick={() => handleFeedback('helpful')}
+                              className={`p-2 rounded-lg transition-all ${result.feedback === 'helpful' ? 'bg-emerald-500/20 text-emerald-400' : 'text-slate-500 hover:text-emerald-400'}`}
+                              title="Strategic Insight was Helpful"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M7 10v12"/><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2h0a3.13 3.13 0 0 1 3 3.88Z"/></svg>
+                            </button>
+                            <button 
+                              onClick={() => handleFeedback('not-helpful')}
+                              className={`p-2 rounded-lg transition-all ${result.feedback === 'not-helpful' ? 'bg-red-500/20 text-red-400' : 'text-slate-500 hover:text-red-400'}`}
+                              title="Strategic Insight Needs Refinement"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 14V2"/><path d="M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22h0a3.13 3.13 0 0 1-3-3.88Z"/></svg>
+                            </button>
+                          </div>
+                        </div>
                         
                         <div className="relative">
                           <button 
                             onClick={() => setIsActionsMenuOpen(!isActionsMenuOpen)}
-                            className={`p-4 rounded-2xl transition-all flex items-center justify-center border ${isActionsMenuOpen ? 'bg-slate-800 border-slate-700 text-white shadow-inner' : 'bg-slate-900/50 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'}`}
+                            className={`p-3 rounded-xl transition-all flex items-center justify-center border ${isActionsMenuOpen ? 'bg-slate-800 border-slate-700 text-white shadow-inner' : 'bg-slate-900/50 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'}`}
                           >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
                           </button>
 
                           {isActionsMenuOpen && (
