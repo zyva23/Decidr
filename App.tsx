@@ -703,7 +703,32 @@ const DecidrApp: React.FC = () => {
                     <AgentCard role="Strategist" agent={result?.strategist} color="purple" isLoading={!result?.strategist && !partialResult?.strategist} />
                     <AgentCard role="Skeptic" agent={result?.skeptic} color="red" isLoading={!result?.skeptic && !partialResult?.skeptic} />
                     <AgentCard role="Mediator" agent={result?.mediator} color="emerald" isLoading={!result?.mediator && !partialResult?.mediator} />
-                    {isOwner && contributions.map((c) => (<AgentCard key={c.id} role="Human" type={c.type} agent={{ name: c.name, role: "Human Perspective", analysis: c.content, keyPoints: [c.status === 'accepted' ? "Incorporated into Synthesis" : "Pending Review"], score: 100, sequence: [] }} color="indigo" isLoading={false} />))}
+                    
+                    {/* Render Grouped Human Perspectives */}
+                    {(isOwner || contributions.some(c => c.status === 'accepted')) && (
+                      <div className="lg:col-span-2">
+                        <AgentCard 
+                          role="Human" 
+                          color="indigo" 
+                          isLoading={false}
+                          agent={{
+                            name: isOwner ? "Strategic Peer Review" : "Consolidated Human Perspectives",
+                            role: "Human Insights",
+                            analysis: isOwner 
+                              ? `You have ${contributions.length} peer insights in this deliberation. Click 'Manage Peer Insights' to review and incorporate them.`
+                              : contributions
+                                  .filter(c => c.status === 'accepted')
+                                  .map(c => `[${c.type.toUpperCase()}] ${c.name}: ${c.content}`)
+                                  .join("\n\n") || "No human insights incorporated yet.",
+                            keyPoints: isOwner 
+                              ? [`${contributions.filter(c => c.status === 'pending').length} New Pending`, `${contributions.filter(c => c.status === 'accepted').length} Incorporated`]
+                              : ["Community Intelligence", "Stakeholder Feedback"],
+                            score: 100,
+                            sequence: []
+                          }} 
+                        />
+                      </div>
+                    )}
                   </div>
                   {(status === AnalysisStatus.COMPLETE || status === AnalysisStatus.SHARED_VIEW) && result && (<div className="pt-8 pb-20 border-t border-slate-800/50 mt-12 text-left"><CommitmentPanel options={inputValues.options} refinedPaths={result.synthesis?.refinedPaths} onCommit={handleCommitment} onBranch={handleBranch} onConsult={() => setIsChatOpen(true)} coreInquiry={inputValues.title} existingCommitment={currentSessionId ? sessions.find(s => s.id === currentSessionId)?.commitment : undefined} /></div>)}
                 </div>
