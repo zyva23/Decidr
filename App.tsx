@@ -907,6 +907,14 @@ const DecidrApp: React.FC = () => {
           isSynthesizing={isPeerSynthesizing}
         />
       )}
+      <NotificationFeed 
+        isOpen={isNotificationOpen}
+        onClose={() => setIsNotificationOpen(false)}
+        notifications={notifications}
+        onMarkRead={handleMarkNotificationRead}
+        onDismiss={handleDismissNotification}
+        onNavigate={handleNavigateFromNotification}
+      />
     </div>
   );
 };
