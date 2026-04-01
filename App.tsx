@@ -753,24 +753,67 @@ const DecidrApp: React.FC = () => {
                         </div>
                         
                         {isHumanInsightsVisible && (
-                          <AgentCard 
-                            role="Human" 
-                            color="indigo" 
-                            isLoading={false}
-                            agent={{
-                              name: isOwner ? "Strategic Peer Review" : "Consolidated Human Perspectives",
-                              role: "Human Insights",
-                              analysis: contributions
+                          <div className="bg-[#1A1D21]/80 border border-slate-700/50 rounded-2xl overflow-hidden shadow-2xl backdrop-blur-xl">
+                            <div className="px-6 py-3 border-b border-slate-700/30 bg-[#121519]/50 flex justify-between items-center">
+                              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                                Deliberation Channel
+                              </span>
+                              {isOwner && contributions.filter(c => c.status === 'pending').length > 0 && (
+                                <span className="text-[8px] bg-red-500/20 text-red-400 border border-red-500/20 px-2 py-0.5 rounded-full font-black uppercase">
+                                  {contributions.filter(c => c.status === 'pending').length} Action Required
+                                </span>
+                              )}
+                            </div>
+                            <div className="divide-y divide-slate-800/30 max-h-[400px] overflow-y-auto custom-scrollbar">
+                              {contributions
                                 .filter(c => isOwner || c.status === 'accepted')
-                                .map(c => `[${(c.type || 'variable').toUpperCase()} from ${c.name}]: ${c.content}`)
-                                .join("\n\n---\n\n") || "No human insights available.",
-                              keyPoints: isOwner 
-                                ? [`${contributions.filter(c => c.status === 'pending').length} New Pending`, `${contributions.filter(c => c.status === 'accepted').length} Incorporated`]
-                                : ["Community Intelligence", "Stakeholder Feedback"],
-                              score: 100,
-                              sequence: []
-                            }} 
-                          />
+                                .map((c) => (
+                                  <div key={c.id} className={`flex gap-4 p-5 transition-all ${c.status === 'accepted' ? 'bg-indigo-500/5' : 'bg-transparent'}`}>
+                                    <div className="shrink-0 pt-1">
+                                      <div className="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center text-slate-400 font-bold text-xs border border-slate-700 shadow-inner">
+                                        {c.name[0].toUpperCase()}
+                                      </div>
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-baseline gap-2 mb-1">
+                                        <span className="font-bold text-sm text-slate-200">{c.name}</span>
+                                        <span className="text-[9px] text-slate-600">{new Date(c.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                        {c.status === 'accepted' && <span className="text-[7px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-1.5 rounded uppercase font-black">Incorporated</span>}
+                                      </div>
+                                      <div className="mb-2">
+                                        <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider border ${
+                                          c.type === 'risk' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
+                                          c.type === 'variable' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
+                                          'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                                        }`}>
+                                          {c.type === 'risk' ? '🚩 Risk' : c.type === 'variable' ? '🧩 Variable' : '💡 Alternative'}
+                                        </span>
+                                      </div>
+                                      <p className="text-slate-300 text-sm leading-relaxed">{c.content}</p>
+                                    </div>
+                                    {isOwner && c.status === 'pending' && (
+                                      <button 
+                                        onClick={() => setIsCollaborationModalOpen(true)}
+                                        className="shrink-0 h-8 px-3 bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 text-[9px] font-black uppercase tracking-widest rounded-lg border border-indigo-500/20 transition-all"
+                                      >
+                                        Handle
+                                      </button>
+                                    )}
+                                  </div>
+                                ))}
+                            </div>
+                            {isOwner && (
+                              <div className="p-4 bg-[#121519]/50 border-t border-slate-700/30">
+                                <button 
+                                  onClick={() => setIsCollaborationModalOpen(true)}
+                                  className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-xl transition-all shadow-lg shadow-indigo-900/20"
+                                >
+                                  Open Management Wizard
+                                </button>
+                              </div>
+                            )}
+                          </div>
                         )}
                       </div>
                     )}
