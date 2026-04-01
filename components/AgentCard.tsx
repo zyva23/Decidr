@@ -108,7 +108,11 @@ const AgentCard: React.FC<AgentCardProps> = ({ agent, role, color, isLoading, ty
                   </p>
                 </div>
               </div>
-              <div className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-tighter ${styles.badge} shadow-inner`}>{agent.score || 0} / 100</div>
+              {role !== 'Human' && (
+                <div className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-tighter ${styles.badge} shadow-inner`}>
+                  {agent.score || 0} / 100
+                </div>
+              )}
             </div>
             <div className="mb-6 text-slate-300 text-sm leading-relaxed flex-grow z-10 relative pl-1 whitespace-pre-wrap font-medium h-auto min-h-[100px]">{agent.analysis || "Synthesizing perspectives..."}</div>
             <div className="mt-auto pt-5 border-t border-slate-800/80 z-10 relative">
@@ -124,14 +128,16 @@ const AgentCard: React.FC<AgentCardProps> = ({ agent, role, color, isLoading, ty
                 )}
               </ul>
               <div className="flex gap-3">
-                <button 
-                  onClick={() => setIsSequenceOpen(true)} 
-                  disabled={!agent.sequence}
-                  className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.15em] transition-all duration-300 flex items-center justify-center gap-2 border ${styles.border} hover:bg-slate-800/80 hover:scale-[1.02] active:scale-[0.98] ${styles.text} disabled:opacity-30`}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
-                  Visualize Impact
-                </button>
+                {role !== 'Human' && (
+                  <button 
+                    onClick={() => setIsSequenceOpen(true)} 
+                    disabled={!agent.sequence}
+                    className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.15em] transition-all duration-300 flex items-center justify-center gap-2 border ${styles.border} hover:bg-slate-800/80 hover:scale-[1.02] active:scale-[0.98] ${styles.text} disabled:opacity-30`}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+                    Visualize Impact
+                  </button>
+                )}
                 {hasSources && (
                     <button onClick={() => setIsSourcesOpen(true)} className={`px-4 py-3 rounded-xl border ${styles.border} hover:bg-slate-800/80 ${styles.text} transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]`} title="View Research Sources"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></button>
                 )}
