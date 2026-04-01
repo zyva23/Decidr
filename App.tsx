@@ -403,10 +403,12 @@ const DecidrApp: React.FC = () => {
                       <div className="flex flex-wrap gap-3 mt-auto text-left">
                         {isOwner && <button onClick={() => setIsShareModalOpen(true)} className="p-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl active:scale-95 transition-all group shadow-lg shadow-indigo-900/40"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg><span className="max-w-0 overflow-hidden group-hover:max-w-xs group-hover:ml-2 transition-all duration-300 font-bold whitespace-nowrap text-left">Share</span></button>}
                         {isOwner && <button onClick={() => setIsChatOpen(true)} className="p-3 bg-white text-slate-950 rounded-xl active:scale-95 transition-all hover:bg-slate-100 flex items-center justify-center group text-left font-bold tracking-tight"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 21 1.9-5.7a8.5 8.5 0 1 1 3.8 3.8z"/></svg><span className="max-w-0 overflow-hidden group-hover:max-w-xs group-hover:ml-2 transition-all duration-300 font-bold whitespace-nowrap text-left text-xs uppercase tracking-widest">Consult Council</span></button>}
-                        <button onClick={() => setIsCollaborationModalOpen(true)} className="p-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl active:scale-95 transition-all group shadow-lg flex items-center gap-2">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                          <span className="max-w-0 overflow-hidden group-hover:max-w-xs group-hover:ml-2 transition-all duration-300 font-bold whitespace-nowrap text-left text-xs uppercase tracking-widest">Deliberation</span>
-                        </button>
+                        {!isOwner && (
+                          <button onClick={() => setIsCollaborationModalOpen(true)} className="p-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl active:scale-95 transition-all group shadow-lg flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                            <span className="max-w-0 overflow-hidden group-hover:max-w-xs group-hover:ml-2 transition-all duration-300 font-bold whitespace-nowrap text-left text-xs uppercase tracking-widest">Deliberation</span>
+                          </button>
+                        )}
                         <div className="flex items-center gap-2 p-1 bg-slate-950/50 border border-slate-800 rounded-xl text-left"><button onClick={() => setIsElaborationOpen(!isElaborationOpen)} className={`p-2 rounded-lg transition-all ${isElaborationOpen ? 'bg-indigo-500/20 text-indigo-300 shadow-inner' : 'text-slate-500 hover:text-slate-300'}`} title="Strategic Elaboration"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg></button>{isOwner && (<button onClick={handleDevelopPlan} disabled={isGeneratingPlan} className="p-2 text-slate-500 hover:text-emerald-400 transition-all disabled:opacity-30"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="m9 16 2 2 4-4"/></svg></button>)}<button onClick={handleExportPDF} disabled={isExporting} className="p-2 text-slate-500 hover:text-indigo-400 transition-all disabled:opacity-30"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg></button></div>
                       </div>
                     </div>
@@ -414,12 +416,87 @@ const DecidrApp: React.FC = () => {
                   </div>
 
                   {/* Collaborative Intelligence Channel */}
-                  {(isOwner || contributions.some(c => c.status === 'accepted')) && (
+                  {(isOwner || status === AnalysisStatus.SHARED_VIEW || contributions.some(c => c.status === 'accepted')) && (
                     <div className={`lg:col-span-3 transition-all duration-500 text-left ${isHumanInsightsVisible ? 'opacity-100' : 'opacity-50'}`}>
-                      <div className="flex justify-between items-center mb-3 px-2 text-left"><div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></div><span className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em]">Human Intelligence Layer</span></div><button onClick={() => setIsHumanInsightsVisible(!isHumanInsightsVisible)} className="p-1.5 text-slate-500 hover:text-white transition-colors rounded-lg bg-slate-900/50 border border-slate-800">{isHumanInsightsVisible ? (<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>) : (<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.52 13.52 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" y1="2" x2="22" y2="22"/></svg>)}</button></div>
+                      <div className="flex justify-between items-center mb-3 px-2 text-left">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></div>
+                          <span className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em]">Human Intelligence Layer</span>
+                        </div>
+                        <button onClick={() => setIsHumanInsightsVisible(!isHumanInsightsVisible)} className="p-1.5 text-slate-500 hover:text-white transition-colors rounded-lg bg-slate-900/50 border border-slate-800">
+                          {isHumanInsightsVisible ? (<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>) : (<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.52 13.52 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" y1="2" x2="22" y2="22"/></svg>)}
+                        </button>
+                      </div>
                       {isHumanInsightsVisible && (
                         <div className="bg-[#1A1D21]/80 border border-slate-700/50 rounded-2xl overflow-hidden shadow-2xl backdrop-blur-xl text-left">
-                          <div className="px-6 py-3 border-b border-slate-700/30 bg-[#121519]/50 flex justify-between items-center"><span className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Expert Deliberation Channel</span>{isOwner && contributions.filter(c => c.status === 'pending').length > 0 && (<span className="text-[8px] bg-red-500/20 text-red-400 border border-red-500/20 px-2 py-0.5 rounded-full font-black uppercase shadow-lg shadow-red-900/20">Action Required: {contributions.filter(c => c.status === 'pending').length} New</span>)}</div>
+                          <div className="px-6 py-3 border-b border-slate-700/30 bg-[#121519]/50 flex justify-between items-center">
+                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                              Expert Deliberation Channel
+                            </span>
+                            {isOwner && contributions.filter(c => c.status === 'pending').length > 0 && (
+                              <span className="text-[8px] bg-red-500/20 text-red-400 border border-red-500/20 px-2 py-0.5 rounded-full font-black uppercase shadow-lg shadow-red-900/20">Action Required: {contributions.filter(c => c.status === 'pending').length} New</span>
+                            )}
+                          </div>
+
+                          {!isOwner && (
+                            <div className="p-6 border-b border-slate-800/50 bg-[#121519]/30">
+                              <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">Contribute Perspective</h4>
+                              <div className="space-y-4">
+                                <div className="flex flex-col sm:flex-row gap-4">
+                                  <input 
+                                    type="text"
+                                    placeholder="Your Name (optional)"
+                                    value={contributionName}
+                                    onChange={(e) => setContributionName(e.target.value)}
+                                    className="flex-1 bg-[#1A1D21] border border-slate-700 rounded-xl px-4 py-3 text-xs text-white outline-none focus:border-indigo-500 transition-all shadow-inner"
+                                  />
+                                  <div className="flex items-center gap-3 bg-[#1A1D21] border border-slate-700 rounded-xl px-4 py-2 shadow-inner">
+                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Anonymous</span>
+                                    <button 
+                                      onClick={() => setIsAnonymous(!isAnonymous)}
+                                      className={`w-10 h-5 rounded-full transition-all relative ${isAnonymous ? 'bg-indigo-600' : 'bg-slate-800'}`}
+                                    >
+                                      <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${isAnonymous ? 'left-6' : 'left-1'}`} />
+                                    </button>
+                                  </div>
+                                </div>
+                                <div className="flex gap-2">
+                                  {(['variable', 'risk', 'alternative'] as const).map(t => (
+                                    <button
+                                      key={t}
+                                      onClick={() => setContributionType(t)}
+                                      className={`flex-1 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest border transition-all ${
+                                        contributionType === t 
+                                          ? 'bg-indigo-500/20 text-indigo-400 border-indigo-500/50' 
+                                          : 'bg-slate-900 text-slate-500 border-slate-800 hover:border-slate-700'
+                                      }`}
+                                    >
+                                      {t === 'risk' ? '🚩 Risk' : t === 'variable' ? '🧩 Variable' : '💡 Alternative'}
+                                    </button>
+                                  ))}
+                                </div>
+                                <textarea 
+                                  placeholder="Share your insight, risk observation, or alternative path..."
+                                  value={contributionContent}
+                                  onChange={(e) => setContributionContent(e.target.value)}
+                                  className="w-full bg-[#1A1D21] border border-slate-700 rounded-xl px-4 py-3 text-xs text-white outline-none focus:border-indigo-500 transition-all min-h-[100px] resize-none shadow-inner"
+                                />
+                                <button
+                                  onClick={() => handleSubmitContribution(contributionName, contributionContent, contributionType, isAnonymous)}
+                                  disabled={!contributionContent.trim() || isContributing}
+                                  className={`w-full py-4 rounded-xl font-black uppercase tracking-[0.2em] text-xs transition-all shadow-xl flex items-center justify-center gap-3 ${
+                                    !contributionContent.trim() || isContributing
+                                      ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                                      : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-900/20 active:scale-[0.98]'
+                                  }`}
+                                >
+                                  {isContributing ? "Transmitting..." : "Submit Perspective"}
+                                </button>
+                              </div>
+                            </div>
+                          )}
+
                           <div className="divide-y divide-slate-800/30 max-h-[400px] overflow-y-auto custom-scrollbar text-left">
                             {contributions.filter(c => isOwner || c.status === 'accepted').map((c) => (
                               <div key={c.id} onClick={() => isOwner && toggleContributionSelection(c.id)} className={`flex gap-4 p-5 transition-all text-left ${isOwner ? 'cursor-pointer hover:bg-[#222529]' : ''} ${selectedContributionIds.includes(c.id) ? 'bg-indigo-500/5 border-l-4 border-l-indigo-500 shadow-inner shadow-indigo-900/10' : 'border-l-4 border-l-transparent'} ${c.status === 'accepted' ? 'bg-indigo-500/5' : ''}`}>
