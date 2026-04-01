@@ -525,22 +525,27 @@ const DecidrApp: React.FC = () => {
                               <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">Contribute Perspective</h4>
                               <div className="space-y-4">
                                 <div className="flex flex-col sm:flex-row gap-4">
-                                  <input 
-                                    type="text"
-                                    placeholder="Your Name (optional)"
-                                    value={contributionName}
-                                    onChange={(e) => setContributionName(e.target.value)}
-                                    className="flex-1 bg-[#1A1D21] border border-slate-700 rounded-xl px-4 py-3 text-xs text-white outline-none focus:border-indigo-500 transition-all shadow-inner"
-                                  />
-                                  <div className="flex items-center gap-3 bg-[#1A1D21] border border-slate-700 rounded-xl px-4 py-2 shadow-inner">
-                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Anonymous</span>
-                                    <button 
-                                      onClick={() => setIsAnonymous(!isAnonymous)}
-                                      className={`w-10 h-5 rounded-full transition-all relative ${isAnonymous ? 'bg-indigo-600' : 'bg-slate-800'}`}
-                                    >
-                                      <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${isAnonymous ? 'left-6' : 'left-1'}`} />
-                                    </button>
-                                  </div>
+                                  {!isAnonymous && (
+                                    <input 
+                                      type="text"
+                                      placeholder="Your Name (Required)"
+                                      value={contributionName}
+                                      onChange={(e) => setContributionName(e.target.value)}
+                                      className="flex-1 bg-[#1A1D21] border border-slate-700 rounded-xl px-4 py-3 text-xs text-white outline-none focus:border-indigo-500 transition-all shadow-inner"
+                                      required
+                                    />
+                                  )}
+                                  {user && (
+                                    <div className="flex items-center gap-3 bg-[#1A1D21] border border-slate-700 rounded-xl px-4 py-2 shadow-inner">
+                                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Anonymous</span>
+                                      <button 
+                                        onClick={() => setIsAnonymous(!isAnonymous)}
+                                        className={`w-10 h-5 rounded-full transition-all relative ${isAnonymous ? 'bg-indigo-600' : 'bg-slate-800'}`}
+                                      >
+                                        <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${isAnonymous ? 'left-6' : 'left-1'}`} />
+                                      </button>
+                                    </div>
+                                  )}
                                 </div>
                                 <div className="flex gap-2">
                                   {(['variable', 'risk', 'alternative'] as const).map(t => (
@@ -565,9 +570,9 @@ const DecidrApp: React.FC = () => {
                                 />
                                 <button
                                   onClick={() => handleSubmitContribution(contributionName, contributionContent, contributionType, isAnonymous)}
-                                  disabled={!contributionContent.trim() || isContributing}
+                                  disabled={!contributionContent.trim() || isContributing || (!isAnonymous && !contributionName.trim())}
                                   className={`w-full py-4 rounded-xl font-black uppercase tracking-[0.2em] text-xs transition-all shadow-xl flex items-center justify-center gap-3 ${
-                                    !contributionContent.trim() || isContributing
+                                    !contributionContent.trim() || isContributing || (!isAnonymous && !contributionName.trim())
                                       ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
                                       : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-900/20 active:scale-[0.98]'
                                   }`}
@@ -639,6 +644,7 @@ const DecidrApp: React.FC = () => {
         isOwner={isOwner}
         onSubmitContribution={handleSubmitContribution}
         isContributing={isContributing}
+        isAuthenticated={!!user}
       />
     </div>
   );

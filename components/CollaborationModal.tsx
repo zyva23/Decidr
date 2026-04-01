@@ -11,6 +11,7 @@ interface Props {
   isOwner: boolean;
   onSubmitContribution: (name: string, content: string, type: Contribution['type'], isAnonymous: boolean) => Promise<void>;
   isContributing: boolean;
+  isAuthenticated: boolean;
 }
 
 const typeConfig = {
@@ -28,7 +29,8 @@ const CollaborationModal: React.FC<Props> = ({
   isSynthesizing, 
   isOwner,
   onSubmitContribution,
-  isContributing
+  isContributing,
+  isAuthenticated
 }) => {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [notify, setNotify] = useState(true);
@@ -37,7 +39,7 @@ const CollaborationModal: React.FC<Props> = ({
   const [name, setName] = useState('');
   const [content, setContent] = useState('');
   const [type, setType] = useState<Contribution['type']>('variable');
-  const [isAnonymous, setIsAnonymous] = useState(false);
+  const [isAnonymous, setIsAnonymous] = useState(!isAuthenticated);
   const [showForm, setShowForm] = useState(!isOwner);
 
   if (!isOpen) return null;
@@ -49,9 +51,11 @@ const CollaborationModal: React.FC<Props> = ({
     );
   };
 
+  const isFormValid = content.trim() !== '' && (isAnonymous || name.trim() !== '');
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!content.trim()) return;
+    if (!isFormValid) return;
     await onSubmitContribution(name, content, type, isAnonymous);
     setContent('');
     if (isOwner) setShowForm(false);
@@ -175,23 +179,26 @@ const CollaborationModal: React.FC<Props> = ({
                   {!isAnonymous && (
                     <input 
                       type="text"
-                      placeholder="Your Name (optional)"
+                      placeholder="Your Name (Required)"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       className="w-full bg-[#1A1D21] border border-slate-700 rounded-xl px-4 py-3 text-xs text-white outline-none focus:border-indigo-500 transition-all shadow-inner"
+                      required
                     />
                   )}
                 </div>
-                <div className="flex items-center gap-3 bg-[#1A1D21] border border-slate-700 rounded-xl px-4 py-2 shadow-inner">
-                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Anonymous</span>
-                  <button 
-                    type="button"
-                    onClick={() => setIsAnonymous(!isAnonymous)}
-                    className={`w-10 h-5 rounded-full transition-all relative ${isAnonymous ? 'bg-indigo-600' : 'bg-slate-800'}`}
-                  >
-                    <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${isAnonymous ? 'left-6' : 'left-1'}`} />
-                  </button>
-                </div>
+                {isAuthenticated && (
+                  <div className="flex items-center gap-3 bg-[#1A1D21] border border-slate-700 rounded-xl px-4 py-2 shadow-inner">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Anonymous</span>
+                    <button 
+                      type="button"
+                      onClick={() => setIsAnonymous(!isAnonymous)}
+                      className={`w-10 h-5 rounded-full transition-all relative ${isAnonymous ? 'bg-indigo-600' : 'bg-slate-800'}`}
+                    >
+                      <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${isAnonymous ? 'left-6' : 'left-1'}`} />
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div className="flex gap-2">
@@ -220,9 +227,9 @@ const CollaborationModal: React.FC<Props> = ({
 
               <button
                 type="submit"
-                disabled={!content.trim() || isContributing}
+                disabled={!isFormValid || isContributing}
                 className={`w-full py-4 rounded-xl font-black uppercase tracking-[0.2em] text-xs transition-all shadow-xl flex items-center justify-center gap-3 ${
-                  !content.trim() || isContributing
+                  !isFormValid || isContributing
                     ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
                     : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-900/20 active:scale-[0.98]'
                 }`}
