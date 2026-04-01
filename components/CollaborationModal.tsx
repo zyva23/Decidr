@@ -5,6 +5,7 @@ interface Props {
   isOpen: boolean;
   onClose: () => void;
   session: DecisionSession;
+  contributions: Contribution[];
   onSynthesize: (selectedIds: string[], notify: boolean) => void;
   isSynthesizing: boolean;
 }
@@ -15,13 +16,11 @@ const typeConfig = {
   alternative: { icon: '💡', label: 'Alternative', color: 'text-emerald-400', bg: 'bg-emerald-500/10' }
 };
 
-const CollaborationModal: React.FC<Props> = ({ isOpen, onClose, session, onSynthesize, isSynthesizing }) => {
+const CollaborationModal: React.FC<Props> = ({ isOpen, onClose, session, contributions, onSynthesize, isSynthesizing }) => {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [notify, setNotify] = useState(true);
 
   if (!isOpen) return null;
-
-  const contributions = session.contributions || [];
 
   const toggleSelection = (id: string) => {
     setSelectedIds(prev => 

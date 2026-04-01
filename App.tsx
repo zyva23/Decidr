@@ -808,6 +808,7 @@ const DecidrApp: React.FC = () => {
           isOpen={isCollaborationModalOpen} 
           onClose={() => setIsCollaborationModalOpen(false)} 
           session={sessions.find(s => s.id === currentSessionId)!}
+          contributions={contributions}
           onSynthesize={handlePeerSynthesis}
           isSynthesizing={isPeerSynthesizing}
         />
