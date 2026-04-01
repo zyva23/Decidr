@@ -18,7 +18,7 @@ import Auth from './components/Auth';
 import { UI_CONTENT } from './src/constants/uiContent';
 import { analyzeDecision, generateActionPlan, generateDecisionTree, synthesizeOnly } from './services/geminiService';
 import { saveSession, getSessions, deleteSession, getLocalSessions } from './services/storageService';
-import { auth, logActivity, onAuthStateChanged, signOut, isGCPConfigured, saveDetailedFeedback, saveToWaitlist, getUserProfile, saveUserProfile, getPublicSession, addSessionContribution, updateContributionStatuses } from './services/googleCloud';
+import { auth, logActivity, onAuthStateChanged, signOut, isGCPConfigured, saveDetailedFeedback, saveToWaitlist, getUserProfile, saveUserProfile, getPublicSession, addSessionContribution, updateContributionStatus, getSessionContributions } from './services/googleCloud';
 import { generateDecisionPDF } from './services/pdfService';
 import { DecisionInput, CouncilResult, AnalysisStatus, DecisionSession, ChatMessage, UserProfile, ActionPlan, PartialCouncilResult, DecisionTree, Contribution, Notification } from './types';
 
@@ -228,7 +228,8 @@ const DecidrApp: React.FC = () => {
         setInputValues(session.input);
         setResult(session.result);
         setStatus(AnalysisStatus.SHARED_VIEW);
-        setContributions(session.contributions || []);
+        // Explicitly NOT fetching contributions for shared view to ensure privacy
+        setContributions([]); 
         setIsPublicSession(true);
       } else {
         alert("Shared deliberation not found or private.");
@@ -372,13 +373,17 @@ const DecidrApp: React.FC = () => {
     executeStartNewSession();
   };
 
-  const executeLoadSession = (session: DecisionSession) => {
+  const executeLoadSession = async (session: DecisionSession) => {
     window.history.pushState({}, '', window.location.pathname); // Clear share ID
     setCurrentSessionId(session.id); setInputValues(session.input);
     setResult(session.result); setPartialResult(null); setChatHistory(session.chatHistory || []);
     setStatus(session.status); setIsChatOpen(false); setIsElaborationOpen(false);
     setCurrentPlan(session.actionPlan || null); setIsHistoryOpen(false); setHasDownloadedPDF(true);
-    setContributions(session.contributions || []); setIsPublicSession(session.isPublic || false);
+    setIsPublicSession(session.isPublic || false);
+    
+    // Fetch contributions from sub-collection for owner
+    const peerInsights = await getSessionContributions(session.id);
+    setContributions(peerInsights);
   };
 
   const loadSession = (session: DecisionSession) => {
@@ -428,7 +433,7 @@ const DecidrApp: React.FC = () => {
       const newSession: DecisionSession = {
         id: sessionId, user_id: user?.id, timestamp: Date.now(),
         input: input, result: data, status: AnalysisStatus.COMPLETE, chatHistory: [],
-        isPublic: false, contributions: []
+        isPublic: false
       };
       await saveSession(newSession); setCurrentSessionId(sessionId);
       setSessions(await getSessions(user?.id));
@@ -480,10 +485,16 @@ const DecidrApp: React.FC = () => {
       
       const session = sessions.find(s => s.id === currentSessionId);
       if (session) {
-        const updatedContributions = (session.contributions || []).map(c => 
+        // Update statuses in Firestore sub-collection
+        await Promise.all(selectedIds.map(id => 
+          updateContributionStatus(currentSessionId, id, { status: 'accepted', notified: notify })
+        ));
+
+        const updatedContributions = contributions.map(c => 
           selectedIds.includes(c.id) ? { ...c, status: 'accepted' as const, notified: notify } : c
         );
-        const updatedSession = { ...session, result: updatedResult, contributions: updatedContributions };
+        
+        const updatedSession = { ...session, result: updatedResult };
         await saveSession(updatedSession);
         setSessions(await getSessions(user?.id));
         setContributions(updatedContributions);
@@ -753,9 +764,12 @@ const DecidrApp: React.FC = () => {
                   
                   {/* Contribution Form for Public View */}
                   {isPublicSession && !isOwner && (
-                    <div className="bg-indigo-500/5 border border-indigo-500/20 rounded-2xl p-8 animate-fade-in">
+                    <div className="bg-indigo-500/5 border border-indigo-500/20 rounded-2xl p-8 animate-fade-in shadow-[0_0_30px_rgba(99,102,241,0.1)]">
                       <div className="flex justify-between items-center mb-4">
-                        <h3 className="text-lg font-bold text-white">Contribute Your Perspective</h3>
+                        <div>
+                          <h3 className="text-xl font-bold text-white mb-1">Collaborative Strategic Input</h3>
+                          <p className="text-slate-500 text-[10px] uppercase tracking-widest font-black italic">Invited Peer Review</p>
+                        </div>
                         <div className="flex items-center gap-2">
                           <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Post as Anonymous</span>
                           <button 
@@ -767,9 +781,11 @@ const DecidrApp: React.FC = () => {
                         </div>
                       </div>
                       
-                      <p className="text-slate-400 text-sm mb-6">Your insights will be shared with the deliberation owner to help refine their decision.</p>
+                      <p className="text-slate-400 text-sm mb-8 leading-relaxed">
+                        The owner of this deliberation has requested your expert perspective. Your insights will be used to refine the Council's final verdict.
+                      </p>
                       
-                      <div className="space-y-4">
+                      <div className="space-y-6">
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           {!isAnonymous && (
                             <input 
@@ -777,7 +793,7 @@ const DecidrApp: React.FC = () => {
                               value={contributionName} 
                               onChange={(e) => setContributionName(e.target.value)} 
                               placeholder="Your Name (Optional)" 
-                              className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white placeholder-slate-600 focus:border-indigo-500 outline-none transition-all"
+                              className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white placeholder-slate-600 focus:border-indigo-500 outline-none transition-all shadow-inner"
                             />
                           )}
                           <div className={`flex gap-2 p-1 bg-slate-950 border border-slate-800 rounded-xl ${isAnonymous ? 'col-span-2' : ''}`}>
@@ -806,15 +822,15 @@ const DecidrApp: React.FC = () => {
                             contributionType === 'variable' ? "What new variable or context should the council consider?" :
                             "Suggest an alternative strategic path or specific action..."
                           }
-                          className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white placeholder-slate-600 focus:border-indigo-500 outline-none transition-all resize-none"
+                          className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white placeholder-slate-600 focus:border-indigo-500 outline-none transition-all resize-none shadow-inner"
                         />
                         
                         <button 
                           onClick={handleSubmitContribution}
                           disabled={isContributing || !contributionContent.trim()}
-                          className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-all disabled:opacity-50 shadow-xl shadow-indigo-900/20"
+                          className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-black uppercase tracking-[0.2em] rounded-xl transition-all disabled:opacity-50 shadow-xl shadow-indigo-900/20 active:scale-[0.99]"
                         >
-                          {isContributing ? "Submitting..." : "Submit to Council"}
+                          {isContributing ? "Registering Perspective..." : "Submit to Council"}
                         </button>
                       </div>
                     </div>

@@ -1,6 +1,6 @@
 import { initializeApp, getApp, getApps } from "firebase/app";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
-import { getFirestore, collection, addDoc, serverTimestamp, doc, getDoc, setDoc, updateDoc, arrayUnion } from "firebase/firestore";
+import { getFirestore, collection, addDoc, serverTimestamp, doc, getDoc, setDoc, updateDoc, arrayUnion, query, getDocs } from "firebase/firestore";
 import { DecisionSession, Contribution, AnalysisStatus } from "../types";
 
 const firebaseConfig = {
@@ -177,27 +177,32 @@ export const getPublicSession = async (sessionId: string): Promise<DecisionSessi
 export const addSessionContribution = async (sessionId: string, contribution: Contribution) => {
   if (!db) return;
   try {
-    await updateDoc(doc(db, "sessions", sessionId), {
-      contributions: arrayUnion(contribution)
-    });
+    // Write to sub-collection for better security and data isolation
+    const contributionsRef = collection(db, "sessions", sessionId, "human_perspectives");
+    await setDoc(doc(contributionsRef, contribution.id), contribution);
   } catch (e) {
     console.error("Error adding contribution:", e);
   }
 };
 
-export const updateContributionStatuses = async (sessionId: string, contributionIds: string[], updates: Partial<Contribution>) => {
+export const getSessionContributions = async (sessionId: string): Promise<Contribution[]> => {
+  if (!db) return [];
+  try {
+    const contributionsRef = collection(db, "sessions", sessionId, "human_perspectives");
+    const querySnapshot = await getDocs(contributionsRef);
+    return querySnapshot.docs.map(doc => doc.data() as Contribution);
+  } catch (e) {
+    console.error("Error fetching contributions:", e);
+    return [];
+  }
+};
+
+export const updateContributionStatus = async (sessionId: string, contributionId: string, updates: Partial<Contribution>) => {
   if (!db) return;
   try {
-    const docRef = doc(db, "sessions", sessionId);
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-      const data = docSnap.data() as DecisionSession;
-      const updatedContributions = (data.contributions || []).map(c => 
-        contributionIds.includes(c.id) ? { ...c, ...updates } : c
-      );
-      await updateDoc(docRef, { contributions: updatedContributions });
-    }
+    const docRef = doc(db, "sessions", sessionId, "human_perspectives", contributionId);
+    await updateDoc(docRef, updates);
   } catch (e) {
-    console.error("Error updating contribution statuses:", e);
+    console.error("Error updating contribution status:", e);
   }
 };
