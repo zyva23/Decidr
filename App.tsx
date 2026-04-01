@@ -12,6 +12,7 @@ import GamifiedHeader from './components/GamifiedHeader';
 import CommitmentPanel from './components/CommitmentPanel';
 import DecisionTreeViz from './components/DecisionTreeViz';
 import ShareModal from './components/ShareModal';
+import CollaborationModal from './components/CollaborationModal';
 import NotificationFeed from './components/NotificationFeed';
 import Auth from './components/Auth';
 import { UI_CONTENT } from './src/constants/uiContent';
@@ -84,6 +85,7 @@ const DecidrApp: React.FC = () => {
   const [hasJoinedWaitlist, setHasJoinedWaitlist] = useState(false);
 
   // Collaboration State
+  const [isCollaborationModalOpen, setIsCollaborationModalOpen] = useState(false);
   const [isSharedLoading, setIsSharedLoading] = useState(false);
   const [isPublicSession, setIsPublicSession] = useState(false);
   const [contributions, setContributions] = useState<Contribution[]>([]);
@@ -316,12 +318,20 @@ const DecidrApp: React.FC = () => {
   };
 
   useEffect(() => { if (user && !isAnonymous && !contributionName) { setContributionName(user.email.split('@')[0]); } }, [user, isAnonymous]);
-  const handleSubmitContribution = async () => {
-    if (!currentSessionId || !contributionContent.trim()) return;
+  const handleSubmitContribution = async (name: string, content: string, type: Contribution['type'], isAnon: boolean) => {
+    if (!currentSessionId || !content.trim()) return;
     setIsContributing(true);
-    const finalName = isAnonymous ? "Anonymous Expert" : (contributionName.trim() || "Anonymous Expert");
-    const contribution: Contribution = { id: crypto.randomUUID(), name: finalName, content: contributionContent.trim(), type: contributionType, timestamp: Date.now(), status: 'pending' };
-    try { await addSessionContribution(currentSessionId, contribution); setContributions(prev => [...prev, contribution]); setContributionContent(''); alert("Perspective submitted."); } catch (e) { console.error(e); } finally { setIsContributing(false); }
+    const finalName = isAnon ? "Anonymous Expert" : (name.trim() || "Anonymous Expert");
+    const contribution: Contribution = { id: crypto.randomUUID(), name: finalName, content: content.trim(), type: type, timestamp: Date.now(), status: 'pending' };
+    try { 
+      await addSessionContribution(currentSessionId, contribution); 
+      setContributions(prev => [...prev, contribution]); 
+      alert("Perspective submitted for review."); 
+    } catch (e) { 
+      console.error(e); 
+    } finally { 
+      setIsContributing(false); 
+    }
   };
 
   if (isAuthChecking) { return <div className="flex items-center justify-center h-screen bg-slate-950"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div></div>; }
@@ -393,6 +403,10 @@ const DecidrApp: React.FC = () => {
                       <div className="flex flex-wrap gap-3 mt-auto text-left">
                         {isOwner && <button onClick={() => setIsShareModalOpen(true)} className="p-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl active:scale-95 transition-all group shadow-lg shadow-indigo-900/40"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg><span className="max-w-0 overflow-hidden group-hover:max-w-xs group-hover:ml-2 transition-all duration-300 font-bold whitespace-nowrap text-left">Share</span></button>}
                         {isOwner && <button onClick={() => setIsChatOpen(true)} className="p-3 bg-white text-slate-950 rounded-xl active:scale-95 transition-all hover:bg-slate-100 flex items-center justify-center group text-left font-bold tracking-tight"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 21 1.9-5.7a8.5 8.5 0 1 1 3.8 3.8z"/></svg><span className="max-w-0 overflow-hidden group-hover:max-w-xs group-hover:ml-2 transition-all duration-300 font-bold whitespace-nowrap text-left text-xs uppercase tracking-widest">Consult Council</span></button>}
+                        <button onClick={() => setIsCollaborationModalOpen(true)} className="p-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl active:scale-95 transition-all group shadow-lg flex items-center gap-2">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                          <span className="max-w-0 overflow-hidden group-hover:max-w-xs group-hover:ml-2 transition-all duration-300 font-bold whitespace-nowrap text-left text-xs uppercase tracking-widest">Deliberation</span>
+                        </button>
                         <div className="flex items-center gap-2 p-1 bg-slate-950/50 border border-slate-800 rounded-xl text-left"><button onClick={() => setIsElaborationOpen(!isElaborationOpen)} className={`p-2 rounded-lg transition-all ${isElaborationOpen ? 'bg-indigo-500/20 text-indigo-300 shadow-inner' : 'text-slate-500 hover:text-slate-300'}`} title="Strategic Elaboration"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg></button>{isOwner && (<button onClick={handleDevelopPlan} disabled={isGeneratingPlan} className="p-2 text-slate-500 hover:text-emerald-400 transition-all disabled:opacity-30"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="m9 16 2 2 4-4"/></svg></button>)}<button onClick={handleExportPDF} disabled={isExporting} className="p-2 text-slate-500 hover:text-indigo-400 transition-all disabled:opacity-30"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg></button></div>
                       </div>
                     </div>
@@ -457,6 +471,17 @@ const DecidrApp: React.FC = () => {
       {currentPlan && (<ActionPlanModal isOpen={isPlanModalOpen} onClose={() => setIsPlanModalOpen(false)} onSave={handleSavePlan} plan={currentPlan} />)}
       {isTreeOpen && (<DecisionTreeViz problemTitle={inputValues.title} councilResult={result || undefined} initialTree={currentSessionId ? sessions.find(s => s.id === currentSessionId)?.decisionTree : undefined} onSave={handleSaveTree} onClose={() => setIsTreeOpen(false)} />)}
       <NotificationFeed isOpen={isNotificationOpen} onClose={() => setIsNotificationOpen(false)} notifications={notifications} onMarkRead={handleMarkNotificationRead} onDismiss={handleDismissNotification} onNavigate={handleNavigateFromNotification} />
+      <CollaborationModal 
+        isOpen={isCollaborationModalOpen} 
+        onClose={() => setIsCollaborationModalOpen(false)} 
+        session={sessions.find(s => s.id === currentSessionId) || null}
+        contributions={contributions}
+        onSynthesize={handleIncorporatePeerSynthesis}
+        isSynthesizing={isPeerSynthesizing}
+        isOwner={isOwner}
+        onSubmitContribution={handleSubmitContribution}
+        isContributing={isContributing}
+      />
     </div>
   );
 };
