@@ -101,6 +101,89 @@ const DecidrApp: React.FC = () => {
   const [isCollaborationModalOpen, setIsCollaborationModalOpen] = useState(false);
   const [isPeerSynthesizing, setIsPeerSynthesizing] = useState(false);
 
+  // Notification State
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+
+  // NOTIFICATION ENGINE
+  useEffect(() => {
+    if (status === AnalysisStatus.SHARED_VIEW) return; // Don't run engine for viewers
+
+    const newNotifications: Notification[] = [];
+    const now = Date.now();
+    const dayInMs = 24 * 60 * 60 * 1000;
+
+    sessions.forEach(session => {
+      // 1. Commitment Nudges
+      if (session.status === AnalysisStatus.COMPLETE && !session.commitment) {
+        const ageInDays = (now - session.timestamp) / dayInMs;
+        if (ageInDays >= 14) {
+          newNotifications.push({
+            id: `nudge-14-${session.id}`,
+            type: 'commitment_nudge',
+            title: 'Critical Stalemate',
+            message: `Decision "${session.input.title.substring(0, 20)}..." has been pending for 2 weeks. Time to lock intent.`,
+            timestamp: now,
+            read: false,
+            linkSessionId: session.id,
+            intensity: 'high'
+          });
+        } else if (ageInDays >= 5) {
+          newNotifications.push({
+            id: `nudge-5-${session.id}`,
+            type: 'commitment_nudge',
+            title: 'Deliberation Stagnation',
+            message: `It's been 5 days since the Council verdict for "${session.input.title.substring(0, 20)}...". Gut resonance check required.`,
+            timestamp: now,
+            read: false,
+            linkSessionId: session.id,
+            intensity: 'medium'
+          });
+        }
+      }
+
+      // 2. Peer Contribution Alerts
+      const pendingCount = (session.contributions || []).filter(c => c.status === 'pending').length;
+      if (pendingCount > 0) {
+        newNotifications.push({
+          id: `peer-${session.id}`,
+          type: 'peer_contribution',
+          title: 'Human Perspective Received',
+          message: `${pendingCount} new peer insight${pendingCount > 1 ? 's' : ''} available for "${session.input.title.substring(0, 20)}...".`,
+          timestamp: now,
+          read: false,
+          linkSessionId: session.id,
+          intensity: 'low'
+        });
+      }
+    });
+
+    // Merge with existing (preserving read/dismissed status if we had persistent storage, for now we just show fresh)
+    setNotifications(prev => {
+      // Very simple merge: add only if ID doesn't exist
+      const existingIds = new Set(prev.map(n => n.id));
+      const uniqueNew = newNotifications.filter(n => !existingIds.has(n.id));
+      return [...prev, ...uniqueNew];
+    });
+  }, [sessions, status]);
+
+  const handleMarkNotificationRead = (id: string) => {
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+  };
+
+  const handleDismissNotification = (id: string) => {
+    setNotifications(prev => prev.filter(n => n.id !== id));
+  };
+
+  const handleNavigateFromNotification = (sessionId: string, notificationId: string) => {
+    const session = sessions.find(s => s.id === sessionId);
+    if (session) {
+      loadSession(session);
+      handleMarkNotificationRead(notificationId);
+      setIsNotificationOpen(false);
+    }
+  };
+
   // AUTH EFFECT
   useEffect(() => {
     if (!isGCPConfigured || !auth) { setIsAuthChecking(false); return; }
@@ -574,6 +657,16 @@ const DecidrApp: React.FC = () => {
                   {isPublicSession && <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest border border-indigo-500/30 px-2 py-0.5 rounded bg-indigo-500/10">Shared Deliberation</span>}
                 </div>
         <div className="flex items-center gap-6">
+          <button 
+            onClick={() => setIsNotificationOpen(true)}
+            className="relative p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-all"
+            aria-label="Notifications"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+            {notifications.filter(n => !n.read).length > 0 && (
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-indigo-500 rounded-full border-2 border-slate-900 shadow-[0_0_8px_rgba(99,102,241,0.6)]"></span>
+            )}
+          </button>
           {!isPublicSession ? <GamifiedHeader xp={xp} level={level} /> : (
             <button onClick={startNewSession} className="text-xs font-bold text-indigo-400 hover:text-indigo-300 transition-all uppercase tracking-widest">Start My Own Analysis</button>
           )}
