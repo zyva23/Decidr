@@ -762,7 +762,7 @@ const DecidrApp: React.FC = () => {
                               role: "Human Insights",
                               analysis: contributions
                                 .filter(c => isOwner || c.status === 'accepted')
-                                .map(c => `[${c.type.toUpperCase()} from ${c.name}]: ${c.content}`)
+                                .map(c => `[${(c.type || 'variable').toUpperCase()} from ${c.name}]: ${c.content}`)
                                 .join("\n\n---\n\n") || "No human insights available.",
                               keyPoints: isOwner 
                                 ? [`${contributions.filter(c => c.status === 'pending').length} New Pending`, `${contributions.filter(c => c.status === 'accepted').length} Incorporated`]
