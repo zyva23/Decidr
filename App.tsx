@@ -101,6 +101,16 @@ const DecidrApp: React.FC = () => {
   // Notification State
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [dismissedNotificationIds, setDismissedNotificationIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    const saved = localStorage.getItem('dc_dismissed_notifications');
+    if (saved) setDismissedNotificationIds(new Set(JSON.parse(saved)));
+  }, []);
+
+  const saveDismissed = (ids: Set<string>) => {
+    localStorage.setItem('dc_dismissed_notifications', JSON.stringify(Array.from(ids)));
+  };
 
   const [isActionsMenuOpen, setIsActionsMenuOpen] = useState(false);
   const [shouldStartNewAfterLogin, setShouldStartNewAfterLogin] = useState(false);
@@ -163,30 +173,47 @@ const DecidrApp: React.FC = () => {
         if (session.status === AnalysisStatus.COMPLETE && !session.commitment) {
           const ageInDays = (now - session.timestamp) / dayInMs;
           if (ageInDays >= 14) {
-            newNotifications.push({ id: `nudge-14-${session.id}`, type: 'commitment_nudge', title: 'Critical Stalemate', message: `Decision pending for 2 weeks.`, timestamp: now, read: false, linkSessionId: session.id, intensity: 'high' });
+            const id = `nudge-14-${session.id}`;
+            if (!dismissedNotificationIds.has(id)) {
+              newNotifications.push({ id, type: 'commitment_nudge', title: 'Critical Stalemate', message: `Decision pending for 2 weeks.`, timestamp: now, read: false, linkSessionId: session.id, intensity: 'high' });
+            }
           } else if (ageInDays >= 5) {
-            newNotifications.push({ id: `nudge-5-${session.id}`, type: 'commitment_nudge', title: 'Stagnation Warning', message: `5 days since Council verdict.`, timestamp: now, read: false, linkSessionId: session.id, intensity: 'medium' });
+            const id = `nudge-5-${session.id}`;
+            if (!dismissedNotificationIds.has(id)) {
+              newNotifications.push({ id, type: 'commitment_nudge', title: 'Stagnation Warning', message: `5 days since Council verdict.`, timestamp: now, read: false, linkSessionId: session.id, intensity: 'medium' });
+            }
           }
         }
         if (session.isPublic) {
           const peerInsights = await getSessionContributions(session.id);
           const pendingCount = peerInsights.filter(c => c.status === 'pending').length;
           if (pendingCount > 0) {
-            newNotifications.push({ id: `peer-${session.id}`, type: 'peer_contribution', title: 'New Peer Insight', message: `${pendingCount} expert review pending.`, timestamp: now, read: false, linkSessionId: session.id, intensity: 'low' });
+            const id = `peer-${session.id}`;
+            if (!dismissedNotificationIds.has(id)) {
+              newNotifications.push({ id, type: 'peer_contribution', title: 'New Peer Insight', message: `${pendingCount} expert review pending.`, timestamp: now, read: false, linkSessionId: session.id, intensity: 'low' });
+            }
           }
         }
       }
       setNotifications(prev => {
         const existingIds = new Set(prev.map(n => n.id));
-        const uniqueNew = newNotifications.filter(n => !existingIds.has(n.id));
-        return [...prev, ...uniqueNew];
+        const filteredNew = newNotifications.filter(n => !existingIds.has(n.id) && !dismissedNotificationIds.has(n.id));
+        return [...prev.filter(n => !dismissedNotificationIds.has(n.id)), ...filteredNew];
       });
     };
     runEngine();
-  }, [sessions, status, isOwner]);
+  }, [sessions, status, isOwner, dismissedNotificationIds]);
 
   const handleMarkNotificationRead = (id: string) => { setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n)); };
-  const handleDismissNotification = (id: string) => { setNotifications(prev => prev.filter(n => n.id !== id)); };
+  const handleDismissNotification = (id: string) => { 
+    setDismissedNotificationIds(prev => {
+      const next = new Set(prev);
+      next.add(id);
+      saveDismissed(next);
+      return next;
+    });
+    setNotifications(prev => prev.filter(n => n.id !== id)); 
+  };
   const handleNavigateFromNotification = (sessionId: string, notificationId: string) => {
     const session = sessions.find(s => s.id === sessionId);
     if (session) { loadSession(session); handleMarkNotificationRead(notificationId); setIsNotificationOpen(false); }
