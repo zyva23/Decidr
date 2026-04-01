@@ -103,9 +103,37 @@ const DecidrApp: React.FC = () => {
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
 
   const [isActionsMenuOpen, setIsActionsMenuOpen] = useState(false);
+  const [shouldStartNewAfterLogin, setShouldStartNewAfterLogin] = useState(false);
 
   const isOwner = sessions.some(s => s.id === currentSessionId);
   const [isHumanInsightsVisible, setIsHumanInsightsVisible] = useState(true);
+
+  // PRESERVE SHARED HISTORY ON LOGIN
+  useEffect(() => {
+    if (user && status === AnalysisStatus.SHARED_VIEW && result && !isOwner) {
+      const preserveSession = async () => {
+        const sessionToSave: DecisionSession = {
+          id: currentSessionId || crypto.randomUUID(),
+          user_id: user.id,
+          timestamp: Date.now(),
+          input: inputValues,
+          result: result,
+          status: AnalysisStatus.COMPLETE,
+          chatHistory: chatHistory,
+          isPublic: true,
+          contributions: contributions
+        };
+        await saveSession(sessionToSave);
+        const updatedSessions = await getSessions(user.id);
+        setSessions(updatedSessions);
+        if (shouldStartNewAfterLogin) {
+          executeStartNewSession();
+          setShouldStartNewAfterLogin(false);
+        }
+      };
+      preserveSession();
+    }
+  }, [user, status, result, isOwner, shouldStartNewAfterLogin]);
 
   // LOAD CONTRIBUTIONS FOR OWNER (Unified Merge)
   useEffect(() => {
@@ -336,6 +364,15 @@ const DecidrApp: React.FC = () => {
     }
   };
 
+  const handleStartOwnAnalysis = () => {
+    if (!user) {
+      setShouldStartNewAfterLogin(true);
+      setIsGuestMode(false);
+    } else {
+      startNewSession();
+    }
+  };
+
   if (isAuthChecking) { return <div className="flex items-center justify-center h-screen bg-slate-950"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div></div>; }
   if (!user && !isGuestMode && status !== AnalysisStatus.SHARED_VIEW) { return <Auth onContinueAsGuest={() => { setIsGuestMode(true); logActivity(null, 'guest_session_start'); }} />; }
 
@@ -379,7 +416,7 @@ const DecidrApp: React.FC = () => {
         </div>
         <div className="flex items-center gap-6">
           <button onClick={() => setIsNotificationOpen(true)} className="relative p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-all">{notifications.filter(n => !n.read).length > 0 && <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-indigo-500 rounded-full border-2 border-slate-900 shadow-[0_0_8px_rgba(99,102,241,0.6)]"></span>}<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg></button>
-          {(!isPublicSession || isOwner) ? <GamifiedHeader xp={xp} level={level} /> : <button onClick={startNewSession} className="text-xs font-bold text-indigo-400 hover:text-indigo-300 transition-all uppercase tracking-widest px-4 py-2 rounded-lg border border-indigo-500/30 bg-indigo-500/5">Start Deliberation</button>}
+          {(!isPublicSession || isOwner) ? <GamifiedHeader xp={xp} level={level} /> : <button onClick={handleStartOwnAnalysis} className="text-xs font-bold text-indigo-400 hover:text-indigo-300 transition-all uppercase tracking-widest px-4 py-2 rounded-lg border border-indigo-500/30 bg-indigo-500/5 shadow-lg shadow-indigo-900/20">Analyze your own decision</button>}
         </div>
       </header>
 
