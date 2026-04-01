@@ -13,13 +13,14 @@ import CommitmentPanel from './components/CommitmentPanel';
 import DecisionTreeViz from './components/DecisionTreeViz';
 import ShareModal from './components/ShareModal';
 import CollaborationModal from './components/CollaborationModal';
+import NotificationFeed from './components/NotificationFeed';
 import Auth from './components/Auth';
 import { UI_CONTENT } from './src/constants/uiContent';
 import { analyzeDecision, generateActionPlan, generateDecisionTree, synthesizeOnly } from './services/geminiService';
 import { saveSession, getSessions, deleteSession, getLocalSessions } from './services/storageService';
 import { auth, logActivity, onAuthStateChanged, signOut, isGCPConfigured, saveDetailedFeedback, saveToWaitlist, getUserProfile, saveUserProfile, getPublicSession, addSessionContribution, updateContributionStatuses } from './services/googleCloud';
 import { generateDecisionPDF } from './services/pdfService';
-import { DecisionInput, CouncilResult, AnalysisStatus, DecisionSession, ChatMessage, UserProfile, ActionPlan, PartialCouncilResult, DecisionTree, Contribution } from './types';
+import { DecisionInput, CouncilResult, AnalysisStatus, DecisionSession, ChatMessage, UserProfile, ActionPlan, PartialCouncilResult, DecisionTree, Contribution, Notification } from './types';
 
 /**
  * ERROR BOUNDARY

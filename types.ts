@@ -86,6 +86,17 @@ export interface ChatMessage {
   timestamp: number;
 }
 
+export interface Notification {
+  id: string;
+  type: 'commitment_nudge' | 'download_reminder' | 'peer_contribution' | 'system';
+  title: string;
+  message: string;
+  timestamp: number;
+  read: boolean;
+  linkSessionId?: string;
+  intensity?: 'low' | 'medium' | 'high';
+}
+
 export interface Contribution {
   id: string;
   name: string;
