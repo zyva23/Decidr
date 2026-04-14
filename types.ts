@@ -37,6 +37,7 @@ export interface AgentResponse {
   chartData?: ChartDataPoint[];
   chartLabel?: string;
   alternativeScenarios?: AlternativeScenario[];
+  _rawTrace?: { systemPrompt: string; userPrompt: string }; // Hidden trace for debugging
 }
 
 export interface RadarMetrics {
@@ -54,6 +55,19 @@ export interface SynthesisResult {
   refinedPaths: string[]; // High-fidelity analyzed options
 }
 
+export interface TraceStep {
+  phase: 'Identification' | 'Research' | 'Supervisor' | 'Agent' | 'Synthesis';
+  agent?: string;
+  query?: string;
+  response?: any;
+  timestamp: number;
+}
+
+export interface CouncilTrace {
+  steps: TraceStep[];
+  fullTranscript: string;
+}
+
 export interface CouncilResult {
   analyst: AgentResponse;
   strategist: AgentResponse;
@@ -62,6 +76,7 @@ export interface CouncilResult {
   synthesis: SynthesisResult;
   strategicDataPoints?: string[]; // Essential points used for this analysis
   researchData?: string; // Centralized research findings
+  trace?: CouncilTrace; // Detailed execution log for testing
   synthesisHistory?: SynthesisResult[]; // To store previous versions
   feedback?: 'helpful' | 'not-helpful'; // User feedback
 }

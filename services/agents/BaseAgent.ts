@@ -167,6 +167,7 @@ export abstract class BaseAgent {
       const data = this.cleanAndParseJSON(text);
       if (!data) throw new Error("Failed to parse agent response");
       data.sources = [...(data.sources || []), ...sources];
+      data._rawTrace = { systemPrompt, userPrompt }; // Attach trace info
       return data;
     });
   }
