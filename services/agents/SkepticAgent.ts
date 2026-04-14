@@ -3,8 +3,11 @@ import { DecisionInput, AgentResponse } from "../../types";
 
 export class SkepticAgent extends BaseAgent {
   
-  async run(input: DecisionInput): Promise<AgentResponse> {
+  async run(input: DecisionInput, strategicDataPoints?: string[], conversationHistory?: string, researchData?: string): Promise<AgentResponse> {
     const role = "Skeptic";
+
+    const historyContext = conversationHistory ? `\nPREVIOUS COUNCIL DISCUSSION:\n${conversationHistory}` : "";
+    const researchContext = researchData ? `\nCENTRALIZED RESEARCH FINDINGS:\n${researchData}` : "";
 
     // Optimization: The Skeptic focuses on Constraints and Options (Failure points).
     const userPrompt = `
@@ -12,7 +15,13 @@ export class SkepticAgent extends BaseAgent {
       Context: ${input.context}
       Constraints: ${input.constraints}
       Options: ${input.options}
+      ${historyContext}
+      ${researchContext}
     `;
+
+    const strategicContext = strategicDataPoints && strategicDataPoints.length > 0 
+      ? `\nCORE STRATEGIC DATA POINTS TO ANALYZE:\n${strategicDataPoints.map(p => `- ${p}`).join('\n')}`
+      : "";
 
     const systemPrompt = `
       ROLE: The Skeptic (Pre-Mortem Analysis)
@@ -20,6 +29,7 @@ export class SkepticAgent extends BaseAgent {
       MISSION:
       Assume the decision has ALREADY FAILED. Work backward to find the fatal flaw.
       Identify regulatory risks, hidden costs, and over-optimism.
+      ${strategicContext}
       
       SPECIFIC INSTRUCTIONS:
       1. Do NOT look for upsides. Look for cracks in the plan.

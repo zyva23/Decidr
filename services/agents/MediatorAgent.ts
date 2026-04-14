@@ -3,13 +3,22 @@ import { DecisionInput, AgentResponse } from "../../types";
 
 export class MediatorAgent extends BaseAgent {
   
-  async run(input: DecisionInput): Promise<AgentResponse> {
+  async run(input: DecisionInput, strategicDataPoints?: string[], conversationHistory?: string, researchData?: string): Promise<AgentResponse> {
     const role = "Mediator";
+
+    const historyContext = conversationHistory ? `\nPREVIOUS COUNCIL DISCUSSION:\n${conversationHistory}` : "";
+    const researchContext = researchData ? `\nCENTRALIZED RESEARCH FINDINGS:\n${researchData}` : "";
 
     const userPrompt = `
       Title: ${input.title}
       Context: ${input.context}
+      ${historyContext}
+      ${researchContext}
     `;
+
+    const strategicContext = strategicDataPoints && strategicDataPoints.length > 0 
+      ? `\nCORE STRATEGIC DATA POINTS TO ANALYZE:\n${strategicDataPoints.map(p => `- ${p}`).join('\n')}`
+      : "";
 
     const systemPrompt = `
       ROLE: The Mediator (Stakeholder & Cultural Lens)
@@ -17,6 +26,7 @@ export class MediatorAgent extends BaseAgent {
       MISSION:
       Evaluate the impact on people: Team morale, company culture, ethics, and brand reputation.
       Find the compromise between the Analyst (Money) and Skeptic (Risk).
+      ${strategicContext}
       
       SPECIFIC INSTRUCTIONS:
       1. Focus on emotional intelligence and ethics.

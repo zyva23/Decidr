@@ -28,6 +28,48 @@ const truncateContext = (text: string, maxChars: number = 2000): string => {
   return text.substring(0, maxChars) + "... [Context truncated for efficiency]";
 };
 
+/**
+ * NEW STEP: Strategic Data Point Identification
+ * Analyzes the request to find 8-10 essential metrics/factors.
+ */
+export async function identifyStrategicDataPoints(input: DecisionInput): Promise<string[]> {
+  const prompt = `
+    DECISION INQUIRY: "${input.title}"
+    CONTEXT: ${input.context}
+    
+    As a Strategic Research Lead, analyze this request. 
+    Identify 8-10 specific data points (metrics, dates, or qualitative factors) that are absolutely essential for a comprehensive, high-fidelity analysis of this specific topic.
+    
+    REQUIREMENTS:
+    1. Precision: Use specific industry terms.
+    2. Variety: Include a mix of financial, market, risk, and human factors.
+    3. Actionability: These points will guide 4 expert agents in their research.
+    
+    Output ONLY a JSON array of 8-10 strings.
+  `;
+
+  try {
+    const ai = getAI();
+    const response = await ai.models.generateContent({
+      model: MASTER_MODEL,
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.ARRAY,
+          items: { type: Type.STRING }
+        } as any,
+        temperature: 0.2,
+      }
+    });
+
+    return JSON.parse(response.text || "[]");
+  } catch (error) {
+    console.error("Data Point Identification Error:", error);
+    return [];
+  }
+}
+
 export async function synthesizeOnly(input: DecisionInput, agents: PartialCouncilResult, humanPerspectives?: Contribution[]): Promise<CouncilResult> {
   const { analyst, strategist, skeptic, mediator } = agents;
   if (!analyst || !strategist || !skeptic || !mediator) {
@@ -75,7 +117,7 @@ export async function synthesizeOnly(input: DecisionInput, agents: PartialCounci
     });
 
     const synthesisData = JSON.parse(response.text || "{}");
-    return { analyst, strategist, skeptic, mediator, synthesis: synthesisData };
+    return { analyst, strategist, skeptic, mediator, synthesis: synthesisData, strategicDataPoints: [] };
   } catch (error) {
     console.warn("Synthesis fallback triggered in synthesizeOnly...", error);
     try {
@@ -93,7 +135,8 @@ export async function synthesizeOnly(input: DecisionInput, agents: PartialCounci
           recommendation: synthesisData.recommendation || "Synthesis partially failed.",
           refinedPaths: synthesisData.refinedPaths || ["Proceed with caution"],
           metrics: synthesisData.metrics || { risk: 50, speed: 50, cost: 50, impact: 50, feasibility: 50 }
-        }
+        },
+        strategicDataPoints: []
       };
     } catch (fallbackError) {
       throw new Error("Council Deadlock: Persistent synthesis failure.");
@@ -101,9 +144,105 @@ export async function synthesizeOnly(input: DecisionInput, agents: PartialCounci
   }
 }
 
+/**
+ * CENTRALIZED RESEARCH PHASE
+ * Gathers all necessary data points at the start to prevent redundant searching.
+ */
+export async function performComprehensiveResearch(input: DecisionInput, strategicPoints: string[]): Promise<string> {
+  const prompt = `
+    DECISION INQUIRY: "${input.title}"
+    CONTEXT: ${input.context}
+    CONSTRAINTS: ${input.constraints}
+    STRATEGIC PILLARS TO INVESTIGATE:
+    ${strategicPoints.map(p => `- ${p}`).join('\n')}
+    
+    You are a Senior Strategic Researcher. Your goal is to gather a comprehensive "Intelligence Dossier" for a Council of Experts.
+    
+    RESEARCH TASKS (Using googleSearch):
+    1. Financial Benchmarks: Find specific ROI, CAGR, and cost data relevant to the strategic pillars.
+    2. Competitive Intelligence: Identify top competitors, their recent pivots, and market positioning.
+    3. Risk Landscape: Find historical failure modes, regulatory hurdles, and macro-economic threats.
+    4. Human Factors: Look for culture trends, stakeholder sentiment, and ethical considerations in this sector.
+    
+    REQUIREMENTS:
+    1. THOROUGHNESS: Provide detailed data points, not just summaries.
+    2. CITATIONS: You MUST include the URLs for every major finding.
+    3. STRUCTURE: Organize by "Financial", "Strategic", "Risk", and "Human/Ethical" categories.
+    
+    Output a detailed research report that will be used by other agents.
+  `;
+
+  try {
+    const ai = getAI();
+    // Using a slightly higher temperature for research to ensure broad exploration
+    const response = await ai.models.generateContent({
+      model: MASTER_MODEL,
+      contents: prompt,
+      config: { 
+        tools: [{ googleSearch: {} }] as any,
+        temperature: 0.5 
+      }
+    });
+
+    let groundingText = "";
+    if (response.candidates?.[0]?.groundingMetadata?.groundingChunks) {
+      const chunks = response.candidates[0].groundingMetadata.groundingChunks;
+      groundingText = "\n\nSOURCES FOUND:\n" + chunks.map((chunk: any) => 
+        chunk.web?.uri ? `${chunk.web.title || 'Source'}: ${chunk.web.uri}` : ""
+      ).filter(Boolean).join('\n');
+    }
+
+    return (response.text || "Research phase completed with no specific narrative output.") + groundingText;
+  } catch (error) {
+    console.error("Comprehensive Research Error:", error);
+    return "The centralized research phase encountered an error. Agents will rely on internal training data.";
+  }
+}
+
+async function determineNextAgent(input: DecisionInput, history: string, remainingAgents: string[], loopsLeft: number): Promise<string> {
+  if (remainingAgents.length === loopsLeft) {
+    return remainingAgents[0]; // Force remaining agents to run if we are running out of loops
+  }
+  
+  const prompt = `
+    DECISION INQUIRY: "${input.title}"
+    CONTEXT: ${input.context}
+    
+    You are the Decision Council Supervisor.
+    CONVERSATION HISTORY SO FAR:
+    ${history || "No history yet. This is the first turn."}
+    
+    AGENTS WHO HAVEN'T SPOKEN YET: ${remainingAgents.join(', ')}
+    LOOPS REMAINING: ${loopsLeft}
+    
+    Which agent should speak next to best advance this deliberation?
+    Available agents: Analyst, Strategist, Skeptic, Mediator.
+    If all agents have spoken and the conversation has reached a natural conclusion, you may output "End".
+    
+    Output ONLY a JSON object: { "nextAgent": "Analyst" | "Strategist" | "Skeptic" | "Mediator" | "End", "reason": "string" }
+  `;
+  try {
+    const ai = getAI();
+    const response = await ai.models.generateContent({
+      model: MASTER_MODEL,
+      contents: prompt,
+      config: { responseMimeType: "application/json", temperature: 0.3 }
+    });
+    const data = JSON.parse(response.text || "{}");
+    const agent = data.nextAgent;
+    if (['Analyst', 'Strategist', 'Skeptic', 'Mediator', 'End'].includes(agent)) {
+      return agent;
+    }
+  } catch (e) {}
+  
+  // Fallback to remaining
+  return remainingAgents.length > 0 ? remainingAgents[0] : 'End';
+}
+
 export async function analyzeDecision(
   input: DecisionInput, 
-  onProgress?: (partial: PartialCouncilResult) => void
+  onProgress?: (partial: PartialCouncilResult) => void,
+  cachedResearch?: string // NEW: To allow re-use of research
 ): Promise<CouncilResult> {
   const optimizedInput: DecisionInput = {
     ...input,
@@ -115,31 +254,84 @@ export async function analyzeDecision(
      throw new Error("Strategic API Key is missing.");
   }
 
+  // STEP 1: Identify Strategic Data Points
+  const strategicPoints = await identifyStrategicDataPoints(optimizedInput);
+  console.log("Strategic Data Points Identified:", strategicPoints);
+
+  // STEP 2: Centralized Research (Cached or New)
+  let researchData = cachedResearch;
+  if (!researchData) {
+    console.log("Initiating comprehensive research phase...");
+    researchData = await performComprehensiveResearch(optimizedInput, strategicPoints);
+    if (onProgress) onProgress({ researchData });
+  } else {
+    console.log("Utilizing existing research data.");
+  }
+
   const analystAgent = new AnalystAgent(apiKey as string);
   const strategistAgent = new StrategistAgent(apiKey as string);
   const skepticAgent = new SkepticAgent(apiKey as string);
   const mediatorAgent = new MediatorAgent(apiKey as string);
 
-  const analystPromise = analystAgent.run(optimizedInput).then(res => {
-    if (onProgress) onProgress({ analyst: res });
-    return res;
-  });
-  const strategistPromise = strategistAgent.run(optimizedInput).then(res => {
-    if (onProgress) onProgress({ strategist: res });
-    return res;
-  });
-  const skepticPromise = skepticAgent.run(optimizedInput).then(res => {
-    if (onProgress) onProgress({ skeptic: res });
-    return res;
-  });
-  const mediatorPromise = mediatorAgent.run(optimizedInput).then(res => {
-    if (onProgress) onProgress({ mediator: res });
-    return res;
-  });
+  // STEP 3: Supervisor Loop Execution
+  let historyTranscript = "";
+  let remainingAgents = ['Analyst', 'Strategist', 'Skeptic', 'Mediator'];
+  const maxLoops = 5;
+  let currentLoop = 0;
+  
+  let analyst: any = null;
+  let strategist: any = null;
+  let skeptic: any = null;
+  let mediator: any = null;
 
-  const [analyst, strategist, skeptic, mediator] = await Promise.all([
-    analystPromise, strategistPromise, skepticPromise, mediatorPromise
-  ]);
+  while (currentLoop < maxLoops) {
+    const loopsLeft = maxLoops - currentLoop;
+    let nextAgentName = await determineNextAgent(optimizedInput, historyTranscript, remainingAgents, loopsLeft);
+    
+    // Force agent if we need to make sure everyone speaks
+    if (remainingAgents.length === loopsLeft) {
+      nextAgentName = remainingAgents[0];
+    }
+    
+    if (nextAgentName === 'End') {
+      if (remainingAgents.length > 0) nextAgentName = remainingAgents[0]; // don't end if someone hasn't spoken
+      else break; // Natural end if everyone has spoken
+    }
+
+    console.log(`Supervisor selected: ${nextAgentName} (Loop ${currentLoop + 1}/${maxLoops})`);
+
+    let agentResponse;
+    try {
+      if (nextAgentName === 'Analyst') {
+        agentResponse = await analystAgent.run(optimizedInput, strategicPoints, historyTranscript, researchData);
+        analyst = agentResponse;
+        if (onProgress) onProgress({ analyst });
+      } else if (nextAgentName === 'Strategist') {
+        agentResponse = await strategistAgent.run(optimizedInput, strategicPoints, historyTranscript, researchData);
+        strategist = agentResponse;
+        if (onProgress) onProgress({ strategist });
+      } else if (nextAgentName === 'Skeptic') {
+        agentResponse = await skepticAgent.run(optimizedInput, strategicPoints, historyTranscript, researchData);
+        skeptic = agentResponse;
+        if (onProgress) onProgress({ skeptic });
+      } else if (nextAgentName === 'Mediator') {
+        agentResponse = await mediatorAgent.run(optimizedInput, strategicPoints, historyTranscript, researchData);
+        mediator = agentResponse;
+        if (onProgress) onProgress({ mediator });
+      }
+      
+      remainingAgents = remainingAgents.filter(a => a !== nextAgentName);
+      if (agentResponse) {
+        historyTranscript += `\n\n--- ${nextAgentName} ---\n${agentResponse.analysis}`;
+      }
+    } catch (e) {
+      console.error(`Error running ${nextAgentName}:`, e);
+      // Fallback: just remove from remaining to avoid infinite crash loops
+      remainingAgents = remainingAgents.filter(a => a !== nextAgentName);
+    }
+
+    currentLoop++;
+  }
 
   const prompt = `
     DECISION: "${optimizedInput.title}"
@@ -171,7 +363,7 @@ export async function analyzeDecision(
     });
 
     const synthesisData = JSON.parse(response.text || "{}");
-    return { analyst, strategist, skeptic, mediator, synthesis: synthesisData };
+    return { analyst, strategist, skeptic, mediator, synthesis: synthesisData, strategicDataPoints: strategicPoints };
   } catch (error) {
     console.warn("Primary synthesis failed, attempting safe fallback...", error);
     
@@ -197,7 +389,7 @@ export async function analyzeDecision(
         metrics: synthesisData.metrics || { risk: 50, speed: 50, cost: 50, impact: 50, feasibility: 50 }
       };
 
-      return { analyst, strategist, skeptic, mediator, synthesis: finalizedSynthesis };
+      return { analyst, strategist, skeptic, mediator, synthesis: finalizedSynthesis, strategicDataPoints: strategicPoints };
     } catch (fallbackError) {
       console.error("Critical Failure: Master Model Deadlock", fallbackError);
       throw new Error("Council Deadlock: The Master Model failed to synthesize perspectives even after fallback.");

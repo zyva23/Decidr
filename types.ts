@@ -60,6 +60,8 @@ export interface CouncilResult {
   skeptic: AgentResponse;
   mediator: AgentResponse;
   synthesis: SynthesisResult;
+  strategicDataPoints?: string[]; // Essential points used for this analysis
+  researchData?: string; // Centralized research findings
   synthesisHistory?: SynthesisResult[]; // To store previous versions
   feedback?: 'helpful' | 'not-helpful'; // User feedback
 }
@@ -69,6 +71,7 @@ export interface PartialCouncilResult {
   strategist?: AgentResponse;
   skeptic?: AgentResponse;
   mediator?: AgentResponse;
+  researchData?: string;
 }
 
 export interface BrainstormQuestion {
@@ -128,6 +131,7 @@ export interface DecisionSession {
   chatHistory?: ChatMessage[];
   actionPlan?: ActionPlan;
   decisionTree?: DecisionTree;
+  researchData?: string; // Centralized research findings
   isPublic?: boolean;
   contributions?: Contribution[];
   commitment?: {

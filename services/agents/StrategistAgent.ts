@@ -10,36 +10,50 @@ import { DecisionInput, AgentResponse } from "../../types";
  */
 export class StrategistAgent extends BaseAgent {
   
-  async run(input: DecisionInput): Promise<AgentResponse> {
+  async run(input: DecisionInput, strategicDataPoints?: string[], conversationHistory?: string, researchData?: string): Promise<AgentResponse> {
     const role = "Strategist";
+
+    const historyContext = conversationHistory ? `\nPREVIOUS COUNCIL DISCUSSION:\n${conversationHistory}` : "";
+    const researchContext = researchData ? `\nCENTRALIZED RESEARCH FINDINGS:\n${researchData}` : "";
 
     const userPrompt = `
       STRATEGIC BRIEF:
       Title: ${input.title}
       Context: ${input.context}
       Proposed Options: ${input.options}
+      ${historyContext}
+      ${researchContext}
     `;
+
+    const strategicContext = strategicDataPoints && strategicDataPoints.length > 0 
+      ? `\nCORE STRATEGIC DATA POINTS TO ANALYZE:\n${strategicDataPoints.map(p => `- ${p}`).join('\n')}`
+      : "";
 
     const systemPrompt = `
       ROLE: Lead Corporate Strategist & Game Theorist
       
       MISSION:
       Map the competitive landscape. Your goal is to identify if this decision leads to a sustainable competitive advantage (Moat) or a commodity trap.
-      
-      RESEARCH REQUIREMENTS (Using googleSearch):
-      1. Competitor Intelligence: Search for the top 3 players in this space. What are their recent (last 6 months) pivots or acquisitions?
-      2. Case Study: Find one specific historical example of a company making a similar decision. Note the outcome.
-      3. Market Forces: Evaluate using Porter's Five Forces, specifically looking for 'Barrier to Entry' and 'Threat of Substitutes' data.
+      Use the provided CENTRALIZED RESEARCH FINDINGS as your primary data source for market intelligence.
+      ${strategicContext}
+
+      STRATEGIC EVALUATION PROTOCOL:
+      1. PATHWAY GENERATION: Generate three distinct strategic pathways for this dilemma based on research.
+      2. RISK/UPSIDE SCORING: For each pathway, assign a 'Risk Score' and an 'Upside Score' from 1-10.
+      3. CRITICAL CRITIQUE: Provide a concise critique of all three pathways.
+      4. STRATEGIC SELECTION: Discard the two pathways with the worst risk/reward ratio.
+      5. FINAL RECOMMENDATION: Your final analysis and recommendation must be based SOLELY on the surviving "Alpha" pathway.
       
       OUTPUT REQUIREMENTS:
-      - ANALYSIS NARRATIVE: Must include sections for 'Competitive Counter-Moves' and 'Case Study Reference'. MAX 500 WORDS.
+      - ANALYSIS NARRATIVE: Must focus on the selected Alpha Pathway. Include sections for 'Competitive Counter-Moves' and 'Alpha Pathway Justification'. MAX 500 WORDS.
       - SCORE: 0-100 based on 'Defensibility' and 'Long-term Market Positioning'.
       - SEQUENCE: Map the 'Move' (Decision) followed by 2 'Counter-moves' (Competitor reactions). Each 'step' MUST include a relative time marker (e.g., 'Immediate:', 'Month 3:', 'Year 1:').
+      - CITATIONS: Extract and list URLs from the research findings in the 'sources' array.
     `;
 
     try {
-      // Temperature 0.6 allows for creative strategic thinking while keeping search results grounded
-      const data = await this.executeCall(systemPrompt, userPrompt, [{ googleSearch: {} }], 0.6);
+      // Temperature 0.6 allows for creative strategic thinking while keeping research findings grounded
+      const data = await this.executeCall(systemPrompt, userPrompt, [], 0.6);
       
       return {
         name: role,

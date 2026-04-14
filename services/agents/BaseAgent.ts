@@ -122,7 +122,7 @@ export abstract class BaseAgent {
     }
   }
 
-  abstract run(input: DecisionInput): Promise<AgentResponse>;
+  abstract run(input: DecisionInput, strategicDataPoints?: string[], conversationHistory?: string, researchData?: string): Promise<AgentResponse>;
 
   /**
    * Centralizes the actual call to the Gemini API.
