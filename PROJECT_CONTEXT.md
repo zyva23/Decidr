@@ -1,6 +1,8 @@
 # Decidr - Project Context
 
-## Overview
+## Deployment State
+<!-- Triggering redeployment to sync Vercel with main rollback -->
+
 Decidr is a sophisticated, intellectually-toned Decision Support System (DSS). It uses a multi-agent orchestration pattern (Google Gemini 3 Flash) to simulate a "Council of Experts" that deliberates on complex life and business inquiries.
 
 ## Tech Stack
