@@ -1,49 +1,37 @@
-# Decidr - Project Context
+# Decidr - Project Context (Development Branch)
 
-## Overview
-Decidr is a sophisticated, intellectually-toned Decision Support System (DSS). It uses a multi-agent orchestration pattern (Google Gemini 3 Flash) to simulate a "Council of Experts" that deliberates on complex life and business inquiries.
+## Advanced Architecture Overview
+This branch implements the **Supervisor-Worker Orchestration** pattern, moving beyond parallel agent execution into a sequential, multi-round deliberation system.
 
 ## Tech Stack
 - **Frontend**: React 19, Tailwind CSS, Recharts (Visualizations).
-- **AI Core**: `@google/genai` (Gemini API) using parallel streaming agents.
-- **Backend/DB**: Firebase Firestore for session persistence, user profiles, and activity logging.
-- **PDF Core**: `@react-pdf/renderer` & `html2canvas` for reporting; `pdfjs-dist` (legacy build) for extraction.
-- **OCR**: `tesseract.js` for image-based text extraction.
+- **AI Core**: `@google/genai` (Gemini API - Gemini 3 Flash).
+- **Orchestration**: Custom Supervisor-Worker loop with stateful conversation history.
+- **Backend/DB**: Firebase Firestore for session persistence and **Research Caching**.
 
-## Core Philosophical Workflows
-1. **The Inquiry (Input)**: 
-   - `InputForm.tsx` supports high-fidelity, "thick descriptions" of complex realities.
-   - **Smart Context Architect**: A guided wizard that helps users build nuanced briefs.
-   - **High-Fidelity Scenarios**: Detailed, category-specific templates (Personal, Career, Business, Life & Legacy) that model deep strategic inquiry.
-2. **The Deliberation (Analysis)**:
-   - `geminiService.ts` runs 4 specialized agents in parallel (The Rationalist, The Architect, The Realist, The Ethicist).
-   - **Partial Recovery Logic**: If the synthesis step fails, individual agent reports are preserved, allowing for a **Synthesis Retry** without re-running agents.
-3. **The Synthesis (Verdict)**:
-   - A master model evaluations reports to provide a final verdict, 5-point radar metrics, and **Refined Strategic Paths**.
-   - **Council Deadlock Fallback**: Implements a robust fallback mechanism that automatically attempts a safer synthesis if the primary model encounters parsing or complexity issues.
-4. **The Interval of Intent (Commitment)**:
-   - `MindfulCommitModal.tsx` enforces a 60-second pause with a pulsing breathing graphic for final gut resonance.
-5. **The Strategic Continuity (Linking)**:
-   - Inquiries can be linked into **Evolutionary Branches**, either automatically via "Evolve to Next" or manually via **Link from History**.
-6. **Executive Reporting**:
-   - `DecisionPDF` (via `@react-pdf/renderer`) generates cinematic A4 reports featuring:
-     - Premium dark-themed Cover Page with SVG graphics.
-     - Auto-repeating footers with smart page numbering.
-     - Detailed **Execution Roadmaps** with phased tasks, KPIs, pitfalls, and success criteria.
-     - Visual agent identities (avatars and archetype labels) matching the website.
-
-## Key System Modules
-- **State Management**: `App.tsx` handles parallel agent state, cloud-synced progression (XP/Rank), and **Session Transition Guards** (confirmations for unsaved/ongoing work).
-- **Cloud Storage**: `storageService.ts` implements a "Cloud-First" merge logic ensuring history and rank sync across all devices.
-- **Agent Logic**: Individual agent prompts reside in `src/services/agents/`.
-- **UI Content**: Centrally managed in `src/constants/uiContent.ts` to ensure a consistent, sophisticated tone.
+## Core Council Workflows (v2.0)
+1. **Strategic Pillar Identification**: 
+   - Before deliberation, a "Research Lead" agent analyzes the user request to identify 8-10 essential data points (metrics, benchmarks, or qualitative factors).
+2. **Centralized Research Phase (The Dossier)**:
+   - A robust research module runs once to gather factual data for all identified pillars using `googleSearch`.
+   - **Resilience**: Features exponential retry logic and "Query Decomposition" (breaking complex searches into granular steps) to ensure successful grounding.
+   - **Fact Alignment**: All expert agents operate from this shared "Intelligence Dossier" to ensure data consistency.
+3. **The Deliberation (3-Round Loop)**:
+   - **Round 1 (Foundation)**: All 4 agents (Analyst, Strategist, Skeptic, Mediator) speak once to establish their initial positions.
+   - **Round 2 (Cross-Examination)**: Agents speak a second time, specifically reacting to and critiquing the findings of their peers.
+   - **Round 3 (Supervisor Closing)**: An intelligent Supervisor analyzes the conversation gaps and specifically directs agents for final refinements (Max 12 total turns).
+4. **Enhanced Agent Protocols**:
+   - **The Analyst**: Uses a "Check Your Work" loop to identify and fill analytical gaps.
+   - **The Strategist**: Generates 3 pathways, scores them for risk/reward, and promotes only the single "Alpha Pathway."
+5. **System Transparency (Tracing)**:
+   - Implements a `CouncilTrace` logging system that records every internal query, supervisor decision, and raw agent response for auditing and testing.
 
 ## Stability & Integrity
-- **Error Handling**: Uses a Global Error Boundary and specific synthesis fallback paths to prevent deliberation deadlocks.
-- **PDF Stability**: Switched from jsPDF to a declarative flexbox engine (`@react-pdf/renderer`) to eliminate text overlapping and layout artifacts.
-- **Vite/Build Optimization**: Implemented Buffer polyfills and pako resolution aliases to support complex Node-centric libraries in browser environments.
+- **Research Caching**: Research findings are stored in the session. Re-running an analysis reuses cached data to save API costs and improve speed.
+- **Supervisor Guards**: The supervisor ensures all agents speak at least twice before allowing the deliberation to conclude.
+- **Grounding Validation**: The system verifies the presence of external sources before proceeding to the deliberation phase.
 
 ## Environment Requirements
 - `VITE_GEMINI_API_KEY`: Strategic API access.
-- `VITE_FIREBASE_*`: Full Firebase suite for Auth and Cloud Firestore.
-- `EINVALIDTAGNAME`: Avoid '#' in package dependencies.
+- `VITE_FIREBASE_*`: Full Firebase suite.
+- **Domain Authorization**: Dev Vercel domains must be added to Firebase Authorized Domains to prevent `auth/unauthorized-domain` errors.
