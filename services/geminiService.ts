@@ -498,9 +498,9 @@ export async function chatWithCouncil(history: ChatMessage[], newMessage: string
     });
 
     return response.text || "The Chairperson is currently unavailable.";
-  } catch (e) {
+  } catch (e: any) {
     console.error("Chat with Council Error:", e);
-    return "Error communicating with the council.";
+    return `Error communicating with the council: ${e.message || 'Unknown error'}`;
   }
 }
 

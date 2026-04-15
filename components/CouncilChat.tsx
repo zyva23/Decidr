@@ -51,7 +51,7 @@ const CouncilChat: React.FC<CouncilChatProps> = ({
     setIsLoading(true);
 
     try {
-      const response = await chatWithCouncil(chatHistory, inputText, councilResult, input);
+      const response = await chatWithCouncil(newHistory, inputText, councilResult, input);
       
       const aiMsg: ChatMessage = {
         role: 'assistant',
