@@ -551,7 +551,7 @@ export async function generateActionPlan(input: DecisionInput, councilResult: Co
   try {
     const ai = getAI();
     const response = await ai.models.generateContent({
-      model: "gemini-1.5-flash",
+      model: "gemini-3-flash-preview",
       contents: prompt,
       config: { responseMimeType: "application/json", responseSchema: actionPlanSchema as any, temperature: 0.4 }
     });
@@ -586,7 +586,7 @@ export async function generateDecisionTree(problem: string, councilResult?: Coun
   try {
     const ai = getAI();
     const response = await ai.models.generateContent({
-      model: "gemini-1.5-flash",
+      model: "gemini-3-flash-preview",
       contents: prompt,
       config: { 
         responseMimeType: "application/json", 
