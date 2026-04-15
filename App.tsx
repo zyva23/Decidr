@@ -136,6 +136,19 @@ const DecidrApp: React.FC = () => {
   const [isActionsMenuOpen, setIsActionsMenuOpen] = useState(false);
   const [shouldStartNewAfterLogin, setShouldStartNewAfterLogin] = useState(false);
 
+  // PERSIST CHAT HISTORY
+  useEffect(() => {
+    if (currentSessionId && chatHistory.length > 0) {
+      const session = sessions.find(s => s.id === currentSessionId);
+      if (session && JSON.stringify(session.chatHistory) !== JSON.stringify(chatHistory)) {
+        const updatedSession = { ...session, chatHistory };
+        saveSession(updatedSession).then(() => {
+          setSessions(prev => prev.map(s => s.id === currentSessionId ? updatedSession : s));
+        });
+      }
+    }
+  }, [chatHistory, currentSessionId]);
+
   const isOwner = sessions.some(s => s.id === currentSessionId);
   const [isHumanInsightsVisible, setIsHumanInsightsVisible] = useState(true);
 

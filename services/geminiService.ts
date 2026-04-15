@@ -447,18 +447,59 @@ export async function exploreBrainstorm(field: 'constraints' | 'options' | 'cont
 }
 
 export async function chatWithCouncil(history: ChatMessage[], newMessage: string, councilResult: CouncilResult, input: DecisionInput): Promise<string> {
-  const contextPrompt = `You are the Chairperson of the Decision Council. Verdict: ${councilResult.synthesis.verdict}.`;
-  const chatHistoryGemini = [
-    { role: 'user', parts: [{ text: contextPrompt }] },
-    ...history.slice(-10).map(m => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.content }] }))
-  ];
+  const agentPerspectives = `
+    AGENT REPORTS:
+    1. Analyst: ${councilResult.analyst.analysis}
+    2. Strategist: ${councilResult.strategist.analysis}
+    3. Skeptic: ${councilResult.skeptic.analysis}
+    4. Mediator: ${councilResult.mediator.analysis}
+  `;
+
+  const researchAddendum = councilResult.researchData ? `\n\nRESEARCH FINDINGS:\n${councilResult.researchData}` : "";
+
+  const contextPrompt = `
+    You are the Chairperson of the Decision Council. 
+    The Council has reached a verdict for the decision: "${input.title}".
+    
+    VERDICT: ${councilResult.synthesis.verdict}
+    RECOMMENDATION: ${councilResult.synthesis.recommendation}
+    
+    ${agentPerspectives}
+    ${researchAddendum}
+    
+    Use the above reports and research to answer user questions about the decision. Be authoritative yet helpful.
+    If the user provides new information, acknowledge it but stick to the council's current stance unless they specifically ask for a re-evaluation.
+  `;
+
+  const chatHistoryFormatted = history.slice(-10).map(m => 
+    `${m.role === 'assistant' ? 'Chairperson' : 'User'}: ${m.content}`
+  ).join('\n');
+
+  const prompt = `
+    ${contextPrompt}
+    
+    CHAT HISTORY:
+    ${chatHistoryFormatted}
+    
+    NEW USER MESSAGE:
+    ${newMessage}
+    
+    RESPONSE:
+  `;
 
   try {
     const ai = getAI();
-    const chat = ai.chats.create({ model: "gemini-3-flash-preview", history: chatHistoryGemini });
-    const result = await chat.sendMessage({ message: newMessage });
-    return result.text || "";
+    const response = await ai.models.generateContent({
+      model: MASTER_MODEL,
+      contents: prompt,
+      config: {
+        temperature: 0.7,
+      }
+    });
+
+    return response.text || "The Chairperson is currently unavailable.";
   } catch (e) {
+    console.error("Chat with Council Error:", e);
     return "Error communicating with the council.";
   }
 }
