@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import { DecisionInput, CouncilResult, BrainstormResult, ChatMessage, ActionPlan, PartialCouncilResult, DecisionTree } from "../types";
+import { DecisionInput, CouncilResult, BrainstormResult, ChatMessage, ActionPlan, PartialCouncilResult, DecisionTree, Contribution } from "../types";
 import { AnalystAgent } from "./agents/AnalystAgent";
 import { StrategistAgent } from "./agents/StrategistAgent";
 import { SkepticAgent } from "./agents/SkepticAgent";
@@ -8,6 +8,19 @@ import { MediatorAgent } from "./agents/MediatorAgent";
 /**
  * CORE SERVICE: Decision Council Orchestrator
  */
+
+export interface CouncilTraceStep {
+  phase: string;
+  agent?: string;
+  query: any;
+  response: any;
+  timestamp: number;
+}
+
+export interface CouncilTrace {
+  steps: CouncilTraceStep[];
+  fullTranscript: string;
+}
 
 let aiInstance: GoogleGenAI | null = null;
 const getAI = () => {
@@ -21,7 +34,7 @@ const getAI = () => {
   return aiInstance;
 };
 
-const MASTER_MODEL = "gemini-3-flash-preview"; 
+const MASTER_MODEL = "gemini-1.5-flash"; 
 
 const truncateContext = (text: string, maxChars: number = 2000): string => {
   if (text.length <= maxChars) return text;
@@ -170,15 +183,20 @@ export async function performComprehensiveResearch(input: DecisionInput, strateg
       - If specific data is missing, find the closest industry proxy.
     `;
 
-    const ai = getAI();
-    return await ai.models.generateContent({
-      model: MASTER_MODEL,
-      contents: prompt,
-      config: { 
-        tools: [{ googleSearch: {} }] as any,
-        temperature: 0.4 // Slightly lower for more focused searching
-      }
-    });
+    try {
+      const ai = getAI();
+      return await ai.models.generateContent({
+        model: MASTER_MODEL,
+        contents: prompt,
+        config: { 
+          tools: [{ googleSearch: {} }] as any,
+          temperature: 0.4 // Slightly lower for more focused searching
+        }
+      });
+    } catch (e: any) {
+      console.error("[RESEARCH] executeResearch API Error:", e);
+      throw e;
+    }
   };
 
   try {
@@ -533,7 +551,7 @@ export async function generateActionPlan(input: DecisionInput, councilResult: Co
   try {
     const ai = getAI();
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: "gemini-1.5-flash",
       contents: prompt,
       config: { responseMimeType: "application/json", responseSchema: actionPlanSchema as any, temperature: 0.4 }
     });
@@ -568,7 +586,7 @@ export async function generateDecisionTree(problem: string, councilResult?: Coun
   try {
     const ai = getAI();
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: "gemini-1.5-flash",
       contents: prompt,
       config: { 
         responseMimeType: "application/json", 
