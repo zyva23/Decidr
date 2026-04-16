@@ -17,7 +17,8 @@ interface Props {
 const typeConfig = {
   risk: { icon: '🚩', label: 'Risk', color: 'text-red-400', bg: 'bg-red-500/10' },
   variable: { icon: '🧩', label: 'Variable', color: 'text-blue-400', bg: 'bg-blue-500/10' },
-  alternative: { icon: '💡', label: 'Alternative', color: 'text-emerald-400', bg: 'bg-emerald-500/10' }
+  alternative: { icon: '💡', label: 'Alternative', color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
+  thought: { icon: '🧠', label: 'Self Thought', color: 'text-indigo-400', bg: 'bg-indigo-500/10' }
 };
 
 const CollaborationModal: React.FC<Props> = ({ 

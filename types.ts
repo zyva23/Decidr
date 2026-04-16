@@ -121,7 +121,7 @@ export interface Contribution {
   name: string;
   content: string;
   timestamp: number;
-  type: 'risk' | 'variable' | 'alternative';
+  type: 'risk' | 'variable' | 'alternative' | 'thought';
   status?: 'pending' | 'accepted' | 'dismissed' | 'revision_requested';
   notified?: boolean;
   feedbackComment?: string; // Feedback from the owner

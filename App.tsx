@@ -842,8 +842,20 @@ const DecidrApp: React.FC = () => {
           }
         />
       </main>
-      {isChatOpen && result && <CouncilChat isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} councilResult={result} input={inputValues} chatHistory={chatHistory} onUpdateHistory={setChatHistory} onReAnalyze={(newCtx) => handleAnalysis({...inputValues, context: inputValues.context + newCtx})} />}
-      {currentPlan && (<ActionPlanModal isOpen={isPlanModalOpen} onClose={() => setIsPlanModalOpen(false)} onSave={handleSavePlan} plan={currentPlan} />)}
+      {isChatOpen && result && (
+        <CouncilChat 
+          isOpen={isChatOpen} 
+          onClose={() => setIsChatOpen(false)} 
+          councilResult={result} 
+          input={inputValues} 
+          chatHistory={chatHistory} 
+          onUpdateHistory={setChatHistory} 
+          onReAnalyze={(newCtx) => handleAnalysis({...inputValues, context: inputValues.context + newCtx})} 
+          onSubmitContribution={handleSubmitContribution}
+          userName={contributionName}
+          isUserAuthenticated={!!user}
+        />
+      )}      {currentPlan && (<ActionPlanModal isOpen={isPlanModalOpen} onClose={() => setIsPlanModalOpen(false)} onSave={handleSavePlan} plan={currentPlan} />)}
       {isTreeOpen && (<DecisionTreeViz problemTitle={inputValues.title} councilResult={result || undefined} initialTree={currentSessionId ? sessions.find(s => s.id === currentSessionId)?.decisionTree : undefined} onSave={handleSaveTree} onClose={() => setIsTreeOpen(false)} />)}
       <NotificationFeed isOpen={isNotificationOpen} onClose={() => setIsNotificationOpen(false)} notifications={notifications} onMarkRead={handleMarkNotificationRead} onDismiss={handleDismissNotification} onNavigate={handleNavigateFromNotification} />
       <CollaborationModal 

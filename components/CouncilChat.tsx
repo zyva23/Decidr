@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ChatMessage, CouncilResult, DecisionInput } from '../types';
+import { ChatMessage, CouncilResult, DecisionInput, Contribution } from '../types';
 import { chatWithCouncil } from '../services/geminiService';
 
 interface CouncilChatProps {
@@ -10,6 +10,9 @@ interface CouncilChatProps {
   chatHistory: ChatMessage[];
   onUpdateHistory: (msgs: ChatMessage[]) => void;
   onReAnalyze: (newContext: string) => void;
+  onSubmitContribution: (name: string, content: string, type: Contribution['type'], isAnonymous: boolean) => Promise<void>;
+  userName: string;
+  isUserAuthenticated: boolean;
 }
 
 const CouncilChat: React.FC<CouncilChatProps> = ({ 
@@ -19,10 +22,14 @@ const CouncilChat: React.FC<CouncilChatProps> = ({
   input, 
   chatHistory, 
   onUpdateHistory,
-  onReAnalyze
+  onReAnalyze,
+  onSubmitContribution,
+  userName,
+  isUserAuthenticated
 }) => {
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isPromoting, setIsPromoting] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -64,6 +71,19 @@ const CouncilChat: React.FC<CouncilChatProps> = ({
       console.error(err);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handlePromoteToThought = async (content: string, msgId: number) => {
+    const idStr = msgId.toString();
+    setIsPromoting(idStr);
+    try {
+      await onSubmitContribution(userName, content, 'thought', !isUserAuthenticated);
+      // Optional: Add a system message or visual cue that it was added
+    } catch (err) {
+      console.error("Promotion failed:", err);
+    } finally {
+      setIsPromoting(null);
     }
   };
 
@@ -139,7 +159,7 @@ const CouncilChat: React.FC<CouncilChatProps> = ({
           
           {chatHistory.map((msg, idx) => (
             <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-[85%] rounded-2xl p-4 text-sm leading-relaxed shadow-sm relative ${
+              <div className={`max-w-[85%] rounded-2xl p-4 text-sm leading-relaxed shadow-sm relative group ${
                 msg.role === 'user' 
                   ? 'bg-indigo-600/20 text-indigo-100 border border-indigo-500/20 rounded-tr-none' 
                   : 'bg-slate-800 text-slate-200 border border-slate-700 rounded-tl-none'
@@ -150,6 +170,21 @@ const CouncilChat: React.FC<CouncilChatProps> = ({
                   </div>
                 )}
                 <div className="whitespace-pre-wrap">{msg.content}</div>
+                
+                {msg.role === 'user' && (
+                  <button 
+                    onClick={() => handlePromoteToThought(msg.content, idx)}
+                    disabled={isPromoting === idx.toString()}
+                    className="absolute -left-12 top-0 p-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-400 hover:text-indigo-400 hover:border-indigo-500/50 opacity-0 group-hover:opacity-100 transition-all shadow-xl"
+                    title="Incorporate as Self Thought"
+                  >
+                    {isPromoting === idx.toString() ? (
+                      <div className="w-4 h-4 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin" />
+                    ) : (
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 4.44-1.48Z"/><path d="M10.5 7.5h.01"/><path d="M13.5 12h.01"/><path d="M8 15h.01"/><path d="M13.5 17h.01"/></svg>
+                    )}
+                  </button>
+                )}
               </div>
             </div>
           ))}
