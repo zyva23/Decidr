@@ -603,7 +603,7 @@ const DecidrApp: React.FC = () => {
                     <div className="md:col-span-2 bg-gradient-to-br from-indigo-900/40 to-slate-900/40 border border-indigo-500/30 rounded-xl p-8 flex flex-col shadow-2xl text-left relative overflow-hidden">
                       <div className="flex justify-between items-center mb-4">
                         <h2 className="text-indigo-300 text-xs font-bold uppercase tracking-widest">Master Verdict</h2>
-                        {(result.synthesisHistory && result.synthesisHistory.length > 0) && (
+                        {result && result.synthesisHistory && result.synthesisHistory.length > 0 && (
                           <div className="flex items-center gap-2 bg-slate-950/50 px-3 py-1.5 rounded-full border border-slate-800 shadow-inner">
                             <button 
                               onClick={() => setCurrentSynthesisIndex(prev => Math.max(0, prev - 1))}

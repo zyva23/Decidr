@@ -37,6 +37,11 @@ const getAI = () => {
 const MASTER_MODEL = "gemini-3-flash-preview"; 
 const FALLBACK_MODEL = "gemini-1.5-flash"; // Stable fallback for 2026 environment
 
+const truncateContext = (text: string, maxChars: number = 2000): string => {
+  if (text.length <= maxChars) return text;
+  return text.substring(0, maxChars) + "... [Context truncated for efficiency]";
+};
+
 /**
  * HELPER: Attempt content generation with fallback
  */
