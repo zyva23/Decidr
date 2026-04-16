@@ -363,7 +363,7 @@ const DecidrApp: React.FC = () => {
   const handleSavePlan = async (updatedPlan: ActionPlan) => { if (!currentSessionId) return; const session = sessions.find(s => s.id === currentSessionId); if (session) { const updatedSession = { ...session, actionPlan: updatedPlan }; await saveSession(updatedSession); setCurrentPlan(updatedPlan); setSessions(await getSessions(user?.id)); } };
   const handleSaveTree = async (tree: DecisionTree, shouldClose: boolean = true) => { if (!currentSessionId) return; const session = sessions.find(s => s.id === currentSessionId); if (session) { const updatedSession = { ...session, decisionTree: tree }; await saveSession(updatedSession); if (shouldClose) setIsTreeOpen(false); setSessions(await getSessions(user?.id)); } };
 
-  const executeStartNewSession = () => { window.history.pushState({}, '', window.location.pathname); setCurrentSessionId(null); setInputValues({ title: '', context: '', constraints: '', options: '' }); setResult(null); setPartialResult(null); setChatHistory([]); setStatus(AnalysisStatus.IDLE); setIsChatOpen(false); setIsElaborationOpen(false); setCurrentPlan(null); setHasDownloadedPDF(false); setContributions([]); setIsPublicSession(false); };
+  const executeStartNewSession = () => { window.history.pushState({}, '', window.location.pathname); setCurrentSessionId(null); setInputValues({ title: '', context: '', constraints: '', options: '' }); setResult(null); setPartialResult(null); setChatHistory([]); setStatus(AnalysisStatus.IDLE); setIsChatOpen(false); setIsElaborationOpen(false); setCurrentPlan(null); setHasDownloadedPDF(false); setContributions([]); setIsPublicSession(false); setIsInputLocked(false); };
   const startNewSession = () => { if (status === AnalysisStatus.ANALYZING) { setConfirmationDialog({ type: 'cancel_analysis', pendingAction: executeStartNewSession }); return; } if (status === AnalysisStatus.COMPLETE && !hasDownloadedPDF) { setConfirmationDialog({ type: 'download_first', pendingAction: executeStartNewSession }); return; } executeStartNewSession(); };
 
   const executeLoadSession = async (session: DecisionSession) => {
@@ -373,6 +373,8 @@ const DecidrApp: React.FC = () => {
     
     // Reset synthesis index to the latest version of the loaded session
     setCurrentSynthesisIndex(session.result?.synthesisHistory?.length || 0);
+    setIsInputLocked(true);
+    setLastDeliberatedInput(session.input);
     
     const peerInsights = await getSessionContributions(session.id); setContributions(peerInsights);
   };
@@ -406,7 +408,7 @@ const DecidrApp: React.FC = () => {
         if (input.options !== lastDeliberatedInput?.options) changes.push("Options refined");
         
         // Check for new human contributions since last deliberation
-        const newContributions = contributions.filter(c => c.status === 'approved' || c.type === 'thought');
+        const newContributions = contributions.filter(c => c.status === 'accepted' || c.type === 'thought');
         if (newContributions.length > 0) changes.push(`${newContributions.length} Human insights incorporated`);
         
         changeLog = changes.length > 0 ? changes.join(", ") : "Manual re-run";
@@ -604,16 +606,16 @@ const DecidrApp: React.FC = () => {
                 {inputValues.options && <div><h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 text-left">Paths Explored</h4><div className="space-y-2">{inputValues.options.split('\n').filter(o => o.trim()).map((opt, i) => (<div key={i} className="p-3 bg-indigo-500/5 border border-indigo-500/10 rounded-lg text-xs text-indigo-200/70 flex gap-3 text-left"><span className="font-mono text-indigo-500 opacity-50 text-left">0{i+1}</span>{opt}</div>))}</div></div>}
               </div>
             </div>
-          ) : <InputForm initialValues={inputValues} onSubmit={handleAnalysis} isLoading={status === AnalysisStatus.ANALYZING} sessions={sessions} />}
+          ) : <InputForm initialValues={inputValues} onSubmit={handleAnalysis} isLoading={status === AnalysisStatus.ANALYZING} sessions={sessions} isLocked={isInputLocked} onUnlock={() => setIsInputLocked(false)} />}
           right={
             <div className="h-full overflow-y-auto custom-scrollbar text-left">
-              {status === AnalysisStatus.ANALYZING && !partialResult && (
+              {status === AnalysisStatus.ANALYZING && !result && (
                 <div className="h-full animate-fade-in">
                   <DeliberationAnimation />
                 </div>
               )}
 
-              {(status === AnalysisStatus.COMPLETE || status === AnalysisStatus.SHARED_VIEW || (status === AnalysisStatus.ANALYZING && partialResult)) && result && (
+              {(status === AnalysisStatus.COMPLETE || status === AnalysisStatus.SHARED_VIEW || (status === AnalysisStatus.ANALYZING && result)) && result && (
                 <div className="space-y-6 animate-fade-in pb-12 text-left">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
                     <div className="md:col-span-2 bg-gradient-to-br from-indigo-900/40 to-slate-900/40 border border-indigo-500/30 rounded-xl p-8 flex flex-col shadow-2xl text-left relative overflow-hidden">
@@ -808,16 +810,9 @@ const DecidrApp: React.FC = () => {
                     <div className="bg-slate-900/40 border border-slate-800 rounded-xl p-6 flex flex-col items-center justify-center gap-4 text-left"><RadarViz metrics={result.synthesis?.metrics} />{isOwner && (<button onClick={() => setIsTreeOpen(true)} className="w-full py-3 bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 border border-indigo-500/20 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-inner shadow-indigo-900/10"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v8"/><path d="m4.93 10.93 1.41 1.41"/><path d="M2 18h2"/><path d="M20 18h2"/><path d="m19.07 10.93-1.41 1.41"/><path d="M22 22H2"/><path d="m8 22 4-10 4 10"/></svg>Impact Mapping</button>)}</div>
                   </div>
 
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 text-left">
-                    <AgentCard role="Analyst" agent={result?.analyst} color="blue" isLoading={!result?.analyst} />
-                    <AgentCard role="Strategist" agent={result?.strategist} color="purple" isLoading={!result?.strategist} />
-                    <AgentCard role="Skeptic" agent={result?.skeptic} color="red" isLoading={!result?.skeptic} />
-                    <AgentCard role="Mediator" agent={result?.mediator} color="emerald" isLoading={!result?.mediator} />
-                  </div>
-
-                  {/* Collaborative Intelligence Channel */}
+                  {/* Collaborative Intelligence Channel (Moved UP) */}
                   {(isOwner || status === AnalysisStatus.SHARED_VIEW || contributions.some(c => c.status === 'accepted')) && (
-                    <div className={`lg:col-span-3 transition-all duration-500 text-left ${isHumanInsightsVisible ? 'opacity-100' : 'opacity-50'}`}>
+                    <div className={`transition-all duration-500 text-left ${isHumanInsightsVisible ? 'opacity-100' : 'opacity-50'}`}>
                       <div className="flex justify-between items-center mb-3 px-2 text-left">
                         <div className="flex items-center gap-2">
                           <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></div>
@@ -887,7 +882,7 @@ const DecidrApp: React.FC = () => {
                                   )}
                                 </div>
                                 <div className="flex gap-2">
-                                  {(['variable', 'risk', 'alternative'] as const).map(t => (
+                                  {(['variable', 'risk', 'alternative', 'thought'] as const).map(t => (
                                     <button
                                       key={t}
                                       onClick={() => setContributionType(t)}
@@ -897,7 +892,7 @@ const DecidrApp: React.FC = () => {
                                           : 'bg-slate-900 text-slate-500 border-slate-800 hover:border-slate-700'
                                       }`}
                                     >
-                                      {t === 'risk' ? '🚩 Risk' : t === 'variable' ? '🧩 Variable' : '💡 Alternative'}
+                                      {t === 'risk' ? '🚩 Risk' : t === 'variable' ? '🧩 Variable' : t === 'alternative' ? '💡 Alternative' : '🧠 Thought'}
                                     </button>
                                   ))}
                                 </div>
@@ -935,7 +930,7 @@ const DecidrApp: React.FC = () => {
                                       {c.status === 'revision_requested' && <span className="text-[7px] bg-amber-500/10 text-amber-400 border border-amber-500/20 px-1.5 rounded uppercase font-black tracking-widest shadow-inner">Revision Requested</span>}
                                       {c.status === 'dismissed' && <span className="text-[7px] bg-red-500/10 text-red-400 border border-red-500/20 px-1.5 rounded uppercase font-black tracking-widest shadow-inner">Discarded</span>}
                                     </div>
-                                    <div className="mb-2 text-left"><span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider border shadow-sm ${c.type === 'risk' ? 'bg-red-500/10 text-red-400 border-red-500/20' : c.type === 'variable' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'}`}>{c.type === 'risk' ? '🚩 Risk' : c.type === 'variable' ? '🧩 Variable' : '💡 Alternative'}</span></div>
+                                    <div className="mb-2 text-left"><span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider border shadow-sm ${c.type === 'risk' ? 'bg-red-500/10 text-red-400 border-red-500/20' : c.type === 'variable' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : c.type === 'thought' ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'}`}>{c.type === 'risk' ? '🚩 Risk' : c.type === 'variable' ? '🧩 Variable' : c.type === 'thought' ? '🧠 Thought' : '💡 Alternative'}</span></div>
                                     <p className="text-slate-300 text-sm leading-relaxed text-left opacity-90">{c.content}</p>
                                     
                                     {c.feedbackComment && (
@@ -989,6 +984,13 @@ const DecidrApp: React.FC = () => {
                       )}
                     </div>
                   )}
+
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 text-left">
+                    <AgentCard role="Analyst" agent={result?.analyst} color="blue" isLoading={!result?.analyst} />
+                    <AgentCard role="Strategist" agent={result?.strategist} color="purple" isLoading={!result?.strategist} />
+                    <AgentCard role="Skeptic" agent={result?.skeptic} color="red" isLoading={!result?.skeptic} />
+                    <AgentCard role="Mediator" agent={result?.mediator} color="emerald" isLoading={!result?.mediator} />
+                  </div>
 
                   {/* Commitment Status Summary */}
                   {isOwner && currentSessionId && sessions.find(s => s.id === currentSessionId)?.commitment && (
