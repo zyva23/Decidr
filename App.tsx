@@ -766,6 +766,13 @@ const DecidrApp: React.FC = () => {
                     <div className="bg-slate-900/40 border border-slate-800 rounded-xl p-6 flex flex-col items-center justify-center gap-4 text-left"><RadarViz metrics={result.synthesis?.metrics} />{isOwner && (<button onClick={() => setIsTreeOpen(true)} className="w-full py-3 bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 border border-indigo-500/20 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-inner shadow-indigo-900/10"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v8"/><path d="m4.93 10.93 1.41 1.41"/><path d="M2 18h2"/><path d="M20 18h2"/><path d="m19.07 10.93-1.41 1.41"/><path d="M22 22H2"/><path d="m8 22 4-10 4 10"/></svg>Impact Mapping</button>)}</div>
                   </div>
 
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 text-left">
+                    <AgentCard role="Analyst" agent={result?.analyst} color="blue" isLoading={!result?.analyst} />
+                    <AgentCard role="Strategist" agent={result?.strategist} color="purple" isLoading={!result?.strategist} />
+                    <AgentCard role="Skeptic" agent={result?.skeptic} color="red" isLoading={!result?.skeptic} />
+                    <AgentCard role="Mediator" agent={result?.mediator} color="emerald" isLoading={!result?.mediator} />
+                  </div>
+
                   {/* Collaborative Intelligence Channel */}
                   {(isOwner || status === AnalysisStatus.SHARED_VIEW || contributions.some(c => c.status === 'accepted')) && (
                     <div className={`lg:col-span-3 transition-all duration-500 text-left ${isHumanInsightsVisible ? 'opacity-100' : 'opacity-50'}`}>
