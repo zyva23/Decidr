@@ -681,15 +681,35 @@ const DecidrApp: React.FC = () => {
                       {isHumanInsightsVisible && (
                         <div className="bg-[#1A1D21]/80 border border-slate-700/50 rounded-2xl overflow-hidden shadow-2xl backdrop-blur-xl text-left">
                           <div className="px-6 py-3 border-b border-slate-700/30 bg-[#121519]/50 flex justify-between items-center">
-                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                              Expert Deliberation Channel
-                            </span>
+                            <div className="flex items-center gap-4">
+                              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                                Expert Deliberation Channel
+                              </span>
+                              {isOwner && !isPublicSession && (
+                                <div className="flex items-center gap-2">
+                                  <button 
+                                    onClick={() => setIsChatOpen(true)}
+                                    className="text-[9px] font-black uppercase tracking-widest text-indigo-400 hover:text-indigo-300 transition-colors flex items-center gap-1.5"
+                                  >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m3 21 1.9-5.7a8.5 8.5 0 1 1 3.8 3.8z"/></svg>
+                                    Consult Council
+                                  </button>
+                                  <div className="w-1 h-1 rounded-full bg-slate-700"></div>
+                                  <button 
+                                    onClick={() => setIsShareModalOpen(true)}
+                                    className="text-[9px] font-black uppercase tracking-widest text-emerald-400 hover:text-emerald-300 transition-colors flex items-center gap-1.5"
+                                  >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+                                    Share Session
+                                  </button>
+                                </div>
+                              )}
+                            </div>
                             {isOwner && contributions.filter(c => c.status === 'pending').length > 0 && (
                               <span className="text-[8px] bg-red-500/20 text-red-400 border border-red-500/20 px-2 py-0.5 rounded-full font-black uppercase shadow-lg shadow-red-900/20">Action Required: {contributions.filter(c => c.status === 'pending').length} New</span>
                             )}
                           </div>
-
                           {!isOwner && (
                             <div className="p-6 border-b border-slate-800/50 bg-[#121519]/30">
                               <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">Contribute Perspective</h4>
