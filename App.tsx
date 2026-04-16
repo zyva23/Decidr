@@ -367,6 +367,10 @@ const DecidrApp: React.FC = () => {
     window.history.pushState({}, '', window.location.pathname);
     setCurrentSessionId(session.id); setInputValues(session.input); setResult(session.result); setPartialResult(null); setChatHistory(session.chatHistory || []);
     setStatus(session.status); setIsChatOpen(false); setIsElaborationOpen(false); setCurrentPlan(session.actionPlan || null); setIsHistoryOpen(false); setHasDownloadedPDF(true); setIsPublicSession(session.isPublic || false);
+    
+    // Reset synthesis index to the latest version of the loaded session
+    setCurrentSynthesisIndex(session.result?.synthesisHistory?.length || 0);
+    
     const peerInsights = await getSessionContributions(session.id); setContributions(peerInsights);
   };
 
