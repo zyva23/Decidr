@@ -372,19 +372,97 @@ const DecidrApp: React.FC = () => {
 
   const handleAnalysis = async (input: DecisionInput) => {
     if (credits >= MAX_FREE_CREDITS) { if (user && user.email && !hasJoinedWaitlist) { await handleWaitlistJoin(user.email); } setShowWaitlist(true); return; }
+    
     const canRetrySynthesis = partialResult && partialResult.analyst && partialResult.strategist && partialResult.skeptic && partialResult.mediator;
-    setStatus(AnalysisStatus.ANALYZING); setInputValues(input); if (!canRetrySynthesis) { setResult(null); setPartialResult(null); }
-    setHasDownloadedPDF(false); logActivity(user?.id, canRetrySynthesis ? 'retry_synthesis' : 'analysis_started', { title: input.title });
+    
+    // Determine if this is a re-analysis of the current session
+    const isReAnalysis = !!currentSessionId && !!result;
+    
+    setStatus(AnalysisStatus.ANALYZING); 
+    setInputValues(input); 
+    
+    if (!canRetrySynthesis && !isReAnalysis) { 
+      setResult(null); 
+      setPartialResult(null); 
+    }
+    
+    setHasDownloadedPDF(false); 
+    logActivity(user?.id, canRetrySynthesis ? 'retry_synthesis' : (isReAnalysis ? 're_analysis_started' : 'analysis_started'), { title: input.title });
+    
     try {
       let data: CouncilResult;
-      if (canRetrySynthesis) { data = await synthesizeOnly(input, partialResult); } else { data = await analyzeDecision(input, (partial) => { try { setPartialResult(prev => ({ ...(prev || {}), ...partial })); } catch (e) { console.warn("Partial state update skipped", e); } }); }
-      setResult(data); setPartialResult(null); setStatus(AnalysisStatus.COMPLETE);
-      const newCredits = credits + 1; setCredits(newCredits); localStorage.setItem('dc_credits_used', newCredits.toString()); await updateProgression(100);
+      if (canRetrySynthesis) { 
+        data = await synthesizeOnly(input, partialResult); 
+      } else { 
+        data = await analyzeDecision(input, (partial) => { 
+          try { 
+            setPartialResult(prev => ({ ...(prev || {}), ...partial })); 
+          } catch (e) { 
+            console.warn("Partial state update skipped", e); 
+          } 
+        }); 
+      }
+
+      // VERSIONING LOGIC: If re-analyzing, push old synthesis to history
+      if (isReAnalysis && result) {
+        const previousSynthesis = result.synthesis;
+        const previousHistory = result.synthesisHistory || [];
+        data.synthesisHistory = [...previousHistory, previousSynthesis];
+      }
+
+      setResult(data); 
+      setPartialResult(null); 
+      setStatus(AnalysisStatus.COMPLETE);
+      
+      const newCredits = credits + 1; 
+      setCredits(newCredits); 
+      localStorage.setItem('dc_credits_used', newCredits.toString()); 
+      await updateProgression(100);
+      
       const sessionId = currentSessionId || crypto.randomUUID();
-      const newSession: DecisionSession = { id: sessionId, user_id: user?.id, timestamp: Date.now(), input: input, result: data, status: AnalysisStatus.COMPLETE, chatHistory: [], isPublic: false };
-      await saveSession(newSession); setCurrentSessionId(sessionId); setSessions(await getSessions(user?.id));
-      (async () => { try { const [plan, tree] = await Promise.all([ generateActionPlan(input, data), generateDecisionTree(input.title, data) ]); const session = (await getSessions(user?.id)).find(s => s.id === sessionId); if (session) { await saveSession({ ...session, actionPlan: plan, decisionTree: tree }); if (sessionId === currentSessionId) { setCurrentPlan(plan); setSessions(await getSessions(user?.id)); } } } catch (bgError) { console.error("Background Gen Error:", bgError); } })();
-    } catch (error: any) { setStatus(AnalysisStatus.ERROR); logActivity(user?.id, 'error', { message: error.message }); }
+      const session = sessions.find(s => s.id === sessionId);
+      
+      const updatedSession: DecisionSession = { 
+        id: sessionId, 
+        user_id: user?.id, 
+        timestamp: session?.timestamp || Date.now(), 
+        input: input, 
+        result: data, 
+        status: AnalysisStatus.COMPLETE, 
+        chatHistory: chatHistory, // Preserve current chat history
+        isPublic: session?.isPublic || false,
+        contributions: session?.contributions || []
+      };
+      
+      await saveSession(updatedSession); 
+      setCurrentSessionId(sessionId); 
+      setSessions(await getSessions(user?.id));
+      
+      // Update synthesis index to point to the newest one
+      setCurrentSynthesisIndex(data.synthesisHistory?.length || 0);
+
+      (async () => { 
+        try { 
+          const [plan, tree] = await Promise.all([ 
+            generateActionPlan(input, data), 
+            generateDecisionTree(input.title, data) 
+          ]); 
+          const currentSess = (await getSessions(user?.id)).find(s => s.id === sessionId); 
+          if (currentSess) { 
+            await saveSession({ ...currentSess, actionPlan: plan, decisionTree: tree }); 
+            if (sessionId === currentSessionId) { 
+              setCurrentPlan(plan); 
+              setSessions(await getSessions(user?.id)); 
+            } 
+          } 
+        } catch (bgError) { 
+          console.error("Background Gen Error:", bgError); 
+        } 
+      })();
+    } catch (error: any) { 
+      setStatus(AnalysisStatus.ERROR); 
+      logActivity(user?.id, 'error', { message: error.message }); 
+    }
   };
 
   const handleExportPDF = async () => { if (!result || !inputValues) return; setIsExporting(true); try { await generateDecisionPDF(inputValues, result, currentPlan || undefined); setHasDownloadedPDF(true); } catch (e) { console.error(e); } finally { setIsExporting(false); } };
