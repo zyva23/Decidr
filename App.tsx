@@ -86,6 +86,8 @@ const DecidrApp: React.FC = () => {
   const [showFeedbackForm, setShowFeedbackForm] = useState(false);
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
   const [hasJoinedWaitlist, setHasJoinedWaitlist] = useState(false);
+  const [isInputLocked, setIsInputLocked] = useState(false);
+  const [lastDeliberatedInput, setLastDeliberatedInput] = useState<DecisionInput | null>(null);
 
   // Collaboration State
   const [isCollaborationModalOpen, setIsCollaborationModalOpen] = useState(false);
@@ -381,8 +383,6 @@ const DecidrApp: React.FC = () => {
     if (credits >= MAX_FREE_CREDITS) { if (user && user.email && !hasJoinedWaitlist) { await handleWaitlistJoin(user.email); } setShowWaitlist(true); return; }
     
     const canRetrySynthesis = partialResult && partialResult.analyst && partialResult.strategist && partialResult.skeptic && partialResult.mediator;
-    
-    // Determine if this is a re-analysis of the current session
     const isReAnalysis = !!currentSessionId && !!result;
     
     setStatus(AnalysisStatus.ANALYZING); 
@@ -397,6 +397,21 @@ const DecidrApp: React.FC = () => {
     logActivity(user?.id, canRetrySynthesis ? 'retry_synthesis' : (isReAnalysis ? 're_analysis_started' : 'analysis_started'), { title: input.title });
     
     try {
+      // Determine what changed for the changeLog
+      let changeLog = "";
+      if (isReAnalysis) {
+        const changes = [];
+        if (input.context !== lastDeliberatedInput?.context) changes.push("Context updated");
+        if (input.constraints !== lastDeliberatedInput?.constraints) changes.push("Constraints modified");
+        if (input.options !== lastDeliberatedInput?.options) changes.push("Options refined");
+        
+        // Check for new human contributions since last deliberation
+        const newContributions = contributions.filter(c => c.status === 'approved' || c.type === 'thought');
+        if (newContributions.length > 0) changes.push(`${newContributions.length} Human insights incorporated`);
+        
+        changeLog = changes.length > 0 ? changes.join(", ") : "Manual re-run";
+      }
+
       let data: CouncilResult;
       if (canRetrySynthesis) { 
         data = await synthesizeOnly(input, partialResult); 
@@ -415,11 +430,14 @@ const DecidrApp: React.FC = () => {
         const previousSynthesis = result.synthesis;
         const previousHistory = result.synthesisHistory || [];
         data.synthesisHistory = [...previousHistory, previousSynthesis];
+        data.synthesis.changeLog = changeLog;
       }
 
       setResult(data); 
       setPartialResult(null); 
       setStatus(AnalysisStatus.COMPLETE);
+      setIsInputLocked(true); // LOCK INPUTS AFTER RUN
+      setLastDeliberatedInput(input);
       
       const newCredits = credits + 1; 
       setCredits(newCredits); 
@@ -436,7 +454,7 @@ const DecidrApp: React.FC = () => {
         input: input, 
         result: data, 
         status: AnalysisStatus.COMPLETE, 
-        chatHistory: chatHistory, // Preserve current chat history
+        chatHistory: chatHistory,
         isPublic: session?.isPublic || false,
         contributions: session?.contributions || []
       };
@@ -444,8 +462,6 @@ const DecidrApp: React.FC = () => {
       await saveSession(updatedSession); 
       setCurrentSessionId(sessionId); 
       setSessions(await getSessions(user?.id));
-      
-      // Update synthesis index to point to the newest one
       setCurrentSynthesisIndex(data.synthesisHistory?.length || 0);
 
       (async () => { 
@@ -604,24 +620,50 @@ const DecidrApp: React.FC = () => {
                       <div className="flex justify-between items-center mb-4">
                         <h2 className="text-indigo-300 text-xs font-bold uppercase tracking-widest">Master Verdict</h2>
                         {result && result.synthesisHistory && result.synthesisHistory.length > 0 && (
-                          <div className="flex items-center gap-2 bg-slate-950/50 px-3 py-1.5 rounded-full border border-slate-800 shadow-inner">
-                            <button 
-                              onClick={() => setCurrentSynthesisIndex(prev => Math.max(0, prev - 1))}
-                              disabled={currentSynthesisIndex === 0}
-                              className="p-1 text-slate-500 hover:text-white disabled:opacity-20 disabled:cursor-not-allowed transition-colors"
-                            >
-                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-                            </button>
-                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">
-                              Version {currentSynthesisIndex + 1} / {(result.synthesisHistory?.length || 0) + 1}
-                            </span>
-                            <button 
-                              onClick={() => setCurrentSynthesisIndex(prev => Math.min((result.synthesisHistory?.length || 0), prev + 1))}
-                              disabled={currentSynthesisIndex === (result.synthesisHistory?.length || 0)}
-                              className="p-1 text-slate-500 hover:text-white disabled:opacity-20 disabled:cursor-not-allowed transition-colors"
-                            >
-                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
-                            </button>
+                          <div className="flex items-center gap-3 bg-slate-950/50 px-3 py-1.5 rounded-full border border-slate-800 shadow-inner">
+                            <div className="flex items-center gap-1 border-r border-slate-800 pr-2 mr-1">
+                                <button 
+                                  onClick={() => setCurrentSynthesisIndex(prev => Math.max(0, prev - 1))}
+                                  disabled={currentSynthesisIndex === 0}
+                                  className="p-1 text-slate-500 hover:text-white disabled:opacity-20 disabled:cursor-not-allowed transition-colors"
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                                </button>
+                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter w-16 text-center">
+                                  V{currentSynthesisIndex + 1} / {(result.synthesisHistory?.length || 0) + 1}
+                                </span>
+                                <button 
+                                  onClick={() => setCurrentSynthesisIndex(prev => Math.min((result.synthesisHistory?.length || 0), prev + 1))}
+                                  disabled={currentSynthesisIndex === (result.synthesisHistory?.length || 0)}
+                                  className="p-1 text-slate-500 hover:text-white disabled:opacity-20 disabled:cursor-not-allowed transition-colors"
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                                </button>
+                            </div>
+                            
+                            {/* Version Info Icon */}
+                            {(() => {
+                                const activeSynthesis = currentSynthesisIndex === (result.synthesisHistory?.length || 0) 
+                                ? result.synthesis 
+                                : result.synthesisHistory![currentSynthesisIndex];
+                                
+                                if (!activeSynthesis.changeLog && currentSynthesisIndex === 0) return null;
+
+                                return (
+                                    <div className="relative group/info">
+                                        <div className="p-1 text-indigo-400/60 hover:text-indigo-400 cursor-help transition-colors">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                                        </div>
+                                        <div className="absolute bottom-full right-0 mb-3 w-48 bg-slate-900 border border-slate-700 rounded-xl p-3 shadow-2xl opacity-0 group-hover/info:opacity-100 pointer-events-none transition-all z-[120] translate-y-2 group-hover/info:translate-y-0">
+                                            <div className="text-[8px] font-black text-indigo-400 uppercase tracking-widest mb-1">Deliberation Context</div>
+                                            <p className="text-[10px] text-slate-300 leading-relaxed italic">
+                                                {activeSynthesis.changeLog || (currentSynthesisIndex === 0 ? "Initial Council deliberation" : "Manual re-analysis")}
+                                            </p>
+                                            <div className="absolute top-full right-4 w-2 h-2 bg-slate-900 border-r border-b border-slate-700 rotate-45 -translate-y-1"></div>
+                                        </div>
+                                    </div>
+                                );
+                            })()}
                           </div>
                         )}
                       </div>

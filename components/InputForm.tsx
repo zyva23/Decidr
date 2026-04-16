@@ -10,9 +10,11 @@ interface InputFormProps {
   onSubmit: (input: DecisionInput) => void;
   isLoading: boolean;
   sessions: DecisionSession[];
+  isLocked?: boolean;
+  onUnlock?: () => void;
 }
 
-const InputForm: React.FC<InputFormProps> = ({ initialValues, onSubmit, isLoading, sessions }) => {
+const InputForm: React.FC<InputFormProps> = ({ initialValues, onSubmit, isLoading, sessions, isLocked, onUnlock }) => {
   const [input, setInput] = useState<DecisionInput>(initialValues);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [showHistoryLink, setShowHistoryLink] = useState(false);
@@ -148,8 +150,8 @@ const InputForm: React.FC<InputFormProps> = ({ initialValues, onSubmit, isLoadin
   const renderInputWrapper = (field: keyof DecisionInput, label: string, component: React.ReactNode, hasAI: boolean = false, aiIconType: 'sparkle' | 'question' = 'sparkle') => {
     const isListening = listeningField === field;
     const isAiActive = activeBrainstorm === field;
-    const isAiEnabled = field === 'context' ? isTitleReady : isContextReady;
-    const aiTooltip = isAiEnabled 
+    const isAiEnabled = (field === 'context' ? isTitleReady : isContextReady) && !isLocked;
+    const aiTooltip = isLocked ? "Unlock to use AI assistance" : isAiEnabled 
       ? (field === 'context' ? UI_CONTENT.FORM.TOOLTIPS.AI_CONTEXT : UI_CONTENT.FORM.TOOLTIPS.AI_GENERAL)
       : (field === 'context' ? UI_CONTENT.FORM.TOOLTIPS.AI_DISABLED_TITLE : UI_CONTENT.FORM.TOOLTIPS.AI_DISABLED_GENERAL);
 
@@ -157,20 +159,20 @@ const InputForm: React.FC<InputFormProps> = ({ initialValues, onSubmit, isLoadin
       <div className="relative group w-full">
         <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 ml-1">{label}</label>
         <div className="relative">
-          {component}
+          {React.cloneElement(component as React.ReactElement, { disabled: isLocked || isLoading })}
           <div className="absolute right-3 bottom-3 flex items-center gap-2 z-10">
             {hasAI && (
               <button 
                 type="button" 
                 onClick={() => handleBrainstorm(field as any)} 
-                disabled={!isAiEnabled} 
+                disabled={!isAiEnabled || isLocked} 
                 title={aiTooltip}
                 aria-label={`AI ${field}`}
                 className={`p-1.5 rounded-full transition-all duration-300 backdrop-blur-md border ${isAiActive ? 'bg-indigo-500 text-white border-indigo-400 shadow-[0_0_10px_rgba(99,102,241,0.5)]' : isAiEnabled ? 'bg-slate-800/80 text-indigo-400 border-slate-600 hover:bg-indigo-500 hover:text-white hover:border-indigo-400' : 'bg-slate-900/50 text-slate-600 border-slate-800 cursor-not-allowed opacity-50'}`}>
                 {aiIconType === 'question' ? <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> : <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>}
               </button>
             )}
-            <button type="button" onClick={() => handleVoiceInput(field)} className={`p-1.5 rounded-full transition-all duration-300 backdrop-blur-md border ${isListening ? 'bg-red-500 text-white border-red-400 animate-pulse' : 'bg-slate-800/80 text-slate-400 border-slate-600 hover:text-white hover:border-slate-400'}`}>
+            <button type="button" disabled={isLocked} onClick={() => handleVoiceInput(field)} className={`p-1.5 rounded-full transition-all duration-300 backdrop-blur-md border ${isListening ? 'bg-red-500 text-white border-red-400 animate-pulse' : isLocked ? 'bg-slate-900/50 text-slate-700 border-slate-800 cursor-not-allowed' : 'bg-slate-800/80 text-slate-400 border-slate-600 hover:text-white hover:border-slate-400'}`}>
               {isListening ? <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg> : <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>}
             </button>
           </div>
@@ -318,7 +320,19 @@ const InputForm: React.FC<InputFormProps> = ({ initialValues, onSubmit, isLoadin
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-500"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="12" x2="12" y1="18" y2="12"/><line x1="9" x2="15" y1="15" y2="15"/></svg>
             {UI_CONTENT.FORM.TITLE}
           </h2>
-          {isContextReady && <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded border border-emerald-400/20">{UI_CONTENT.FORM.MESSAGES.READY}</span>}
+          <div className="flex items-center gap-3">
+            {isLocked && (
+              <button 
+                type="button" 
+                onClick={onUnlock}
+                className="text-[10px] font-black text-indigo-400 border border-indigo-500/30 px-3 py-1.5 rounded-lg hover:bg-indigo-500/10 transition-all uppercase tracking-widest flex items-center gap-2"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                Modify Parameters
+              </button>
+            )}
+            {isContextReady && <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded border border-emerald-400/20">{UI_CONTENT.FORM.MESSAGES.READY}</span>}
+          </div>
         </div>
         
         <div className="space-y-4">
@@ -391,13 +405,15 @@ const InputForm: React.FC<InputFormProps> = ({ initialValues, onSubmit, isLoadin
 
         <button
           type="submit"
-          disabled={isLoading || !isContextReady}
+          disabled={isLoading || (!isContextReady && !isLocked)}
           className={`w-full py-4 px-6 rounded-xl font-bold text-lg text-white shadow-xl transition-all duration-300 transform border border-white/10 shrink-0 ${
             isLoading 
               ? 'bg-slate-800 cursor-not-allowed' 
-              : !isContextReady 
+              : (!isContextReady && !isLocked)
                 ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                : 'bg-gradient-to-r from-indigo-600 via-violet-600 to-indigo-600 bg-[length:200%_auto] hover:bg-right hover:scale-[1.01] active:scale-[0.99] shadow-indigo-500/25'
+                : isLocked 
+                  ? 'bg-gradient-to-r from-indigo-600 to-indigo-700 hover:scale-[1.01] active:scale-[0.99] shadow-indigo-500/25 border-indigo-400/30'
+                  : 'bg-gradient-to-r from-indigo-600 via-violet-600 to-indigo-600 bg-[length:200%_auto] hover:bg-right hover:scale-[1.01] active:scale-[0.99] shadow-indigo-500/25'
           }`}
         >
           {isLoading ? (
@@ -405,7 +421,7 @@ const InputForm: React.FC<InputFormProps> = ({ initialValues, onSubmit, isLoadin
               <svg className="animate-spin h-5 w-5 text-indigo-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
               <span className="animate-pulse">{stages[loadingStage]}</span>
             </span>
-          ) : UI_CONTENT.FORM.BUTTONS.ANALYZE}
+          ) : isLocked ? 'Rerun Deliberation' : UI_CONTENT.FORM.BUTTONS.ANALYZE}
         </button>
       </form>
     </div>

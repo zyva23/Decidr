@@ -53,6 +53,7 @@ export interface SynthesisResult {
   recommendation: string;
   metrics: RadarMetrics;
   refinedPaths: string[]; // High-fidelity analyzed options
+  changeLog?: string; // What changed in this version
 }
 
 export interface TraceStep {
