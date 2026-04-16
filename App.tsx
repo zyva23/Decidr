@@ -15,6 +15,7 @@ import ShareModal from './components/ShareModal';
 import CollaborationModal from './components/CollaborationModal';
 import NotificationFeed from './components/NotificationFeed';
 import DeliberationAnimation from './components/DeliberationAnimation';
+import MindfulCommitModal from './components/MindfulCommitModal';
 import Auth from './components/Auth';
 import { UI_CONTENT } from './src/constants/uiContent';
 import { analyzeDecision, generateActionPlan, generateDecisionTree, synthesizeOnly } from './services/geminiService';
