@@ -34,7 +34,7 @@ const getAI = () => {
   return aiInstance;
 };
 
-const MASTER_MODEL = "gemini-1.5-flash"; 
+const MASTER_MODEL = "gemini-3-flash-preview"; 
 
 const truncateContext = (text: string, maxChars: number = 2000): string => {
   if (text.length <= maxChars) return text;
@@ -551,7 +551,7 @@ export async function generateActionPlan(input: DecisionInput, councilResult: Co
   try {
     const ai = getAI();
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: MASTER_MODEL,
       contents: prompt,
       config: { responseMimeType: "application/json", responseSchema: actionPlanSchema as any, temperature: 0.4 }
     });
@@ -586,7 +586,7 @@ export async function generateDecisionTree(problem: string, councilResult?: Coun
   try {
     const ai = getAI();
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: MASTER_MODEL,
       contents: prompt,
       config: { 
         responseMimeType: "application/json", 
