@@ -66,6 +66,7 @@ const DecidrApp: React.FC = () => {
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isCommitmentModalOpen, setIsCommitmentModalOpen] = useState(false);
   const [isElaborationOpen, setIsElaborationOpen] = useState(false);
   const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
   const [isTreeOpen, setIsTreeOpen] = useState(false);
@@ -667,6 +668,15 @@ const DecidrApp: React.FC = () => {
                               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 14V2"/><path d="M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22h0a3.13 3.13 0 0 1-3-3.88Z"/></svg>
                             </button>
                           </div>
+                          
+                          {isOwner && (
+                            <button 
+                              onClick={() => setIsCommitmentModalOpen(true)}
+                              className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-all shadow-lg shadow-indigo-900/40 active:scale-95"
+                            >
+                              Commit Intent
+                            </button>
+                          )}
                         </div>
                         
                         <div className="relative">
@@ -919,13 +929,49 @@ const DecidrApp: React.FC = () => {
                     </div>
                   )}
 
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 text-left">
-                    <AgentCard role="Analyst" agent={result?.analyst} color="blue" isLoading={!result?.analyst} />
-                    <AgentCard role="Strategist" agent={result?.strategist} color="purple" isLoading={!result?.strategist} />
-                    <AgentCard role="Skeptic" agent={result?.skeptic} color="red" isLoading={!result?.skeptic} />
-                    <AgentCard role="Mediator" agent={result?.mediator} color="emerald" isLoading={!result?.mediator} />
-                  </div>
-                  {isOwner && (<div className="pt-8 pb-20 border-t border-slate-800/50 mt-12 text-left"><CommitmentPanel options={inputValues.options} refinedPaths={result.synthesis?.refinedPaths} onCommit={handleCommitment} onBranch={handleBranch} onConsult={() => setIsChatOpen(true)} coreInquiry={inputValues.title} existingCommitment={currentSessionId ? sessions.find(s => s.id === currentSessionId)?.commitment : undefined} /></div>)}
+                  {/* Commitment Status Summary */}
+                  {isOwner && currentSessionId && sessions.find(s => s.id === currentSessionId)?.commitment && (
+                    <div className="pt-12 pb-24 border-t border-slate-800/50 mt-12 animate-fade-in">
+                       <div className="bg-indigo-600/5 border border-indigo-500/20 rounded-[2rem] p-8 md:p-12 relative overflow-hidden">
+                          <div className="absolute top-0 right-0 p-8 opacity-5">
+                             <svg width="120" height="120" viewBox="0 0 24 24" fill="currentColor" className="text-indigo-500"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                          </div>
+                          
+                          <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 relative z-10">
+                             <div className="space-y-6 flex-1">
+                                <div>
+                                   <span className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] block mb-3">Strategic Intent Sealed</span>
+                                   <h3 className="text-2xl font-black text-white leading-tight">
+                                      {sessions.find(s => s.id === currentSessionId)?.commitment?.selectedOption.replace(/^[A-Z]:\s*/i, '')}
+                                   </h3>
+                                </div>
+                                <div className="space-y-2">
+                                   <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block opacity-60">Resonance Basis</span>
+                                   <p className="text-slate-300 italic text-sm leading-relaxed max-w-2xl">
+                                      "{sessions.find(s => s.id === currentSessionId)?.commitment?.justification}"
+                                   </p>
+                                </div>
+                             </div>
+
+                             <div className="flex flex-col gap-3 shrink-0">
+                                <button
+                                  onClick={() => handleBranch(`Based on my previous decision to ${sessions.find(s => s.id === currentSessionId)?.commitment?.selectedOption}, my next step is:`)}
+                                  className="px-8 py-4 bg-white text-slate-950 font-black text-[10px] uppercase tracking-widest rounded-2xl hover:bg-indigo-50 transition-all shadow-xl shadow-white/5 flex items-center justify-center gap-3"
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 3.5 1 8.8a7 7 0 0 1-9 9.2z"/><path d="M22 22l-5-5"/><path d="M17 22l5-5"/></svg>
+                                  Branch Decision
+                                </button>
+                                <button
+                                  onClick={() => setIsCommitmentModalOpen(true)}
+                                  className="px-8 py-4 bg-slate-900/50 text-slate-400 font-bold text-[9px] uppercase tracking-widest rounded-2xl hover:text-white transition-all border border-slate-800"
+                                >
+                                  Update Intent
+                                </button>
+                             </div>
+                          </div>
+                       </div>
+                    </div>
+                  )}
                 </div>
               )}
               {status === AnalysisStatus.IDLE && (
@@ -953,7 +999,28 @@ const DecidrApp: React.FC = () => {
           userName={contributionName}
           isUserAuthenticated={!!user}
         />
-      )}      {currentPlan && (<ActionPlanModal isOpen={isPlanModalOpen} onClose={() => setIsPlanModalOpen(false)} onSave={handleSavePlan} plan={currentPlan} />)}
+      )}
+      
+      {result && (
+        <MindfulCommitModal 
+          isOpen={isCommitmentModalOpen}
+          onClose={() => setIsCommitmentModalOpen(false)}
+          onConfirm={(selected, why) => {
+            handleCommitment(selected, why);
+            setIsCommitmentModalOpen(false);
+          }}
+          onConsult={() => {
+            setIsCommitmentModalOpen(false);
+            setIsChatOpen(true);
+          }}
+          coreInquiry={inputValues.title}
+          options={inputValues.options}
+          refinedPaths={result.synthesis?.refinedPaths}
+          initialCommitment={currentSessionId ? sessions.find(s => s.id === currentSessionId)?.commitment : undefined}
+        />
+      )}
+
+      {currentPlan && (<ActionPlanModal isOpen={isPlanModalOpen} onClose={() => setIsPlanModalOpen(false)} onSave={handleSavePlan} plan={currentPlan} />)}
       {isTreeOpen && (<DecisionTreeViz problemTitle={inputValues.title} councilResult={result || undefined} initialTree={currentSessionId ? sessions.find(s => s.id === currentSessionId)?.decisionTree : undefined} onSave={handleSaveTree} onClose={() => setIsTreeOpen(false)} />)}
       <NotificationFeed isOpen={isNotificationOpen} onClose={() => setIsNotificationOpen(false)} notifications={notifications} onMarkRead={handleMarkNotificationRead} onDismiss={handleDismissNotification} onNavigate={handleNavigateFromNotification} />
       <CollaborationModal 
