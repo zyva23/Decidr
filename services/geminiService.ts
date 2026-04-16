@@ -35,11 +35,31 @@ const getAI = () => {
 };
 
 const MASTER_MODEL = "gemini-3-flash-preview"; 
+const FALLBACK_MODEL = "gemini-1.5-flash"; // Stable fallback for 2026 environment
 
-const truncateContext = (text: string, maxChars: number = 2000): string => {
-  if (text.length <= maxChars) return text;
-  return text.substring(0, maxChars) + "... [Context truncated for efficiency]";
-};
+/**
+ * HELPER: Attempt content generation with fallback
+ */
+async function generateWithFallback(ai: GoogleGenAI, prompt: string, config: any, retryWithFallback = true): Promise<any> {
+  try {
+    return await ai.models.generateContent({
+      model: MASTER_MODEL,
+      contents: prompt,
+      config
+    });
+  } catch (e: any) {
+    const isModelError = e.message?.includes('404') || e.message?.includes('not found') || e.message?.includes('not supported');
+    if (retryWithFallback && isModelError) {
+      console.warn(`[ORCHESTRATOR] ${MASTER_MODEL} failed, falling back to ${FALLBACK_MODEL}`);
+      return await ai.models.generateContent({
+        model: FALLBACK_MODEL,
+        contents: prompt,
+        config
+      });
+    }
+    throw e;
+  }
+}
 
 /**
  * NEW STEP: Strategic Data Point Identification
@@ -63,17 +83,13 @@ export async function identifyStrategicDataPoints(input: DecisionInput): Promise
 
   try {
     const ai = getAI();
-    const response = await ai.models.generateContent({
-      model: MASTER_MODEL,
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.ARRAY,
-          items: { type: Type.STRING }
-        } as any,
-        temperature: 0.2,
-      }
+    const response = await generateWithFallback(ai, prompt, {
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: Type.ARRAY,
+        items: { type: Type.STRING }
+      } as any,
+      temperature: 0.2,
     });
 
     return JSON.parse(response.text || "[]");
