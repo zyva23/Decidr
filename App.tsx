@@ -14,6 +14,7 @@ import DecisionTreeViz from './components/DecisionTreeViz';
 import ShareModal from './components/ShareModal';
 import CollaborationModal from './components/CollaborationModal';
 import NotificationFeed from './components/NotificationFeed';
+import DeliberationAnimation from './components/DeliberationAnimation';
 import Auth from './components/Auth';
 import { UI_CONTENT } from './src/constants/uiContent';
 import { analyzeDecision, generateActionPlan, generateDecisionTree, synthesizeOnly } from './services/geminiService';
@@ -585,7 +586,13 @@ const DecidrApp: React.FC = () => {
           ) : <InputForm initialValues={inputValues} onSubmit={handleAnalysis} isLoading={status === AnalysisStatus.ANALYZING} sessions={sessions} />}
           right={
             <div className="h-full overflow-y-auto custom-scrollbar text-left">
-              {(status === AnalysisStatus.COMPLETE || status === AnalysisStatus.SHARED_VIEW) && result && (
+              {status === AnalysisStatus.ANALYZING && !partialResult && (
+                <div className="h-full animate-fade-in">
+                  <DeliberationAnimation />
+                </div>
+              )}
+
+              {(status === AnalysisStatus.COMPLETE || status === AnalysisStatus.SHARED_VIEW || (status === AnalysisStatus.ANALYZING && partialResult)) && result && (
                 <div className="space-y-6 animate-fade-in pb-12 text-left">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
                     <div className="md:col-span-2 bg-gradient-to-br from-indigo-900/40 to-slate-900/40 border border-indigo-500/30 rounded-xl p-8 flex flex-col shadow-2xl text-left relative overflow-hidden">
