@@ -325,10 +325,10 @@ const InputForm: React.FC<InputFormProps> = ({ initialValues, onSubmit, isLoadin
               <button 
                 type="button" 
                 onClick={onUnlock}
-                className="text-[10px] font-black text-indigo-400 border border-indigo-500/30 px-3 py-1.5 rounded-lg hover:bg-indigo-500/10 transition-all uppercase tracking-widest flex items-center gap-2"
+                title="Modify Strategic Parameters"
+                className="p-1.5 text-indigo-400 border border-indigo-500/30 rounded-lg hover:bg-indigo-500/10 transition-all flex items-center justify-center shadow-lg shadow-indigo-900/10"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                Modify Parameters
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
               </button>
             )}
             {isContextReady && <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded border border-emerald-400/20">{UI_CONTENT.FORM.MESSAGES.READY}</span>}

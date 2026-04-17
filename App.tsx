@@ -463,7 +463,8 @@ const DecidrApp: React.FC = () => {
       
       await saveSession(updatedSession); 
       setCurrentSessionId(sessionId); 
-      setSessions(await getSessions(user?.id));
+      const freshSessions = await getSessions(user?.id);
+      setSessions(freshSessions);
       setCurrentSynthesisIndex(data.synthesisHistory?.length || 0);
 
       (async () => { 
@@ -472,13 +473,14 @@ const DecidrApp: React.FC = () => {
             generateActionPlan(input, data), 
             generateDecisionTree(input.title, data) 
           ]); 
-          const currentSess = (await getSessions(user?.id)).find(s => s.id === sessionId); 
-          if (currentSess) { 
-            await saveSession({ ...currentSess, actionPlan: plan, decisionTree: tree }); 
-            if (sessionId === currentSessionId) { 
-              setCurrentPlan(plan); 
-              setSessions(await getSessions(user?.id)); 
-            } 
+          
+          // Use the updatedSession we already have instead of re-fetching
+          const sessionWithBgData = { ...updatedSession, actionPlan: plan, decisionTree: tree };
+          await saveSession(sessionWithBgData); 
+          
+          if (sessionId === currentSessionId) { 
+            setCurrentPlan(plan); 
+            setSessions(await getSessions(user?.id)); 
           } 
         } catch (bgError) { 
           console.error("Background Gen Error:", bgError); 
@@ -656,12 +658,12 @@ const DecidrApp: React.FC = () => {
                                         <div className="p-1 text-indigo-400/60 hover:text-indigo-400 cursor-help transition-colors">
                                             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
                                         </div>
-                                        <div className="absolute bottom-full right-0 mb-3 w-48 bg-slate-900 border border-slate-700 rounded-xl p-3 shadow-2xl opacity-0 group-hover/info:opacity-100 pointer-events-none transition-all z-[120] translate-y-2 group-hover/info:translate-y-0">
+                                        <div className="absolute bottom-1/2 translate-y-1/2 right-full mr-3 w-56 bg-slate-900 border border-slate-700 rounded-xl p-3 shadow-2xl opacity-0 group-hover/info:opacity-100 pointer-events-none transition-all z-[120] translate-x-2 group-hover/info:translate-x-0">
                                             <div className="text-[8px] font-black text-indigo-400 uppercase tracking-widest mb-1">Deliberation Context</div>
                                             <p className="text-[10px] text-slate-300 leading-relaxed italic">
                                                 {activeSynthesis.changeLog || (currentSynthesisIndex === 0 ? "Initial Council deliberation" : "Manual re-analysis")}
                                             </p>
-                                            <div className="absolute top-full right-4 w-2 h-2 bg-slate-900 border-r border-b border-slate-700 rotate-45 -translate-y-1"></div>
+                                            <div className="absolute top-1/2 -translate-y-1/2 left-full w-2 h-2 bg-slate-900 border-r border-t border-slate-700 rotate-45 -translate-x-1"></div>
                                         </div>
                                     </div>
                                 );
