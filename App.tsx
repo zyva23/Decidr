@@ -387,8 +387,10 @@ const DecidrApp: React.FC = () => {
     setCurrentSessionId(session.id); setInputValues(session.input); setResult(session.result); setPartialResult(null); setChatHistory(session.chatHistory || []);
     setStatus(session.status); setIsChatOpen(false); setIsElaborationOpen(false); setCurrentPlan(session.actionPlan || null); setIsHistoryOpen(false); setHasDownloadedPDF(true); setIsPublicSession(session.isPublic || false);
     
-    // Reset synthesis index to the latest version of the loaded session
-    setCurrentSynthesisIndex(session.result?.synthesisHistory?.length || 0);
+    // Reset synthesis index to the latest version (checking both new history and legacy synthesisHistory)
+    const historyCount = session.result?.history?.length ?? (session.result as any)?.synthesisHistory?.length ?? 0;
+    setCurrentSynthesisIndex(historyCount);
+    
     setIsInputLocked(true);
     setLastDeliberatedInput(session.input);
     
