@@ -48,7 +48,7 @@ class ErrorBoundary extends Component<{children: ReactNode}, {hasError: boolean,
   }
 }
 
-const MAX_FREE_CREDITS = 5;
+const MAX_FREE_CREDITS = 100;
 
 const DecidrApp: React.FC = () => {
   const [user, setUser] = useState<UserProfile | null>(null);

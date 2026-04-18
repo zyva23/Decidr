@@ -120,13 +120,13 @@ export const saveToWaitlist = async (email: string, userId?: string) => {
   }
 };
 
-export const getUserProfile = async (userId: string): Promise<{xp: number, level: number} | null> => {
+export const getUserProfile = async (userId: string): Promise<{xp: number, level: number, credits?: number} | null> => {
   if (!db) return null;
   try {
     const docRef = doc(db, "profiles", userId);
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
-      return docSnap.data() as {xp: number, level: number};
+      return docSnap.data() as {xp: number, level: number, credits?: number};
     }
     return null;
   } catch (e) {
@@ -135,12 +135,13 @@ export const getUserProfile = async (userId: string): Promise<{xp: number, level
   }
 };
 
-export const saveUserProfile = async (userId: string, xp: number, level: number) => {
+export const saveUserProfile = async (userId: string, xp: number, level: number, credits: number) => {
   if (!db) return;
   try {
     await setDoc(doc(db, "profiles", userId), {
       xp,
       level,
+      credits,
       updatedAt: serverTimestamp()
     }, { merge: true });
   } catch (e) {
