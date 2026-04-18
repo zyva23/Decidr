@@ -670,13 +670,13 @@ const DecidrApp: React.FC = () => {
           ) : <InputForm initialValues={inputValues} onSubmit={handleAnalysis} isLoading={status === AnalysisStatus.ANALYZING} sessions={sessions} isLocked={isInputLocked} onUnlock={() => setIsInputLocked(false)} />}
           right={
             <div className="h-full overflow-y-auto custom-scrollbar text-left">
-              {status === AnalysisStatus.ANALYZING && !result && (
+              {status === AnalysisStatus.ANALYZING && (
                 <div className="h-full animate-fade-in">
                   <DeliberationAnimation />
                 </div>
               )}
 
-              {(status === AnalysisStatus.COMPLETE || status === AnalysisStatus.SHARED_VIEW || (status === AnalysisStatus.ANALYZING && result)) && result && (
+              {(status === AnalysisStatus.COMPLETE || status === AnalysisStatus.SHARED_VIEW) && result && (
                 <div className="space-y-6 animate-fade-in pb-12 text-left">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
                     <div className="md:col-span-2 bg-gradient-to-br from-indigo-900/40 to-slate-900/40 border border-indigo-500/30 rounded-xl p-8 flex flex-col shadow-2xl text-left relative overflow-hidden">
@@ -1058,10 +1058,34 @@ const DecidrApp: React.FC = () => {
                   )}
 
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 text-left">
-                    <AgentCard role="Analyst" agent={result?.analyst} color="blue" isLoading={!result?.analyst} />
-                    <AgentCard role="Strategist" agent={result?.strategist} color="purple" isLoading={!result?.strategist} />
-                    <AgentCard role="Skeptic" agent={result?.skeptic} color="red" isLoading={!result?.skeptic} />
-                    <AgentCard role="Mediator" agent={result?.mediator} color="emerald" isLoading={!result?.mediator} />
+                    <AgentCard 
+                      role="Analyst" 
+                      agent={result?.analyst} 
+                      color="blue" 
+                      isLoading={status === AnalysisStatus.ANALYZING} 
+                      history={result?.history?.map(h => h.analyst)}
+                    />
+                    <AgentCard 
+                      role="Strategist" 
+                      agent={result?.strategist} 
+                      color="purple" 
+                      isLoading={status === AnalysisStatus.ANALYZING} 
+                      history={result?.history?.map(h => h.strategist)}
+                    />
+                    <AgentCard 
+                      role="Skeptic" 
+                      agent={result?.skeptic} 
+                      color="red" 
+                      isLoading={status === AnalysisStatus.ANALYZING} 
+                      history={result?.history?.map(h => h.skeptic)}
+                    />
+                    <AgentCard 
+                      role="Mediator" 
+                      agent={result?.mediator} 
+                      color="emerald" 
+                      isLoading={status === AnalysisStatus.ANALYZING} 
+                      history={result?.history?.map(h => h.mediator)}
+                    />
                   </div>
 
                   {/* Commitment Status Summary */}
