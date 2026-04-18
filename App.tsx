@@ -402,6 +402,7 @@ const DecidrApp: React.FC = () => {
   const handleAnalysis = async (input: DecisionInput) => {
     if (credits >= MAX_FREE_CREDITS) { if (user && user.email && !hasJoinedWaitlist) { await handleWaitlistJoin(user.email); } setShowWaitlist(true); return; }
     
+    const startTime = Date.now();
     const canRetrySynthesis = partialResult && partialResult.analyst && partialResult.strategist && partialResult.skeptic && partialResult.mediator;
     const isReAnalysis = !!currentSessionId && !!result;
     
