@@ -104,6 +104,41 @@ export async function identifyStrategicDataPoints(input: DecisionInput): Promise
   }
 }
 
+/**
+ * NEW: Causal Reasoning Engine
+ * Explains WHY the Council's verdict shifted between versions.
+ */
+export async function generateCausalSummary(oldSnapshot: CouncilSnapshot, newSnapshot: CouncilSnapshot): Promise<string> {
+  const prompt = `
+    As the Chairperson of the Decision Council, explain the STRATEGIC PIVOT between these two versions of deliberation.
+    
+    OLD INPUT: ${JSON.stringify(oldSnapshot.input)}
+    OLD VERDICT: ${oldSnapshot.synthesis.verdict}
+    
+    NEW INPUT: ${JSON.stringify(newSnapshot.input)}
+    NEW VERDICT: ${newSnapshot.synthesis.verdict}
+    
+    TASK:
+    1. Identify exactly what changed in the input (context, constraints, or new human insights).
+    2. Explain how those specific changes influenced the Council's experts.
+    3. Summarize why the final verdict shifted or stayed the same.
+    
+    Tone: Authoritative, objective, and analytical.
+    Format: A single paragraph, max 100 words.
+  `;
+
+  try {
+    const ai = getAI();
+    const response = await generateWithFallback(ai, prompt, {
+      temperature: 0.3,
+    });
+    return response.text || "Evolution based on refined parameters and expert re-deliberation.";
+  } catch (error) {
+    console.error("Causal Summary Error:", error);
+    return "Consolidated reasoning based on updated intelligence.";
+  }
+}
+
 export async function synthesizeOnly(input: DecisionInput, agents: PartialCouncilResult, humanPerspectives?: Contribution[]): Promise<CouncilResult> {
   const { analyst, strategist, skeptic, mediator } = agents;
   if (!analyst || !strategist || !skeptic || !mediator) {
@@ -140,27 +175,22 @@ export async function synthesizeOnly(input: DecisionInput, agents: PartialCounci
 
   try {
     const ai = getAI();
-    const response = await ai.models.generateContent({
-      model: MASTER_MODEL,
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: synthesisSchema as any,
-        temperature: 0.4,
-      }
+    const response = await generateWithFallback(ai, prompt, {
+      responseMimeType: "application/json",
+      responseSchema: synthesisSchema as any,
+      temperature: 0.4,
     });
 
     const synthesisData = JSON.parse(response.text || "{}");
-    return { analyst, strategist, skeptic, mediator, synthesis: synthesisData, strategicDataPoints: [] };
+    return { analyst, strategist, skeptic, mediator, synthesis: synthesisData, strategicDataPoints: [], history: [] };
   } catch (error) {
     console.warn("Synthesis fallback triggered in synthesizeOnly...", error);
     try {
       const ai = getAI();
-      const fallbackResponse = await ai.models.generateContent({
-        model: MASTER_MODEL,
-        contents: `${prompt}\n\nIMPORTANT: Return a valid JSON object. Focus on Verdict and Recommendation.`,
-        config: { responseMimeType: "application/json", temperature: 0.7 }
-      });
+      const fallbackResponse = await generateWithFallback(ai, prompt, { 
+        responseMimeType: "application/json", 
+        temperature: 0.7 
+      }, true);
       const synthesisData = JSON.parse(fallbackResponse.text || "{}");
       return { 
         analyst, strategist, skeptic, mediator, 
@@ -170,7 +200,8 @@ export async function synthesizeOnly(input: DecisionInput, agents: PartialCounci
           refinedPaths: synthesisData.refinedPaths || ["Proceed with caution"],
           metrics: synthesisData.metrics || { risk: 50, speed: 50, cost: 50, impact: 50, feasibility: 50 }
         },
-        strategicDataPoints: []
+        strategicDataPoints: [],
+        history: []
       };
     } catch (fallbackError) {
       throw new Error("Council Deadlock: Persistent synthesis failure.");

@@ -16,9 +16,10 @@ import CollaborationModal from './components/CollaborationModal';
 import NotificationFeed from './components/NotificationFeed';
 import DeliberationAnimation from './components/DeliberationAnimation';
 import MindfulCommitModal from './components/MindfulCommitModal';
+import AuditTrailModal from './components/AuditTrailModal';
 import Auth from './components/Auth';
 import { UI_CONTENT } from './src/constants/uiContent';
-import { analyzeDecision, generateActionPlan, generateDecisionTree, synthesizeOnly } from './services/geminiService';
+import { analyzeDecision, generateActionPlan, generateDecisionTree, synthesizeOnly, generateCausalSummary } from './services/geminiService';
 import { saveSession, getSessions, deleteSession, getLocalSessions } from './services/storageService';
 import { auth, logActivity, onAuthStateChanged, signOut, isGCPConfigured, saveDetailedFeedback, saveToWaitlist, getUserProfile, saveUserProfile, getPublicSession, addSessionContribution, updateContributionStatus, getSessionContributions } from './services/googleCloud';
 import { generateDecisionPDF } from './services/pdfService';
@@ -72,6 +73,7 @@ const DecidrApp: React.FC = () => {
   const [isElaborationOpen, setIsElaborationOpen] = useState(false);
   const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
   const [isTreeOpen, setIsTreeOpen] = useState(false);
+  const [isAuditModalOpen, setIsAuditModalOpen] = useState(false);
   const [currentPlan, setCurrentPlan] = useState<ActionPlan | null>(null);
   const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
   const [showWaitlist, setShowWaitlist] = useState(false);
@@ -415,17 +417,32 @@ const DecidrApp: React.FC = () => {
     try {
       // Determine what changed for the changeLog
       let changeLog = "";
-      if (isReAnalysis) {
+      let causalSummary = "";
+      
+      if (isReAnalysis && result) {
         const changes = [];
         if (input.context !== lastDeliberatedInput?.context) changes.push("Context updated");
         if (input.constraints !== lastDeliberatedInput?.constraints) changes.push("Constraints modified");
         if (input.options !== lastDeliberatedInput?.options) changes.push("Options refined");
         
-        // Check for new human contributions since last deliberation
-        const newContributions = contributions.filter(c => c.status === 'accepted' || c.type === 'thought');
-        if (newContributions.length > 0) changes.push(`${newContributions.length} Human insights incorporated`);
+        const approvedPeers = contributions.filter(c => c.status === 'accepted' || c.type === 'thought');
+        if (approvedPeers.length > 0) changes.push(`${approvedPeers.length} Human insights incorporated`);
         
         changeLog = changes.length > 0 ? changes.join(", ") : "Manual re-run";
+
+        // GENERATE CAUSAL SUMMARY (AI middle layer)
+        const lastSnapshot: CouncilSnapshot = {
+          timestamp: Date.now(), // approximation
+          input: lastDeliberatedInput!,
+          analyst: result.analyst,
+          strategist: result.strategist,
+          skeptic: result.skeptic,
+          mediator: result.mediator,
+          synthesis: result.synthesis
+        };
+        
+        // We temporarily create a partial new snapshot for comparison
+        // Actual summary will be generated after 'data' is ready
       }
 
       let data: CouncilResult;
@@ -441,12 +458,38 @@ const DecidrApp: React.FC = () => {
         }); 
       }
 
-      // VERSIONING LOGIC: If re-analyzing, push old synthesis to history
+      // VERSIONING LOGIC: Full Snapshots
       if (isReAnalysis && result) {
-        const previousSynthesis = result.synthesis;
-        const previousHistory = result.synthesisHistory || [];
-        data.synthesisHistory = [...previousHistory, previousSynthesis];
+        const currentSnapshot: CouncilSnapshot = {
+          timestamp: Date.now(),
+          input: lastDeliberatedInput!,
+          analyst: result.analyst,
+          strategist: result.strategist,
+          skeptic: result.skeptic,
+          mediator: result.mediator,
+          synthesis: result.synthesis,
+          causalSummary: result.synthesis.changeLog
+        };
+
+        const previousHistory = result.history || [];
+        data.history = [...previousHistory, currentSnapshot];
         data.synthesis.changeLog = changeLog;
+
+        // Background generate the reasoning layer
+        (async () => {
+           try {
+             const summary = await generateCausalSummary(currentSnapshot, {
+                timestamp: Date.now(),
+                input,
+                analyst: data.analyst,
+                strategist: data.strategist,
+                skeptic: data.skeptic,
+                mediator: data.mediator,
+                synthesis: data.synthesis
+             });
+             setResult(prev => prev ? { ...prev, synthesis: { ...prev.synthesis, changeLog: summary } } : null);
+           } catch (e) { console.error("Causal Logic Failed", e); }
+        })();
       }
 
       setResult(data); 
@@ -651,21 +694,32 @@ const DecidrApp: React.FC = () => {
                                   V{currentSynthesisIndex + 1} / {(result.synthesisHistory?.length || 0) + 1}
                                 </span>
                                 <button 
-                                  onClick={() => setCurrentSynthesisIndex(prev => Math.min((result.synthesisHistory?.length || 0), prev + 1))}
-                                  disabled={currentSynthesisIndex === (result.synthesisHistory?.length || 0)}
+                                  onClick={() => setCurrentSynthesisIndex(prev => Math.min((result.history?.length || 0), prev + 1))}
+                                  disabled={currentSynthesisIndex === (result.history?.length || 0)}
                                   className="p-1 text-slate-500 hover:text-white disabled:opacity-20 disabled:cursor-not-allowed transition-colors"
                                 >
                                   <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
                                 </button>
                             </div>
+
+                            {/* Audit Timeline Button */}
+                            {result.history && result.history.length > 0 && (
+                                <button 
+                                    onClick={() => setIsAuditModalOpen(true)}
+                                    className="p-1 text-indigo-400 hover:text-indigo-300 transition-colors mr-1"
+                                    title="View Audit Timeline & Causal Reasoning"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20v-6M6 20V10M18 20V4"/></svg>
+                                </button>
+                            )}
                             
                             {/* Version Info Icon */}
                             {(() => {
-                                const activeSynthesis = currentSynthesisIndex === (result.synthesisHistory?.length || 0) 
-                                ? result.synthesis 
-                                : result.synthesisHistory![currentSynthesisIndex];
+                                const activeSnapshot = currentSynthesisIndex === (result.history?.length || 0) 
+                                ? { synthesis: result.synthesis }
+                                : result.history![currentSynthesisIndex];
                                 
-                                if (!activeSynthesis.changeLog && currentSynthesisIndex === 0) return null;
+                                if (!activeSnapshot.synthesis.changeLog && currentSynthesisIndex === 0) return null;
 
                                 return (
                                     <div className="relative group/info">
@@ -675,7 +729,7 @@ const DecidrApp: React.FC = () => {
                                         <div className="absolute bottom-1/2 translate-y-1/2 right-full mr-3 w-56 bg-slate-900 border border-slate-700 rounded-xl p-3 shadow-2xl opacity-0 group-hover/info:opacity-100 pointer-events-none transition-all z-[120] translate-x-2 group-hover/info:translate-x-0">
                                             <div className="text-[8px] font-black text-indigo-400 uppercase tracking-widest mb-1">Deliberation Context</div>
                                             <p className="text-[10px] text-slate-300 leading-relaxed italic">
-                                                {activeSynthesis.changeLog || (currentSynthesisIndex === 0 ? "Initial Council deliberation" : "Manual re-analysis")}
+                                                {activeSnapshot.synthesis.changeLog || (currentSynthesisIndex === 0 ? "Initial Council deliberation" : "Manual re-analysis")}
                                             </p>
                                             <div className="absolute top-1/2 -translate-y-1/2 left-full w-2 h-2 bg-slate-900 border-r border-t border-slate-700 rotate-45 -translate-x-1"></div>
                                         </div>
@@ -688,17 +742,17 @@ const DecidrApp: React.FC = () => {
 
                       {/* Display content based on index */}
                       {(() => {
-                        const activeSynthesis = currentSynthesisIndex === (result.synthesisHistory?.length || 0) 
-                          ? result.synthesis 
-                          : result.synthesisHistory![currentSynthesisIndex];
+                        const activeSnapshot = currentSynthesisIndex === (result.history?.length || 0) 
+                          ? { synthesis: result.synthesis, analyst: result.analyst, strategist: result.strategist, skeptic: result.skeptic, mediator: result.mediator } 
+                          : result.history![currentSynthesisIndex];
                         
                         return (
                           <div className="animate-fade-in">
                             <h3 className="text-3xl font-black text-white mb-4 leading-tight">
-                              {activeSynthesis.verdict}
+                              {activeSnapshot.synthesis.verdict}
                             </h3>
                             <p className="text-slate-300 leading-relaxed text-lg mb-8">
-                              {activeSynthesis.recommendation}
+                              {activeSnapshot.synthesis.recommendation}
                             </p>
                           </div>
                         );
@@ -1101,6 +1155,13 @@ const DecidrApp: React.FC = () => {
 
       {currentPlan && (<ActionPlanModal isOpen={isPlanModalOpen} onClose={() => setIsPlanModalOpen(false)} onSave={handleSavePlan} plan={currentPlan} />)}
       {isTreeOpen && (<DecisionTreeViz problemTitle={inputValues.title} councilResult={result || undefined} initialTree={currentSessionId ? sessions.find(s => s.id === currentSessionId)?.decisionTree : undefined} onSave={handleSaveTree} onClose={() => setIsTreeOpen(false)} />)}
+      {result && (
+        <AuditTrailModal 
+          isOpen={isAuditModalOpen} 
+          onClose={() => setIsAuditModalOpen(false)} 
+          result={result} 
+        />
+      )}
       <NotificationFeed isOpen={isNotificationOpen} onClose={() => setIsNotificationOpen(false)} notifications={notifications} onMarkRead={handleMarkNotificationRead} onDismiss={handleDismissNotification} onNavigate={handleNavigateFromNotification} />
       <CollaborationModal 
         isOpen={isCollaborationModalOpen} 

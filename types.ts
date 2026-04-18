@@ -69,17 +69,30 @@ export interface CouncilTrace {
   fullTranscript: string;
 }
 
+export interface CouncilSnapshot {
+  timestamp: number;
+  input: DecisionInput;
+  analyst: AgentResponse;
+  strategist: AgentResponse;
+  skeptic: AgentResponse;
+  mediator: AgentResponse;
+  synthesis: SynthesisResult;
+  causalSummary?: string; // AI explanation of the pivot from the PREVIOUS version
+  strategicDataPoints?: string[];
+  researchData?: string;
+}
+
 export interface CouncilResult {
   analyst: AgentResponse;
   strategist: AgentResponse;
   skeptic: AgentResponse;
   mediator: AgentResponse;
   synthesis: SynthesisResult;
-  strategicDataPoints?: string[]; // Essential points used for this analysis
-  researchData?: string; // Centralized research findings
-  trace?: CouncilTrace; // Detailed execution log for testing
-  synthesisHistory?: SynthesisResult[]; // To store previous versions
-  feedback?: 'helpful' | 'not-helpful'; // User feedback
+  strategicDataPoints?: string[];
+  researchData?: string;
+  trace?: CouncilTrace;
+  history?: CouncilSnapshot[]; // Full history of snapshots for audit trail
+  feedback?: 'helpful' | 'not-helpful';
 }
 
 export interface PartialCouncilResult {
