@@ -5,33 +5,40 @@ This branch implements the **Supervisor-Worker Orchestration** pattern, moving b
 
 ## Tech Stack
 - **Frontend**: React 19, Tailwind CSS, Recharts (Visualizations).
-- **AI Core**: `@google/genai` (Gemini API - Gemini 3 Flash).
+- **AI Core**: `@google/genai` (Gemini API - Gemini 3 Flash / Fallback to 1.5 Flash).
 - **Orchestration**: Custom Supervisor-Worker loop with stateful conversation history.
-- **Backend/DB**: Firebase Firestore for session persistence and **Research Caching**.
+- **Backend/DB**: Firebase Firestore for session persistence and **Recursive Research Caching**.
 
-## Core Council Workflows (v2.0)
-1. **Strategic Pillar Identification**: 
-   - Before deliberation, a "Research Lead" agent analyzes the user request to identify 8-10 essential data points (metrics, benchmarks, or qualitative factors).
-2. **Centralized Research Phase (The Dossier)**:
-   - A robust research module runs once to gather factual data for all identified pillars using `googleSearch`.
-   - **Resilience**: Features exponential retry logic and "Query Decomposition" (breaking complex searches into granular steps) to ensure successful grounding.
-   - **Fact Alignment**: All expert agents operate from this shared "Intelligence Dossier" to ensure data consistency.
-3. **The Deliberation (3-Round Loop)**:
-   - **Round 1 (Foundation)**: All 4 agents (Analyst, Strategist, Skeptic, Mediator) speak once to establish their initial positions.
-   - **Round 2 (Cross-Examination)**: Agents speak a second time, specifically reacting to and critiquing the findings of their peers.
-   - **Round 3 (Supervisor Closing)**: An intelligent Supervisor analyzes the conversation gaps and specifically directs agents for final refinements (Max 12 total turns).
-4. **Enhanced Agent Protocols**:
-   - **The Analyst**: Uses a "Check Your Work" loop to identify and fill analytical gaps.
-   - **The Strategist**: Generates 3 pathways, scores them for risk/reward, and promotes only the single "Alpha Pathway."
-5. **System Transparency (Tracing)**:
-   - Implements a `CouncilTrace` logging system that records every internal query, supervisor decision, and raw agent response for auditing and testing.
+## Core Council Workflows (v3.0 - Intelligence Layer)
+1. **Recursive Research Engine**: 
+   - **Phase 1 (Broad Horizon Scan)**: Analyzes the request across financial, competitor, and macro-economic pillars.
+   - **Phase 2 (Gap Analysis Deep-Dive)**: The model identifies "Missing Data Gaps" from Phase 1 and executes targeted second-round searches.
+   - **Grounding Density**: Aims for 15-20 distinct, URL-backed data points per Intelligence Dossier.
+2. **Causal Reasoning Layer**:
+   - Implements a "Logic Audit" between versions. 
+   - When a user re-deliberates, the Council generates a human-readable **Causal Summary** explaining exactly *why* the strategy pivoted based on specific input changes.
+3. **High-Fidelity Audit Trail**:
+   - Stores full **CouncilSnapshots** (Inputs + 4 Agent Reports + Verdict) for every iteration.
+   - Visual word-based diffing engine highlights added/removed intelligence across all archetypes.
+4. **Self-Thought Cognitive Synthesis**:
+   - User thoughts are refined via the Council's intelligence before being committed.
+   - Converts raw queries into sophisticated strategic insights grounded in existing session data.
+5. **Dynamic Model Fallback**:
+   - Prioritizes Gemini 3 Flash for advanced reasoning.
+   - Automatically pivots to Gemini 1.5 Flash if 404/Quota errors are detected, ensuring high uptime.
 
-## Stability & Integrity
-- **Research Caching**: Research findings are stored in the session. Re-running an analysis reuses cached data to save API costs and improve speed.
-- **Supervisor Guards**: The supervisor ensures all agents speak at least twice before allowing the deliberation to conclude.
-- **Grounding Validation**: The system verifies the presence of external sources before proceeding to the deliberation phase.
+## UI/UX Engineering
+- **Centered Modal Architecture**: Standardized centered, non-scrolling modals for all deep-dives (Sources, Timeline, Audit).
+- **Smart-Anchor Tooltips**: Dynamic positioning to prevent screen-edge clipping of deliberation context.
+- **Collapsible Workspace**: Left panel can be shrunk for a focused, full-screen strategic view.
+- **Master Verdict Hierarchy**: Prioritizes Master Verdict → Human Intelligence → Agent Archetypes.
+
+## Stability & Performance
+- **Deliberation Timer**: Measures and logs precise execution time (ms) for performance benchmarking.
+- **Error Telemetry**: Logs exactly when and why a deliberation failed, including the elapsed time at failure.
+- **Firestore Sanitizer**: Recursive utility to strip `undefined` values, preventing fatal Firebase serialization errors.
 
 ## Environment Requirements
 - `VITE_GEMINI_API_KEY`: Strategic API access.
 - `VITE_FIREBASE_*`: Full Firebase suite.
-- **Domain Authorization**: Dev Vercel domains must be added to Firebase Authorized Domains to prevent `auth/unauthorized-domain` errors.
+- **Domain Authorization**: Dev Vercel domains must be added to Firebase Authorized Domains.
