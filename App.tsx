@@ -578,17 +578,53 @@ const DecidrApp: React.FC = () => {
     if (selectedContributionIds.length === 0 || !result) return;
     setIsPeerSynthesizing(true);
     const selectedPeers = contributions.filter(c => selectedContributionIds.includes(c.id));
+    const startTime = Date.now();
+    
     try {
       const updatedResult = await synthesizeOnly(inputValues, result, selectedPeers);
+      
+      // VERSIONING LOGIC: Snapshot the previous state before updating
+      const previousSnapshot: CouncilSnapshot = {
+        timestamp: Date.now(),
+        input: inputValues,
+        analyst: result.analyst,
+        strategist: result.strategist,
+        skeptic: result.skeptic,
+        mediator: result.mediator,
+        synthesis: result.synthesis,
+        causalSummary: result.synthesis.changeLog,
+        deliberationTime: result.deliberationTime
+      };
+
+      updatedResult.history = [...(result.history || []), previousSnapshot];
+      updatedResult.deliberationTime = Date.now() - startTime;
+      updatedResult.synthesis.changeLog = `${selectedPeers.length} Peer insights incorporated into synthesis`;
+
       setResult(updatedResult);
       const session = sessions.find(s => s.id === currentSessionId);
       if (session && currentSessionId) {
         await Promise.all(selectedContributionIds.map(id => updateContributionStatus(currentSessionId, id, { status: 'accepted', notified: notifyContributors })));
         const updatedContributions = contributions.map(c => selectedContributionIds.includes(c.id) ? { ...c, status: 'accepted' as const, notified: notifyContributors } : c);
-        const updatedSession = { ...session, result: updatedResult }; await saveSession(updatedSession); setSessions(await getSessions(user?.id)); setContributions(updatedContributions); setSelectedContributionIds([]);
+        
+        const updatedSession: DecisionSession = { 
+          ...session, 
+          result: updatedResult,
+          contributions: updatedContributions
+        };
+        
+        await saveSession(updatedSession); 
+        setSessions(await getSessions(user?.id)); 
+        setContributions(updatedContributions); 
+        setSelectedContributionIds([]);
+        setCurrentSynthesisIndex(updatedResult.history.length);
       }
       await updateProgression(200);
-    } catch (e) { console.error(e); alert("Council failed to incorporate peer insights."); } finally { setIsPeerSynthesizing(false); }
+    } catch (e) { 
+      console.error(e); 
+      alert("Council failed to incorporate peer insights."); 
+    } finally { 
+      setIsPeerSynthesizing(false); 
+    }
   };
 
   useEffect(() => { if (user && !isAnonymous && !contributionName) { setContributionName(user.email.split('@')[0]); } }, [user, isAnonymous]);
