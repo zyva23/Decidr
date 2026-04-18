@@ -139,9 +139,9 @@ export const saveUserProfile = async (userId: string, xp: number, level: number,
   if (!db) return;
   try {
     await setDoc(doc(db, "profiles", userId), {
-      xp,
-      level,
-      credits,
+      xp: xp || 0,
+      level: level || 1,
+      credits: credits || 0,
       updatedAt: serverTimestamp()
     }, { merge: true });
   } catch (e) {
