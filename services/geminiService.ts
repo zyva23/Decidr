@@ -164,13 +164,16 @@ export async function synthesizeOnly(input: DecisionInput, agents: PartialCounci
     4. Mediator: ${mediator.analysis} (Score: ${mediator.score})
     ${humanInsightAddendum}
 
-    Synthesize into a final recommendation.
+    Synthesize into a high-fidelity final recommendation.
     
     REQUIREMENTS:
-    1. VERDICT: A clear, high-level summary of the best direction.
-    2. RECOMMENDATION: Detailed justification for the verdict.
-    3. REFINED PATHS: Provide 3-4 distinct strategic paths.
-    4. METRICS: Provide scores 0-100 for risk, speed, cost, impact, feasibility.
+    1. VERDICT: A clear, authoritative summary of the recommended path.
+    2. STRATEGIC REASONING (Deep): Provide a multi-paragraph justification. Explain exactly WHY this path was chosen over others. Reference specific agent data points (e.g. "The Strategist's pivot toward X was decisive due to Y").
+    3. OPTIONALITY & TRADE-OFFS: Analyze what is sacrificed by choosing this path and what future doors it opens (or closes). 
+    4. REFINED PATHS: Provide 3-4 distinct strategic paths with specific execution nuance.
+    5. METRICS: Provide scores 0-100 for risk, speed, cost, impact, feasibility.
+    
+    Output in the requested JSON format. Recommendation should be at least 250 words.
   `;
 
   try {
