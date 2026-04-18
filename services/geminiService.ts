@@ -214,7 +214,7 @@ export async function synthesizeOnly(input: DecisionInput, agents: PartialCounci
  * Gathers all necessary data points with retry logic and query decomposition.
  */
 export async function performComprehensiveResearch(input: DecisionInput, strategicPoints: string[], retries = 2): Promise<string> {
-  const executeResearch = async (queryContext: string) => {
+  const executeResearch = async (queryContext: string, isDeepDive = false) => {
     const prompt = `
       DECISION INQUIRY: "${input.title}"
       CONTEXT: ${input.context}
@@ -224,27 +224,35 @@ export async function performComprehensiveResearch(input: DecisionInput, strateg
       
       You are a Senior Strategic Researcher. Your goal is to gather a comprehensive "Intelligence Dossier" for a Council of Experts.
       
-      RESEARCH TASKS (Using googleSearch):
-      1. Financial Benchmarks: Find specific ROI, CAGR, and cost data.
-      2. Competitive Intelligence: Identify top competitors and their recent pivots.
-      3. Risk Landscape: Find historical failure modes and macro threats.
-      4. Human Factors: Look for culture trends and stakeholder sentiment.
+      ${isDeepDive ? "DEEP-DIVE TASK:" : "HORIZON SCAN TASKS:"} (Using googleSearch)
+      1. Financial Benchmarks: Find specific ROI, CAGR, cost of capital, and sector-specific financial metrics.
+      2. Competitive Intelligence: Identify top 5 competitors, their recent pivots, and market share data.
+      3. Risk Landscape: Deep dive into historical failure modes, macro-economic threats (inflation, regulation), and technical debt risks.
+      4. Human Factors: Analyze talent availability, consumer sentiment trends, and organizational culture impact.
+      5. Execution Proxies: Find case studies or industry proxies for similar strategic implementations.
       
       REQUIREMENTS:
-      - Provide detailed data points and URLs for findings.
-      - If specific data is missing, find the closest industry proxy.
+      - Provide dense, data-heavy findings with URLs for every claim.
+      - Aim for at least 15-20 distinct data points across all categories.
+      - If specific data is missing, search for the closest available industry proxy.
     `;
 
     try {
       const ai = getAI();
-      return await ai.models.generateContent({
-        model: MASTER_MODEL,
-        contents: prompt,
-        config: { 
-          tools: [{ googleSearch: {} }] as any,
-          temperature: 0.4 // Slightly lower for more focused searching
-        }
+      const response = await generateWithFallback(ai, prompt, { 
+        tools: [{ googleSearch: {} }] as any,
+        temperature: isDeepDive ? 0.3 : 0.5 
       });
+      
+      let groundingText = "";
+      if (response.candidates?.[0]?.groundingMetadata?.groundingChunks) {
+        const chunks = response.candidates[0].groundingMetadata.groundingChunks;
+        groundingText = "\n\nSOURCES FOUND:\n" + chunks.map((chunk: any) => 
+          chunk.web?.uri ? `${chunk.web.title || 'Source'}: ${chunk.web.uri}` : ""
+        ).filter(Boolean).join('\n');
+      }
+
+      return (response.text || "") + groundingText;
     } catch (e: any) {
       console.error("[RESEARCH] executeResearch API Error:", e);
       throw e;
@@ -252,34 +260,37 @@ export async function performComprehensiveResearch(input: DecisionInput, strateg
   };
 
   try {
-    console.log(`[RESEARCH] Starting research for: ${input.title}`);
-    let response = await executeResearch(strategicPoints.join('\n'));
+    console.log(`[RESEARCH] Phase 1: Horizon Scan for: ${input.title}`);
+    const phase1Results = await executeResearch(strategicPoints.join('\n'));
     
-    // Check if we got actual grounding or just a generic response
-    const hasGrounding = !!response.candidates?.[0]?.groundingMetadata?.groundingChunks?.length;
+    // PHASE 2: GAP ANALYSIS & ITERATIVE DEEPENING
+    console.log(`[RESEARCH] Initial scan complete (${phase1Results.length} chars). Identifying data gaps...`);
+    const ai = getAI();
+    const gapAnalysisPrompt = `
+        INITIAL FINDINGS:
+        ${phase1Results.substring(0, 3000)}
+        
+        TASK:
+        Based on the Initial Findings for the decision "${input.title}", identify 3 CRITICAL DATA GAPS that are still missing (e.g., a specific competitor's pricing, a specific regulatory hurdle).
+        
+        Output ONLY the 3 gaps as a comma-separated list.
+    `;
     
-    if (!hasGrounding && retries > 0) {
-      console.warn(`[RESEARCH] Initial search yielded no grounding. Retrying with decomposed queries...`);
-      // Decompose: Try searching for just the top 3 pillars to reduce complexity
-      const subset = strategicPoints.slice(0, 3).join(', ');
-      response = await executeResearch(`FOCUS ON THESE TOP PILLARS: ${subset}`);
-    }
-
-    let groundingText = "";
-    if (response.candidates?.[0]?.groundingMetadata?.groundingChunks) {
-      const chunks = response.candidates[0].groundingMetadata.groundingChunks;
-      groundingText = "\n\nSOURCES FOUND:\n" + chunks.map((chunk: any) => 
-        chunk.web?.uri ? `${chunk.web.title || 'Source'}: ${chunk.web.uri}` : ""
-      ).filter(Boolean).join('\n');
-    }
-
-    const researchOutput = (response.text || "Research phase completed.") + groundingText;
+    const gapResponse = await generateWithFallback(ai, gapAnalysisPrompt, { temperature: 0.2 });
+    const gaps = gapResponse.text || "";
     
-    if (researchOutput.length < 100 && retries > 0) {
-      throw new Error("Research output too sparse");
-    }
+    console.log(`[RESEARCH] Phase 2: Targeted Deep-Dive into: ${gaps}`);
+    const phase2Results = await executeResearch(`TARGETED DEEP-DIVE: ${gaps}`, true);
 
-    return researchOutput;
+    return `
+        ### STRATEGIC DOSSIER (VERSION 2.0 - RECURSIVE SCAN)
+        
+        PHASE 1: HORIZON SCAN FINDINGS
+        ${phase1Results}
+        
+        PHASE 2: TARGETED DATA ACQUISITION
+        ${phase2Results}
+    `;
 
   } catch (error: any) {
     if (retries > 0) {
