@@ -264,20 +264,34 @@ const DecidrApp: React.FC = () => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         const cloudProfile = await getUserProfile(firebaseUser.uid);
+        
+        // SYNC XP
         const localXp = parseInt(localStorage.getItem(`dc_xp_${firebaseUser.uid}`) || '0', 10);
         const finalXp = Math.max(cloudProfile?.xp || 0, localXp);
         const finalLevel = Math.floor(finalXp / 500) + 1;
+        
+        // SYNC CREDITS
+        const localCredits = parseInt(localStorage.getItem('dc_credits_used') || '0', 10);
+        const finalCredits = cloudProfile?.credits !== undefined ? cloudProfile.credits : localCredits;
+
         setUser({ id: firebaseUser.uid, email: firebaseUser.email || "User", xp: finalXp, level: finalLevel });
-        setXp(finalXp); setLevel(finalLevel);
+        setXp(finalXp); setLevel(finalLevel); setCredits(finalCredits);
+        
         localStorage.setItem(`dc_xp_${firebaseUser.uid}`, finalXp.toString());
         localStorage.setItem(`dc_level_${firebaseUser.uid}`, finalLevel.toString());
-        if (!cloudProfile || cloudProfile.xp < finalXp) { await saveUserProfile(firebaseUser.uid, finalXp, finalLevel); }
+        localStorage.setItem('dc_credits_used', finalCredits.toString());
+
+        if (!cloudProfile || cloudProfile.xp < finalXp || cloudProfile.credits !== finalCredits) { 
+          await saveUserProfile(firebaseUser.uid, finalXp, finalLevel, finalCredits); 
+        }
+        
         logActivity(firebaseUser.uid, 'login');
         setSessions(await getSessions(firebaseUser.uid));
       } else {
         setUser(null); setSessions(getLocalSessions());
         setXp(parseInt(localStorage.getItem('dc_xp_guest') || '0', 10));
         setLevel(parseInt(localStorage.getItem('dc_level_guest') || '1', 10));
+        setCredits(parseInt(localStorage.getItem('dc_credits_used') || '0', 10));
       }
       setIsAuthChecking(false);
     });
