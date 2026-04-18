@@ -99,7 +99,7 @@ const AgentCard: React.FC<AgentCardProps> = ({ agent, role, color, isLoading, ty
         
         {/* Local Version Switcher */}
         {totalVersions > 1 && !isLoading && (
-          <div className="absolute top-4 right-4 flex items-center gap-1 bg-slate-950/60 p-1 rounded-lg border border-white/5 opacity-0 group-hover:opacity-100 transition-all z-20">
+          <div className="absolute top-4 left-4 flex items-center gap-1 bg-slate-950/60 p-1 rounded-lg border border-white/5 opacity-0 group-hover:opacity-100 transition-all z-20">
              <button 
                onClick={(e) => { e.stopPropagation(); setLocalIndex(prev => Math.max(0, (prev === -1 ? totalVersions - 1 : prev) - 1)); }}
                disabled={currentIndex === 0}
