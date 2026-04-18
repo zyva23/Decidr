@@ -755,12 +755,16 @@ const DecidrApp: React.FC = () => {
                                         <div className="p-1 text-indigo-400/60 hover:text-indigo-400 cursor-help transition-colors">
                                             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
                                         </div>
-                                        <div className="absolute bottom-1/2 translate-y-1/2 right-full mr-3 w-56 bg-slate-900 border border-slate-700 rounded-xl p-3 shadow-2xl opacity-0 group-hover/info:opacity-100 pointer-events-none transition-all z-[120] translate-x-2 group-hover/info:translate-x-0">
-                                            <div className="text-[8px] font-black text-indigo-400 uppercase tracking-widest mb-1">Deliberation Context</div>
-                                            <p className="text-[10px] text-slate-300 leading-relaxed italic">
+                                        {/* Smart Autoadjusting Tooltip */}
+                                        <div className="absolute bottom-full mb-3 right-[-20px] w-64 bg-slate-900 border border-slate-700 rounded-xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.5)] opacity-0 group-hover/info:opacity-100 pointer-events-none transition-all z-[200] translate-y-2 group-hover/info:translate-y-0 sm:right-0 lg:right-auto lg:left-[-100px]">
+                                            <div className="text-[8px] font-black text-indigo-400 uppercase tracking-widest mb-2 flex items-center gap-2">
+                                                <div className="w-1 h-1 rounded-full bg-indigo-500"></div>
+                                                Deliberation Context
+                                            </div>
+                                            <p className="text-[10px] text-slate-200 leading-relaxed italic font-medium">
                                                 {activeSnapshot.synthesis.changeLog || (currentSynthesisIndex === 0 ? "Initial Council deliberation" : "Manual re-analysis")}
                                             </p>
-                                            <div className="absolute top-1/2 -translate-y-1/2 left-full w-2 h-2 bg-slate-900 border-r border-t border-slate-700 rotate-45 -translate-x-1"></div>
+                                            <div className="absolute top-full left-[50%] lg:left-[calc(100px+7px)] w-2.5 h-2.5 bg-slate-900 border-r border-b border-slate-700 rotate-45 -translate-y-[6px] -translate-x-1/2"></div>
                                         </div>
                                     </div>
                                 );
