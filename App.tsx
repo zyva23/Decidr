@@ -576,13 +576,30 @@ const DecidrApp: React.FC = () => {
   const toggleContributionSelection = (id: string) => { setSelectedContributionIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]); };
   const handleIncorporatePeerSynthesis = async () => {
     if (selectedContributionIds.length === 0 || !result) return;
+    setStatus(AnalysisStatus.ANALYZING);
     setIsPeerSynthesizing(true);
     const selectedPeers = contributions.filter(c => selectedContributionIds.includes(c.id));
     const startTime = Date.now();
     
     try {
-      const updatedResult = await synthesizeOnly(inputValues, result, selectedPeers);
+      // FULL COUNCIL RE-DELIBERATION: Pass insights to all agents
+      const updatedResult = await analyzeDecision(inputValues, (partial) => {
+        setPartialResult(prev => ({ ...(prev || {}), ...partial }));
+      }, result.researchData, selectedPeers);
       
+      // LOGGING LOGIC: Differentiate between Self Thoughts and Peer Insights
+      const hasSelfThought = selectedPeers.some(p => p.type === 'thought');
+      const peerCount = selectedPeers.filter(p => p.type !== 'thought').length;
+      
+      let changeLogText = "";
+      if (hasSelfThought && peerCount > 0) {
+        changeLogText = `Self Thought and ${peerCount} Peer insights incorporated`;
+      } else if (hasSelfThought) {
+        changeLogText = "Self Thought incorporated into Council deliberation";
+      } else {
+        changeLogText = `${peerCount} Peer insights incorporated into Council deliberation`;
+      }
+
       // VERSIONING LOGIC: Snapshot the previous state before updating
       const previousSnapshot: CouncilSnapshot = {
         timestamp: Date.now(),
@@ -598,9 +615,12 @@ const DecidrApp: React.FC = () => {
 
       updatedResult.history = [...(result.history || []), previousSnapshot];
       updatedResult.deliberationTime = Date.now() - startTime;
-      updatedResult.synthesis.changeLog = `${selectedPeers.length} Peer insights incorporated into synthesis`;
+      updatedResult.synthesis.changeLog = changeLogText;
 
       setResult(updatedResult);
+      setPartialResult(null);
+      setStatus(AnalysisStatus.COMPLETE);
+
       const session = sessions.find(s => s.id === currentSessionId);
       if (session && currentSessionId) {
         await Promise.all(selectedContributionIds.map(id => updateContributionStatus(currentSessionId, id, { status: 'accepted', notified: notifyContributors })));
@@ -621,6 +641,7 @@ const DecidrApp: React.FC = () => {
       await updateProgression(200);
     } catch (e) { 
       console.error(e); 
+      setStatus(AnalysisStatus.ERROR);
       alert("Council failed to incorporate peer insights."); 
     } finally { 
       setIsPeerSynthesizing(false); 

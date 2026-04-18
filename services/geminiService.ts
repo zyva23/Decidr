@@ -403,7 +403,8 @@ async function determineNextAgent(
 export async function analyzeDecision(
   input: DecisionInput, 
   onProgress?: (partial: PartialCouncilResult) => void,
-  cachedResearch?: string 
+  cachedResearch?: string,
+  humanInsights?: Contribution[]
 ): Promise<CouncilResult> {
   const trace: CouncilTrace = { steps: [], fullTranscript: "" };
   const addTrace = (phase: any, agent: string | undefined, query: string, response: any) => {
@@ -444,6 +445,14 @@ export async function analyzeDecision(
 
   // STEP 3: Supervisor Loop Execution (3 Rounds)
   let historyTranscript = "";
+  
+  // PRE-LOAD HUMAN INSIGHTS INTO TRANSCRIPT
+  if (humanInsights && humanInsights.length > 0) {
+    const insightText = humanInsights.map(i => `[${i.type.toUpperCase()} from ${i.name}]: ${i.content}`).join("\n");
+    historyTranscript = `\n\n--- INCORPORATED HUMAN INTELLIGENCE ---\nThe following insights have been provided and must be accounted for in your expert analysis:\n${insightText}\n\n`;
+    addTrace('Context', 'Human', 'Injecting Insights', humanInsights);
+  }
+
   const turnCounts: Record<string, number> = { Analyst: 0, Strategist: 0, Skeptic: 0, Mediator: 0 };
   const maxTurns = 12; // 2 mandatory rounds (8) + up to 4 optional supervisor turns
   let currentTurn = 0;
