@@ -1,56 +1,60 @@
-
-import React from 'react';
-import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Tooltip } from 'recharts';
-import { RadarMetrics } from '../types';
+import React, { useState, useEffect } from 'react';
+import { Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer, Legend } from 'recharts';
 
 interface RadarVizProps {
-  metrics?: RadarMetrics;
+  metrics?: {
+    risk: number;
+    speed: number;
+    cost: number;
+    impact: number;
+    feasibility: number;
+  };
 }
 
 const RadarViz: React.FC<RadarVizProps> = ({ metrics }) => {
-  if (!metrics) {
-    return (
-      <div className="w-full h-full flex flex-col items-center justify-center text-slate-600 animate-pulse">
-        <div className="w-32 h-32 rounded-full border-4 border-dashed border-slate-800 mb-4" />
-        <span className="text-[10px] font-black uppercase tracking-widest">Mapping metrics...</span>
-      </div>
-    );
-  }
+  const [isMobile, setIsDesktop] = useState(window.innerWidth < 768);
 
-  const data = [
-    { subject: 'Risk', A: metrics.risk || 0, fullMark: 100 },
-    { subject: 'Speed', A: metrics.speed || 0, fullMark: 100 },
-    { subject: 'Cost', A: metrics.cost || 0, fullMark: 100 },
-    { subject: 'Impact', A: metrics.impact || 0, fullMark: 100 },
-    { subject: 'Feasibility', A: metrics.feasibility || 0, fullMark: 100 },
-  ];
+  useEffect(() => {
+    const handleResize = () => setIsDesktop(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const data = metrics ? [
+    { subject: 'Risk', A: metrics.risk, fullMark: 100 },
+    { subject: 'Speed', A: metrics.speed, fullMark: 100 },
+    { subject: 'Cost', A: metrics.cost, fullMark: 100 },
+    { subject: 'Impact', A: metrics.impact, fullMark: 100 },
+    { subject: 'Feasibility', A: metrics.feasibility, fullMark: 100 },
+  ] : [];
+
+  if (!metrics) return null;
 
   return (
-    <div id="decision-radar-chart" className="h-64 w-full relative p-2 bg-slate-900/40 rounded-xl overflow-visible">
-        <h4 className="text-slate-500 text-[10px] font-bold uppercase tracking-widest absolute top-2 left-3 z-10">Decision Profile</h4>
+    <div className="w-full h-full min-h-[300px] flex items-center justify-center relative">
       <ResponsiveContainer width="100%" height="100%">
-        <RadarChart cx="50%" cy="50%" outerRadius="70%" data={data}>
+        <RadarChart cx="50%" cy="50%" outerRadius="85%" data={data}>
           <PolarGrid stroke="#334155" strokeWidth={1} />
           <PolarAngleAxis 
             dataKey="subject" 
-            tick={{ fill: '#475569', fontSize: 10, fontWeight: 800 }} 
+            tick={{ fill: '#94a3b8', fontSize: isMobile ? 8 : 10, fontWeight: 'bold' }} 
           />
-          <PolarRadiusAxis angle={90} domain={[0, 100]} tick={false} axisLine={false} />
           <Radar
-            name="Decision Score"
+            name="Council Alignment"
             dataKey="A"
             stroke="#6366f1"
             strokeWidth={3}
-            fill="#818cf8"
-            fillOpacity={0.6}
-            isAnimationActive={true}
-            animationDuration={1500}
+            fill="#6366f1"
+            fillOpacity={0.3}
           />
-          <Tooltip 
-            contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', color: '#f8fafc', borderRadius: '8px', fontSize: '12px' }}
-            itemStyle={{ color: '#818cf8', fontWeight: 'bold' }}
-            cursor={{ stroke: '#6366f1', strokeWidth: 1 }}
-          />
+          {/* Only show legend on desktop, and position it to avoid clipping */}
+          {!isMobile && (
+            <Legend 
+                verticalAlign="bottom" 
+                align="center" 
+                wrapperStyle={{ paddingTop: '20px', fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.1em' }} 
+            />
+          )}
         </RadarChart>
       </ResponsiveContainer>
     </div>
