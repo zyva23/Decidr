@@ -688,19 +688,26 @@ const DecidrApp: React.FC = () => {
           ) : <InputForm initialValues={inputValues} onSubmit={handleAnalysis} isLoading={status === AnalysisStatus.ANALYZING} sessions={sessions} isLocked={isInputLocked} onUnlock={() => setIsInputLocked(false)} />}
           right={
             <div className="h-full overflow-y-auto custom-scrollbar text-left">
-              {status === AnalysisStatus.ANALYZING && (
+              {status === AnalysisStatus.ANALYZING && !result && (
                 <div className="h-full animate-fade-in">
                   <DeliberationAnimation />
                 </div>
               )}
 
-              {(status === AnalysisStatus.COMPLETE || status === AnalysisStatus.SHARED_VIEW) && result && (
-                <div className="space-y-6 animate-fade-in pb-12 text-left">
+              {(status === AnalysisStatus.COMPLETE || status === AnalysisStatus.SHARED_VIEW || (status === AnalysisStatus.ANALYZING && result)) && result && (
+                <div className="space-y-6 animate-fade-in pb-12 text-left relative">
+                  {status === AnalysisStatus.ANALYZING && (
+                    <div className="absolute inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center rounded-2xl">
+                      <div className="w-full max-w-md h-[400px]">
+                        <DeliberationAnimation />
+                      </div>
+                    </div>
+                  )}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
                     <div className="md:col-span-2 bg-gradient-to-br from-indigo-900/40 to-slate-900/40 border border-indigo-500/30 rounded-xl p-8 flex flex-col shadow-2xl text-left relative overflow-hidden">
                       <div className="flex justify-between items-center mb-4">
                         <h2 className="text-indigo-300 text-xs font-bold uppercase tracking-widest">Master Verdict</h2>
-                        {result && result.synthesisHistory && result.synthesisHistory.length > 0 && (
+                        {result && result.history && result.history.length > 0 && (
                           <div className="flex items-center gap-3 bg-slate-950/50 px-3 py-1.5 rounded-full border border-slate-800 shadow-inner">
                             <div className="flex items-center gap-1 border-r border-slate-800 pr-2 mr-1">
                                 <button 
