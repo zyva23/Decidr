@@ -139,6 +139,44 @@ export async function generateCausalSummary(oldSnapshot: CouncilSnapshot, newSna
   }
 }
 
+/**
+ * NEW: Self-Thought Refinement
+ * Transforms a raw user query or thought into a high-fidelity strategic insight 
+ * grounded in the Council's current deliberation.
+ */
+export async function refineSelfThought(rawThought: string, councilResult: CouncilResult): Promise<string> {
+  const prompt = `
+    You are the Cognitive Synthesis lead of the Decision Council.
+    The user has provided a raw "Self Thought" or query during the deliberation session.
+    
+    RAW THOUGHT: "${rawThought}"
+    
+    COUNCIL STANCE (Current Verdict): ${councilResult.synthesis.verdict}
+    AGENT REPORTS:
+    - Analyst: ${councilResult.analyst.analysis.substring(0, 500)}
+    - Strategist: ${councilResult.strategist.analysis.substring(0, 500)}
+    
+    TASK:
+    Refine this raw thought into a sophisticated, high-fidelity strategic insight. 
+    1. Ground it in the Council's data (if the user asks a question, answer it strategically).
+    2. Elevate the language to match the Council's professional tone.
+    3. Make it actionable or specifically point out how it modifies the current strategic direction.
+    
+    Output ONLY the refined text. Max 100 words.
+  `;
+
+  try {
+    const ai = getAI();
+    const response = await generateWithFallback(ai, prompt, {
+      temperature: 0.5,
+    });
+    return response.text || rawThought;
+  } catch (error) {
+    console.error("Thought Refinement Error:", error);
+    return rawThought;
+  }
+}
+
 export async function synthesizeOnly(input: DecisionInput, agents: PartialCouncilResult, humanPerspectives?: Contribution[]): Promise<CouncilResult> {
   const { analyst, strategist, skeptic, mediator } = agents;
   if (!analyst || !strategist || !skeptic || !mediator) {

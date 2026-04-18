@@ -595,16 +595,37 @@ const DecidrApp: React.FC = () => {
   const handleSubmitContribution = async (name: string, content: string, type: Contribution['type'], isAnon: boolean) => {
     if (!currentSessionId || !content.trim()) return;
     setIsContributing(true);
-    const finalName = isAnon ? "Anonymous Expert" : (name.trim() || "Anonymous Expert");
-    const contribution: Contribution = { id: crypto.randomUUID(), name: finalName, content: content.trim(), type: type, timestamp: Date.now(), status: 'pending' };
-    try { 
-      await addSessionContribution(currentSessionId, contribution); 
-      setContributions(prev => [...prev, contribution]); 
-      alert("Perspective submitted for review."); 
-    } catch (e) { 
-      console.error(e); 
-    } finally { 
-      setIsContributing(false); 
+    
+    try {
+      let finalContent = content.trim();
+      
+      // REFINE THOUGHT: If it's a thought, enhance it with Council Intelligence
+      if (type === 'thought' && result) {
+        finalContent = await refineSelfThought(finalContent, result);
+      }
+
+      const finalName = isAnon ? "Anonymous Expert" : (name.trim() || "Anonymous Expert");
+      const contribution: Contribution = { 
+        id: crypto.randomUUID(), 
+        name: finalName, 
+        content: finalContent, 
+        type: type, 
+        timestamp: Date.now(), 
+        status: 'pending' 
+      };
+
+      await addSessionContribution(currentSessionId, contribution);
+      setContributions(prev => [contribution, ...prev]); // Add to top
+      
+      if (type === 'thought') {
+        alert("Self Thought refined and integrated into the Intelligence Layer.");
+      } else {
+        alert("Perspective submitted for review.");
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsContributing(false);
     }
   };
 
@@ -1035,8 +1056,18 @@ const DecidrApp: React.FC = () => {
                                       {c.status === 'revision_requested' && <span className="text-[7px] bg-amber-500/10 text-amber-400 border border-amber-500/20 px-1.5 rounded uppercase font-black tracking-widest shadow-inner">Revision Requested</span>}
                                       {c.status === 'dismissed' && <span className="text-[7px] bg-red-500/10 text-red-400 border border-red-500/20 px-1.5 rounded uppercase font-black tracking-widest shadow-inner">Discarded</span>}
                                     </div>
-                                    <div className="mb-2 text-left"><span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider border shadow-sm ${c.type === 'risk' ? 'bg-red-500/10 text-red-400 border-red-500/20' : c.type === 'variable' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : c.type === 'thought' ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'}`}>{c.type === 'risk' ? '🚩 Risk' : c.type === 'variable' ? '🧩 Variable' : c.type === 'thought' ? '🧠 Thought' : '💡 Alternative'}</span></div>
-                                    <p className="text-slate-300 text-sm leading-relaxed text-left opacity-90">{c.content}</p>
+                                    <div className="mb-2 text-left">
+                                      {c.type === 'thought' ? (
+                                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider border bg-indigo-500/20 text-indigo-300 border-indigo-500/50 shadow-[0_0_10px_rgba(99,102,241,0.3)]">
+                                          🧠 High-Fidelity Strategic Thought
+                                        </span>
+                                      ) : (
+                                        <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider border shadow-sm ${c.type === 'risk' ? 'bg-red-500/10 text-red-400 border-red-500/20' : c.type === 'variable' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'}`}>
+                                          {c.type === 'risk' ? '🚩 Risk' : c.type === 'variable' ? '🧩 Variable' : '💡 Alternative'}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <p className={`text-sm leading-relaxed text-left opacity-90 ${c.type === 'thought' ? 'text-indigo-100 font-medium italic' : 'text-slate-300'}`}>{c.content}</p>
                                     
                                     {c.feedbackComment && (
                                       <div className="mt-3 p-3 bg-amber-500/5 border border-amber-500/20 rounded-lg text-left">

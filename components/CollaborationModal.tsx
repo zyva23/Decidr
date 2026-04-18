@@ -214,13 +214,13 @@ const CollaborationModal: React.FC<Props> = ({
                 )}
               </div>
 
-              <div className="flex gap-2">
-                {(['variable', 'risk', 'alternative'] as const).map(t => (
+              <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
+                {(['variable', 'risk', 'alternative', 'thought'] as const).map(t => (
                   <button
                     key={t}
                     type="button"
                     onClick={() => setType(t)}
-                    className={`flex-1 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest border transition-all ${
+                    className={`flex-1 min-w-[90px] py-2 rounded-lg text-[9px] font-black uppercase tracking-widest border transition-all ${
                       type === t 
                         ? `${typeConfig[t].bg} ${typeConfig[t].color} border-current` 
                         : 'bg-slate-900 text-slate-500 border-slate-800 hover:border-slate-700'
