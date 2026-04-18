@@ -19,7 +19,7 @@ import MindfulCommitModal from './components/MindfulCommitModal';
 import AuditTrailModal from './components/AuditTrailModal';
 import Auth from './components/Auth';
 import { UI_CONTENT } from './src/constants/uiContent';
-import { analyzeDecision, generateActionPlan, generateDecisionTree, synthesizeOnly, generateCausalSummary } from './services/geminiService';
+import { analyzeDecision, generateActionPlan, generateDecisionTree, synthesizeOnly, generateCausalSummary, refineSelfThought } from './services/geminiService';
 import { saveSession, getSessions, deleteSession, getLocalSessions } from './services/storageService';
 import { auth, logActivity, onAuthStateChanged, signOut, isGCPConfigured, saveDetailedFeedback, saveToWaitlist, getUserProfile, saveUserProfile, getPublicSession, addSessionContribution, updateContributionStatus, getSessionContributions } from './services/googleCloud';
 import { generateDecisionPDF } from './services/pdfService';
