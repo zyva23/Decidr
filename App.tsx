@@ -1200,6 +1200,13 @@ const DecidrApp: React.FC = () => {
       {currentPlan && (<ActionPlanModal isOpen={isPlanModalOpen} onClose={() => setIsPlanModalOpen(false)} onSave={handleSavePlan} plan={currentPlan} />)}
       {isTreeOpen && (<DecisionTreeViz problemTitle={inputValues.title} councilResult={result || undefined} initialTree={currentSessionId ? sessions.find(s => s.id === currentSessionId)?.decisionTree : undefined} onSave={handleSaveTree} onClose={() => setIsTreeOpen(false)} />)}
       {result && (
+        <VerdictElaboration 
+          isOpen={isElaborationOpen} 
+          onClose={() => setIsElaborationOpen(false)} 
+          result={result} 
+        />
+      )}
+      {result && (
         <AuditTrailModal 
           isOpen={isAuditModalOpen} 
           onClose={() => setIsAuditModalOpen(false)} 
