@@ -31,13 +31,13 @@ const RadarViz: React.FC<RadarVizProps> = ({ metrics }) => {
   if (!metrics) return null;
 
   return (
-    <div className="w-full h-full min-h-[300px] flex items-center justify-center relative">
+    <div className="w-full h-full min-h-[300px] flex items-center justify-center relative p-2">
       <ResponsiveContainer width="100%" height="100%">
-        <RadarChart cx="50%" cy="50%" outerRadius="85%" data={data}>
+        <RadarChart cx="50%" cy="50%" outerRadius="70%" data={data} margin={{ top: 10, right: 30, bottom: 10, left: 30 }}>
           <PolarGrid stroke="#334155" strokeWidth={1} />
           <PolarAngleAxis 
             dataKey="subject" 
-            tick={{ fill: '#94a3b8', fontSize: isMobile ? 8 : 10, fontWeight: 'bold' }} 
+            tick={{ fill: '#94a3b8', fontSize: isMobile ? 9 : 11, fontWeight: 'bold' }} 
           />
           <Radar
             name="Council Alignment"
@@ -47,14 +47,19 @@ const RadarViz: React.FC<RadarVizProps> = ({ metrics }) => {
             fill="#6366f1"
             fillOpacity={0.3}
           />
-          {/* Only show legend on desktop, and position it to avoid clipping */}
-          {!isMobile && (
-            <Legend 
-                verticalAlign="bottom" 
-                align="center" 
-                wrapperStyle={{ paddingTop: '20px', fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.1em' }} 
-            />
-          )}
+          <Legend 
+              verticalAlign="bottom" 
+              align="center" 
+              iconType="circle"
+              wrapperStyle={{ 
+                paddingTop: '20px', 
+                fontSize: '10px', 
+                fontWeight: '800', 
+                textTransform: 'uppercase', 
+                letterSpacing: '0.1em',
+                color: '#94a3b8'
+              }} 
+          />
         </RadarChart>
       </ResponsiveContainer>
     </div>
