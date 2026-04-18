@@ -77,9 +77,12 @@ export interface CouncilSnapshot {
   skeptic: AgentResponse;
   mediator: AgentResponse;
   synthesis: SynthesisResult;
-  causalSummary?: string; // AI explanation of the pivot from the PREVIOUS version
+  causalSummary?: string; 
   strategicDataPoints?: string[];
   researchData?: string;
+  deliberationTime?: number; // Time in ms
+  errorAt?: number; // Time in ms if it failed
+  errorMessage?: string;
 }
 
 export interface CouncilResult {
@@ -91,8 +94,11 @@ export interface CouncilResult {
   strategicDataPoints?: string[];
   researchData?: string;
   trace?: CouncilTrace;
-  history?: CouncilSnapshot[]; // Full history of snapshots for audit trail
+  history?: CouncilSnapshot[]; 
   feedback?: 'helpful' | 'not-helpful';
+  deliberationTime?: number; // Current run time
+  errorAt?: number;
+  errorMessage?: string;
 }
 
 export interface PartialCouncilResult {

@@ -494,15 +494,23 @@ const DecidrApp: React.FC = () => {
         })();
       }
 
+      const deliberationTime = Date.now() - startTime;
+      data.deliberationTime = deliberationTime;
+
       setResult(data); 
       setPartialResult(null); 
       setStatus(AnalysisStatus.COMPLETE);
-      setIsInputLocked(true); // LOCK INPUTS AFTER RUN
+      setIsInputLocked(true); 
       setLastDeliberatedInput(input);
       
       const newCredits = credits + 1; 
       setCredits(newCredits); 
       localStorage.setItem('dc_credits_used', newCredits.toString()); 
+      
+      if (user) {
+        await saveUserProfile(user.id, xp, level, newCredits);
+      }
+      
       await updateProgression(100);
       
       const sessionId = currentSessionId || crypto.randomUUID();
@@ -524,7 +532,7 @@ const DecidrApp: React.FC = () => {
       setCurrentSessionId(sessionId); 
       const freshSessions = await getSessions(user?.id);
       setSessions(freshSessions);
-      setCurrentSynthesisIndex(data.synthesisHistory?.length || 0);
+      setCurrentSynthesisIndex(data.history?.length || 0);
 
       (async () => { 
         try { 
@@ -533,7 +541,6 @@ const DecidrApp: React.FC = () => {
             generateDecisionTree(input.title, data) 
           ]); 
           
-          // Use the updatedSession we already have instead of re-fetching
           const sessionWithBgData = { ...updatedSession, actionPlan: plan, decisionTree: tree };
           await saveSession(sessionWithBgData); 
           
@@ -546,8 +553,19 @@ const DecidrApp: React.FC = () => {
         } 
       })();
     } catch (error: any) { 
+      const errorTime = Date.now() - startTime;
       setStatus(AnalysisStatus.ERROR); 
-      logActivity(user?.id, 'error', { message: error.message }); 
+      
+      if (result) {
+        const errorResult = { ...result, errorAt: errorTime, errorMessage: error.message };
+        setResult(errorResult);
+        const session = sessions.find(s => s.id === currentSessionId);
+        if (session) {
+          saveSession({ ...session, result: errorResult, status: AnalysisStatus.ERROR });
+        }
+      }
+      
+      logActivity(user?.id, 'error', { message: error.message, time: errorTime }); 
     }
   };
 
