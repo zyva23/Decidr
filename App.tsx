@@ -704,10 +704,13 @@ const DecidrApp: React.FC = () => {
                     </div>
                   )}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
-                    <div className="md:col-span-2 bg-gradient-to-br from-indigo-900/40 to-slate-900/40 border border-indigo-500/30 rounded-xl p-8 flex flex-col shadow-2xl text-left relative overflow-hidden">
-                      <div className="flex justify-between items-center mb-4">
-                        <h2 className="text-indigo-300 text-xs font-bold uppercase tracking-widest">Master Verdict</h2>
-                        {result && result.history && result.history.length > 0 && (
+                    <div className="md:col-span-2 bg-gradient-to-br from-indigo-900/40 to-slate-900/40 border border-indigo-500/30 rounded-xl p-8 flex flex-col shadow-2xl text-left relative overflow-hidden min-h-[350px]">
+                      <div className="flex justify-between items-center mb-6">
+                        <h2 className="text-indigo-300 text-xs font-bold uppercase tracking-widest flex items-center gap-2">
+                           <div className="w-1.5 h-1.5 rounded-full bg-indigo-500"></div>
+                           Master Verdict
+                        </h2>
+                        {result && (result.history?.length || (result as any).synthesisHistory?.length || 0) > 0 && (
                           <div className="flex items-center gap-3 bg-slate-950/50 px-3 py-1.5 rounded-full border border-slate-800 shadow-inner">
                             <div className="flex items-center gap-1 border-r border-slate-800 pr-2 mr-1">
                                 <button 
@@ -718,11 +721,11 @@ const DecidrApp: React.FC = () => {
                                   <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
                                 </button>
                                 <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter w-16 text-center">
-                                  V{currentSynthesisIndex + 1} / {(result.synthesisHistory?.length || 0) + 1}
+                                  V{currentSynthesisIndex + 1} / {((result.history?.length || (result as any).synthesisHistory?.length || 0)) + 1}
                                 </span>
                                 <button 
-                                  onClick={() => setCurrentSynthesisIndex(prev => Math.min((result.history?.length || 0), prev + 1))}
-                                  disabled={currentSynthesisIndex === (result.history?.length || 0)}
+                                  onClick={() => setCurrentSynthesisIndex(prev => Math.min(((result.history?.length || (result as any).synthesisHistory?.length || 0)), prev + 1))}
+                                  disabled={currentSynthesisIndex === ((result.history?.length || (result as any).synthesisHistory?.length || 0))}
                                   className="p-1 text-slate-500 hover:text-white disabled:opacity-20 disabled:cursor-not-allowed transition-colors"
                                 >
                                   <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
@@ -730,15 +733,13 @@ const DecidrApp: React.FC = () => {
                             </div>
 
                             {/* Audit Timeline Button */}
-                            {result.history && result.history.length > 0 && (
-                                <button 
-                                    onClick={() => setIsAuditModalOpen(true)}
-                                    className="p-1 text-indigo-400 hover:text-indigo-300 transition-colors mr-1"
-                                    title="View Audit Timeline & Causal Reasoning"
-                                >
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20v-6M6 20V10M18 20V4"/></svg>
-                                </button>
-                            )}
+                            <button 
+                                onClick={() => setIsAuditModalOpen(true)}
+                                className="p-1 text-indigo-400 hover:text-indigo-300 transition-colors mr-1"
+                                title="View Audit Timeline & Causal Reasoning"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20v-6M6 20V10M18 20V4"/></svg>
+                            </button>
                             
                             {/* Version Info Icon */}
                             {(() => {
