@@ -166,7 +166,18 @@ export const getPublicSession = async (sessionId: string): Promise<DecisionSessi
     const docSnap = await getDoc(doc(db, "sessions", sessionId));
     if (docSnap.exists()) {
       const data = docSnap.data() as DecisionSession;
-      if (data.isPublic) return data;
+      if (data.isPublic) {
+        // SANITIZATION: Only share the latest state
+        // Remove version history and technical traces for public sharing
+        if (data.result) {
+          data.result = {
+            ...data.result,
+            history: [], // Remove audit trail
+            trace: undefined // Remove technical logs
+          };
+        }
+        return data;
+      }
     }
     return null;
   } catch (e) {
