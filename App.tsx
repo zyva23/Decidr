@@ -1131,7 +1131,8 @@ const DecidrApp: React.FC = () => {
                                 </button>
                               </div>
                             </div>
-                          )}
+                          </div>
+                        )}
 
                           <div className="divide-y divide-slate-800/30 max-h-[400px] overflow-y-auto custom-scrollbar text-left">
                             {contributions.filter(c => isOwner || c.status === 'accepted' || (c.status === 'revision_requested' && !isOwner)).map((c) => (
