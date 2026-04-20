@@ -87,16 +87,22 @@ const CouncilChat: React.FC<CouncilChatProps> = ({
     }
   };
 
-  const handleUpdatePerspectives = () => {
-    // Collect recent user inputs to form new context
-    const userInputs = chatHistory
-        .filter(m => m.role === 'user')
-        .map(m => m.content)
-        .join("\n");
-    
-    if (confirm("Re-convene the Council? This will run a new analysis including your chat points as new context.")) {
-        onReAnalyze(`\n\n[UPDATED INFO FROM CHAT]:\n${userInputs}`);
-        onClose();
+  const handleBatchIncorporate = async () => {
+    const userMessages = chatHistory.filter(m => m.role === 'user');
+    if (userMessages.length === 0) return;
+
+    if (confirm(`Incorporate ${userMessages.length} chat points into the Council's Collective Intelligence?`)) {
+      setIsLoading(true);
+      try {
+        // We concatenate all user insights into one refined strategic thought for the layer
+        const unifiedInsight = userMessages.map(m => m.content).join("\n---\n");
+        await onSubmitContribution(userName, unifiedInsight, 'thought', !isUserAuthenticated);
+        alert("Insights integrated into the Human Intelligence Layer.");
+      } catch (err) {
+        console.error("Batch incorporation failed:", err);
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -128,12 +134,12 @@ const CouncilChat: React.FC<CouncilChatProps> = ({
           <div className="flex items-center gap-3">
             {chatHistory.length > 2 && (
                 <button 
-                  onClick={handleUpdatePerspectives}
-                  className="text-xs bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-lg transition-colors border border-indigo-500/50 shadow-sm flex items-center gap-2"
-                  title="Run analysis again with this chat history included"
+                  onClick={handleBatchIncorporate}
+                  className="text-[10px] font-black uppercase tracking-widest bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-lg transition-colors border border-emerald-500/50 shadow-sm flex items-center gap-2"
+                  title="Incorporate all chat insights into the Council Intelligence layer"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.5 2v6h-6M21.34 5.5A10 10 0 1 1 6.88 6.88L2 12"/></svg>
-                  <span className="hidden sm:inline">Update Perspectives</span>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h.01"/><path d="M12 16h.01"/><path d="M12 12h.01"/><path d="M12 8h.01"/><path d="M12 4h.01"/><path d="M8 20h.01"/><path d="M8 16h.01"/><path d="M8 12h.01"/><path d="M8 8h.01"/><path d="M8 4h.01"/><path d="M16 20h.01"/><path d="M16 16h.01"/><path d="M16 12h.01"/><path d="M16 8h.01"/><path d="M16 4h.01"/></svg>
+                  <span className="hidden sm:inline">Incorporate Insights</span>
                 </button>
             )}
             <button 

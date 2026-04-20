@@ -10,11 +10,18 @@ import { DecisionInput, AgentResponse } from "../../types";
  */
 export class AnalystAgent extends BaseAgent {
   
-  async run(input: DecisionInput, strategicDataPoints?: string[], conversationHistory?: string, researchData?: string): Promise<AgentResponse> {
+  async run(
+    input: DecisionInput, 
+    strategicDataPoints?: string[], 
+    conversationHistory?: string, 
+    researchData?: string,
+    previousResponse?: AgentResponse
+  ): Promise<AgentResponse> {
     const role = "Analyst";
     
     const historyContext = conversationHistory ? `\nPREVIOUS COUNCIL DISCUSSION:\n${conversationHistory}` : "";
     const researchContext = researchData ? `\nCENTRALIZED RESEARCH FINDINGS:\n${researchData}` : "";
+    const previousNarrativeContext = previousResponse ? `\nYOUR PREVIOUS ANALYSIS:\n${previousResponse.analysis}` : "";
 
     const userPrompt = `
       DECISION BRIEF:
@@ -24,7 +31,17 @@ export class AnalystAgent extends BaseAgent {
       Options: ${input.options}
       ${historyContext}
       ${researchContext}
+      ${previousNarrativeContext}
     `;
+
+    const stabilityClause = previousResponse ? `
+      STABILITY PROTOCOL:
+      1. Review the NEW INSIGHTS and PREVIOUS ANALYSIS.
+      2. Determine the "Blast Radius": Does the new data fundamentally alter your previous calculations or conclusions?
+      3. If YES: Rewrite ONLY the affected sections. Keep the rest of the text identical.
+      4. If NO: You MUST return your previous 'analysis' text word-for-word. 
+      5. CHANGE SUMMARY: In the 'changeSummary' field, briefly explain what you updated and why (or state 'No changes required').
+    ` : "";
 
     const strategicContext = strategicDataPoints && strategicDataPoints.length > 0 
       ? `\nCORE STRATEGIC DATA POINTS TO ANALYZE:\n${strategicDataPoints.map(p => `- ${p}`).join('\n')}`
@@ -37,6 +54,7 @@ export class AnalystAgent extends BaseAgent {
       Ground this decision in hard data. Your report must move beyond intuition into empirical evidence.
       Use the provided CENTRALIZED RESEARCH FINDINGS as your primary data source.
       ${strategicContext}
+      ${stabilityClause}
       
       PHASE 2: EXECUTION & CROSS-QUESTIONING PROTOCOL:
       1. ANALYTICAL SYNTHESIS: Analyze industry benchmarks, historical ROI data, and specific market sizing from the provided research for the CORE STRATEGIC DATA POINTS.
@@ -65,7 +83,8 @@ export class AnalystAgent extends BaseAgent {
         sources: data.sources || [],
         chartData: data.chartData || [],
         chartLabel: data.chartLabel || "Projected Financial Value",
-        alternativeScenarios: data.alternativeScenarios || []
+        alternativeScenarios: data.alternativeScenarios || [],
+        changeSummary: data.changeSummary || "Analysis complete."
       };
     } catch (error) {
       console.error("Analyst Execution Error:", error);

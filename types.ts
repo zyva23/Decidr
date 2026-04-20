@@ -37,7 +37,20 @@ export interface AgentResponse {
   chartData?: ChartDataPoint[];
   chartLabel?: string;
   alternativeScenarios?: AlternativeScenario[];
+  changeSummary?: string; // NEW: Brief summary of what changed in this version
   _rawTrace?: { systemPrompt: string; userPrompt: string }; // Hidden trace for debugging
+}
+
+export enum TriageStatus {
+  ALREADY_COVERED = 'ALREADY_COVERED',
+  NO_RESEARCH_NEEDED = 'NO_RESEARCH_NEEDED',
+  NEW_RESEARCH_NEEDED = 'NEW_RESEARCH_NEEDED'
+}
+
+export interface TriageResult {
+  status: TriageStatus;
+  explanation: string;
+  searchQueries?: string[];
 }
 
 export interface RadarMetrics {

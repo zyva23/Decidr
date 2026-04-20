@@ -10,11 +10,18 @@ import { DecisionInput, AgentResponse } from "../../types";
  */
 export class StrategistAgent extends BaseAgent {
   
-  async run(input: DecisionInput, strategicDataPoints?: string[], conversationHistory?: string, researchData?: string): Promise<AgentResponse> {
+  async run(
+    input: DecisionInput, 
+    strategicDataPoints?: string[], 
+    conversationHistory?: string, 
+    researchData?: string,
+    previousResponse?: AgentResponse
+  ): Promise<AgentResponse> {
     const role = "Strategist";
 
     const historyContext = conversationHistory ? `\nPREVIOUS COUNCIL DISCUSSION:\n${conversationHistory}` : "";
     const researchContext = researchData ? `\nCENTRALIZED RESEARCH FINDINGS:\n${researchData}` : "";
+    const previousNarrativeContext = previousResponse ? `\nYOUR PREVIOUS ANALYSIS:\n${previousResponse.analysis}` : "";
 
     const userPrompt = `
       STRATEGIC BRIEF:
@@ -23,7 +30,17 @@ export class StrategistAgent extends BaseAgent {
       Proposed Options: ${input.options}
       ${historyContext}
       ${researchContext}
+      ${previousNarrativeContext}
     `;
+
+    const stabilityClause = previousResponse ? `
+      STABILITY PROTOCOL:
+      1. Review the NEW INSIGHTS and PREVIOUS ANALYSIS.
+      2. Determine the "Blast Radius": Does the new data fundamentally alter your previous strategic pathway selection?
+      3. If YES: Rewrite ONLY the affected sections. Keep the rest of the text identical.
+      4. If NO: You MUST return your previous 'analysis' text word-for-word. 
+      5. CHANGE SUMMARY: In the 'changeSummary' field, briefly explain what you updated and why (or state 'No changes required').
+    ` : "";
 
     const strategicContext = strategicDataPoints && strategicDataPoints.length > 0 
       ? `\nCORE STRATEGIC DATA POINTS TO ANALYZE:\n${strategicDataPoints.map(p => `- ${p}`).join('\n')}`
@@ -36,6 +53,7 @@ export class StrategistAgent extends BaseAgent {
       Map the competitive landscape. Your goal is to identify if this decision leads to a sustainable competitive advantage (Moat) or a commodity trap.
       Use the provided CENTRALIZED RESEARCH FINDINGS as your primary data source for market intelligence.
       ${strategicContext}
+      ${stabilityClause}
 
       STRATEGIC EVALUATION PROTOCOL:
       1. PATHWAY GENERATION: Generate three distinct strategic pathways for this dilemma based on research.
@@ -65,7 +83,8 @@ export class StrategistAgent extends BaseAgent {
         sources: data.sources || [],
         chartData: data.chartData || [],
         chartLabel: data.chartLabel || "Strategic Leverage Index",
-        alternativeScenarios: data.alternativeScenarios || []
+        alternativeScenarios: data.alternativeScenarios || [],
+        changeSummary: data.changeSummary || "Strategy development complete."
       };
     } catch (error) {
       console.error("Strategist Execution Error:", error);
@@ -75,7 +94,8 @@ export class StrategistAgent extends BaseAgent {
         analysis: "Strategy engine offline. Could not map competitive landscape.", 
         keyPoints: ["Research failure", "Competitive data unavailable"], 
         score: 0, 
-        sequence: [] 
+        sequence: [],
+        changeSummary: "Error occurred during strategy development."
       };
     }
   }

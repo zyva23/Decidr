@@ -1,9 +1,101 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import { DecisionInput, CouncilResult, BrainstormResult, ChatMessage, ActionPlan, PartialCouncilResult, DecisionTree, Contribution } from "../types";
+import { DecisionInput, CouncilResult, BrainstormResult, ChatMessage, ActionPlan, PartialCouncilResult, DecisionTree, Contribution, TriageStatus, TriageResult, AgentResponse } from "../types";
 import { AnalystAgent } from "./agents/AnalystAgent";
 import { StrategistAgent } from "./agents/StrategistAgent";
 import { SkepticAgent } from "./agents/SkepticAgent";
 import { MediatorAgent } from "./agents/MediatorAgent";
+
+/**
+ * NEW: Triage Layer
+ * Analyzes new input against previous context to determine if updates or research are needed.
+ */
+export async function triageNewInformation(
+  newInput: DecisionInput, 
+  previousResult: CouncilResult
+): Promise<TriageResult> {
+  const prompt = `
+    You are the Gatekeeper of the Decision Council.
+    
+    PREVIOUS VERDICT: ${previousResult.synthesis.verdict}
+    PREVIOUS RESEARCH: ${previousResult.researchData?.substring(0, 2000)}
+    
+    NEW INPUT/INSIGHTS:
+    Title: ${newInput.title}
+    Context: ${newInput.context}
+    Constraints: ${newInput.constraints}
+    Options: ${newInput.options}
+    
+    TASK:
+    Analyze if this new information is already covered, requires a logical shift, or needs new external research.
+    
+    STATUS OPTIONS:
+    1. ALREADY_COVERED: The new insight is already explicitly addressed in the previous research or verdict.
+    2. NO_RESEARCH_NEEDED: The information is new, but it's a preference or logical change that doesn't require fresh external data (e.g., "Change target from ROI to Speed").
+    3. NEW_RESEARCH_NEEDED: The information introduces a novel variable that requires fresh Google Search grounding (e.g., "What about the new competitor X?").
+    
+    Output ONLY a JSON object: { "status": "ALREADY_COVERED" | "NO_RESEARCH_NEEDED" | "NEW_RESEARCH_NEEDED", "explanation": "string", "searchQueries": ["string"] }
+  `;
+
+  try {
+    const ai = getAI();
+    const response = await generateWithFallback(ai, prompt, {
+      responseMimeType: "application/json",
+      temperature: 0.2,
+    });
+    return JSON.parse(response.text || "{}");
+  } catch (error) {
+    console.error("Triage Error:", error);
+    return { status: TriageStatus.NO_RESEARCH_NEEDED, explanation: "Fallback to standard update." };
+  }
+}
+
+/**
+ * NEW: Incremental Delta-Research (Patching)
+ * Updates existing research with new findings while maintaining a unified briefing.
+ */
+export async function performTargetedResearch(
+  input: DecisionInput, 
+  previousResearch: string, 
+  queries: string[]
+): Promise<string> {
+  const prompt = `
+    DECISION: "${input.title}"
+    EXISTING RESEARCH:
+    ${previousResearch.substring(0, 3000)}
+    
+    NEW SEARCH QUERIES:
+    ${queries.join(', ')}
+    
+    TASK:
+    1. Execute these queries to find new grounding data.
+    2. Integrate the new findings into the EXISTING RESEARCH.
+    3. REMOVE any outdated or conflicting information from the old research.
+    4. Provide a single, unified, updated "Intelligence Dossier".
+    
+    Format: Use Markdown. Include sources/URLs.
+  `;
+
+  try {
+    const ai = getAI();
+    const response = await generateWithFallback(ai, prompt, { 
+      tools: [{ googleSearch: {} }] as any,
+      temperature: 0.3 
+    });
+    
+    let groundingText = "";
+    if (response.candidates?.[0]?.groundingMetadata?.groundingChunks) {
+      const chunks = response.candidates[0].groundingMetadata.groundingChunks;
+      groundingText = "\n\nNEW SOURCES ADDED:\n" + chunks.map((chunk: any) => 
+        chunk.web?.uri ? `${chunk.web.title || 'Source'}: ${chunk.web.uri}` : ""
+      ).filter(Boolean).join('\n');
+    }
+
+    return (response.text || "") + groundingText;
+  } catch (error) {
+    console.error("Targeted Research Error:", error);
+    return previousResearch + "\n\n[Warning: Targeted research failed. Proceeding with old data.]";
+  }
+}
 
 /**
  * CORE SERVICE: Decision Council Orchestrator
@@ -177,7 +269,12 @@ export async function refineSelfThought(rawThought: string, councilResult: Counc
   }
 }
 
-export async function synthesizeOnly(input: DecisionInput, agents: PartialCouncilResult, humanPerspectives?: Contribution[]): Promise<CouncilResult> {
+export async function synthesizeOnly(
+  input: DecisionInput, 
+  agents: PartialCouncilResult, 
+  humanPerspectives?: Contribution[],
+  previousSynthesis?: SynthesisResult
+): Promise<CouncilResult> {
   const { analyst, strategist, skeptic, mediator } = agents;
   if (!analyst || !strategist || !skeptic || !mediator) {
     throw new Error("Missing agent perspectives for synthesis.");
@@ -188,30 +285,42 @@ export async function synthesizeOnly(input: DecisionInput, agents: PartialCounci
     humanInsightAddendum = `
     INCORPORATED HUMAN PERSPECTIVES:
     ${humanPerspectives.map(p => `- ${p.name}: ${p.content}`).join('\n    ')}
-    
-    IMPORTANT: Integrate these human insights into your final verdict and refined paths. Weigh their contextual nuances against the agent models.
     `;
   }
+
+  const previousVerdictContext = previousSynthesis ? `\nPREVIOUS VERDICT: ${previousSynthesis.verdict}\nPREVIOUS RECOMMENDATION: ${previousSynthesis.recommendation}` : "";
+  
+  const agentPerspectives = `
+    1. Analyst: ${analyst.analysis} ${previousSynthesis ? `(Change: ${analyst.changeSummary})` : ""}
+    2. Strategist: ${strategist.analysis} ${previousSynthesis ? `(Change: ${strategist.changeSummary})` : ""}
+    3. Skeptic: ${skeptic.analysis} ${previousSynthesis ? `(Change: ${skeptic.changeSummary})` : ""}
+    4. Mediator: ${mediator.analysis} ${previousSynthesis ? `(Change: ${mediator.changeSummary})` : ""}
+  `;
+
+  const stabilityRequirements = previousSynthesis ? `
+    STABILITY REQUIREMENTS:
+    1. Maintain the previous verdict and recommendation phrasing as much as possible.
+    2. Only shift the verdict if the agent "Change Summaries" indicate a fundamental shift in the risk/reward landscape.
+    3. Use the agent "Change Summaries" to build a concise 'changeLog' (MAX 50 words) explaining exactly what was updated in this version.
+  ` : "";
 
   const prompt = `
     DECISION: "${input.title}"
     AGENT REPORTS:
-    1. Analyst: ${analyst.analysis} (Score: ${analyst.score})
-    2. Strategist: ${strategist.analysis} (Score: ${strategist.score})
-    3. Skeptic: ${skeptic.analysis} (Score: ${skeptic.score})
-    4. Mediator: ${mediator.analysis} (Score: ${mediator.score})
+    ${agentPerspectives}
     ${humanInsightAddendum}
+    ${previousVerdictContext}
 
     Synthesize into a high-fidelity final recommendation.
+    ${stabilityRequirements}
     
-    REQUIREMENTS:
-    1. VERDICT: A clear, authoritative summary of the recommended path.
-    2. STRATEGIC REASONING (Deep): Provide a multi-paragraph justification. Explain exactly WHY this path was chosen over others. Reference specific agent data points (e.g. "The Strategist's pivot toward X was decisive due to Y").
-    3. OPTIONALITY & TRADE-OFFS: Analyze what is sacrificed by choosing this path and what future doors it opens (or closes). 
-    4. REFINED PATHS: Provide 3-4 distinct strategic paths with specific execution nuance.
-    5. METRICS: Provide scores 0-100 for risk, speed, cost, impact, feasibility.
+    STANDARD REQUIREMENTS:
+    1. VERDICT: A clear, authoritative summary.
+    2. STRATEGIC REASONING: Explain WHY this path was chosen.
+    3. REFINED PATHS: 3-4 distinct strategic paths.
+    4. METRICS: Scores 0-100 for risk, speed, cost, impact, feasibility.
     
-    Output in the requested JSON format. Recommendation should be at least 250 words.
+    Output in JSON format.
   `;
 
   try {
@@ -219,34 +328,26 @@ export async function synthesizeOnly(input: DecisionInput, agents: PartialCounci
     const response = await generateWithFallback(ai, prompt, {
       responseMimeType: "application/json",
       responseSchema: synthesisSchema as any,
-      temperature: 0.4,
+      temperature: 0.3,
     });
 
     const synthesisData = JSON.parse(response.text || "{}");
     return { analyst, strategist, skeptic, mediator, synthesis: synthesisData, strategicDataPoints: [], history: [] };
   } catch (error) {
-    console.warn("Synthesis fallback triggered in synthesizeOnly...", error);
-    try {
-      const ai = getAI();
-      const fallbackResponse = await generateWithFallback(ai, prompt, { 
-        responseMimeType: "application/json", 
-        temperature: 0.7 
-      }, true);
-      const synthesisData = JSON.parse(fallbackResponse.text || "{}");
-      return { 
-        analyst, strategist, skeptic, mediator, 
-        synthesis: {
-          verdict: synthesisData.verdict || "Conditional Proceed",
-          recommendation: synthesisData.recommendation || "Synthesis partially failed.",
-          refinedPaths: synthesisData.refinedPaths || ["Proceed with caution"],
-          metrics: synthesisData.metrics || { risk: 50, speed: 50, cost: 50, impact: 50, feasibility: 50 }
-        },
-        strategicDataPoints: [],
-        history: []
-      };
-    } catch (fallbackError) {
-      throw new Error("Council Deadlock: Persistent synthesis failure.");
-    }
+    console.warn("Synthesis fallback triggered...", error);
+    // ... (rest of fallback logic if needed, but keeping it simple for now)
+    return { 
+      analyst, strategist, skeptic, mediator, 
+      synthesis: {
+        verdict: previousSynthesis?.verdict || "Conditional Proceed",
+        recommendation: previousSynthesis?.recommendation || "Synthesis partially failed.",
+        refinedPaths: previousSynthesis?.refinedPaths || ["Proceed with caution"],
+        metrics: previousSynthesis?.metrics || { risk: 50, speed: 50, cost: 50, impact: 50, feasibility: 50 },
+        changeLog: "Synthesis error - using previous version."
+      },
+      strategicDataPoints: [],
+      history: []
+    };
   }
 }
 
@@ -404,7 +505,8 @@ export async function analyzeDecision(
   input: DecisionInput, 
   onProgress?: (partial: PartialCouncilResult) => void,
   cachedResearch?: string,
-  humanInsights?: Contribution[]
+  humanInsights?: Contribution[],
+  previousResult?: CouncilResult
 ): Promise<CouncilResult> {
   const trace: CouncilTrace = { steps: [], fullTranscript: "" };
   const addTrace = (phase: any, agent: string | undefined, query: string, response: any) => {
@@ -424,18 +526,45 @@ export async function analyzeDecision(
      throw new Error("Strategic API Key is missing.");
   }
 
-  // STEP 1: Identify Strategic Data Points
-  const strategicPoints = await identifyStrategicDataPoints(optimizedInput);
-  addTrace('Identification', undefined, 'identifyStrategicDataPoints', strategicPoints);
+  // NEW: TRIAGE PHASE
+  let researchData = cachedResearch || previousResult?.researchData;
+  let strategicPoints = previousResult?.strategicDataPoints || [];
 
-  // STEP 2: Centralized Research
-  let researchData = cachedResearch;
+  if (previousResult) {
+    const triage = await triageNewInformation(optimizedInput, previousResult);
+    addTrace('Triage', 'Gatekeeper', 'triageNewInformation', triage);
+
+    if (triage.status === TriageStatus.ALREADY_COVERED) {
+      console.log("[ORCHESTRATOR] New information already covered. Returning previous result.");
+      return { 
+        ...previousResult, 
+        synthesis: { 
+          ...previousResult.synthesis, 
+          changeLog: `Already covered: ${triage.explanation}` 
+        } 
+      };
+    }
+
+    if (triage.status === TriageStatus.NEW_RESEARCH_NEEDED && triage.searchQueries) {
+      researchData = await performTargetedResearch(optimizedInput, researchData || "", triage.searchQueries);
+      addTrace('Research', 'Researcher', 'performTargetedResearch', researchData);
+      if (onProgress) onProgress({ researchData });
+    }
+  }
+
+  // STEP 1: Identify Strategic Data Points (if not already present)
+  if (strategicPoints.length === 0) {
+    strategicPoints = await identifyStrategicDataPoints(optimizedInput);
+    addTrace('Identification', undefined, 'identifyStrategicDataPoints', strategicPoints);
+  }
+
+  // STEP 2: Centralized Research (if not already present)
   if (!researchData) {
     researchData = await performComprehensiveResearch(optimizedInput, strategicPoints);
     addTrace('Research', 'Researcher', 'performComprehensiveResearch', researchData);
     if (onProgress) onProgress({ researchData });
   } else {
-    addTrace('Research', 'Researcher', 'Cached Research Used', researchData);
+    addTrace('Research', 'Researcher', 'Research Context Established', researchData.substring(0, 100) + "...");
   }
 
   const analystAgent = new AnalystAgent(apiKey as string);
@@ -476,19 +605,19 @@ export async function analyzeDecision(
     let agentResponse: AgentResponse | undefined;
     try {
       if (nextAgentName === 'Analyst') {
-        agentResponse = await analystAgent.run(optimizedInput, strategicPoints, historyTranscript, researchData);
+        agentResponse = await analystAgent.run(optimizedInput, strategicPoints, historyTranscript, researchData, previousResult?.analyst);
         analyst = agentResponse;
         if (onProgress) onProgress({ analyst });
       } else if (nextAgentName === 'Strategist') {
-        agentResponse = await strategistAgent.run(optimizedInput, strategicPoints, historyTranscript, researchData);
+        agentResponse = await strategistAgent.run(optimizedInput, strategicPoints, historyTranscript, researchData, previousResult?.strategist);
         strategist = agentResponse;
         if (onProgress) onProgress({ strategist });
       } else if (nextAgentName === 'Skeptic') {
-        agentResponse = await skepticAgent.run(optimizedInput, strategicPoints, historyTranscript, researchData);
+        agentResponse = await skepticAgent.run(optimizedInput, strategicPoints, historyTranscript, researchData, previousResult?.skeptic);
         skeptic = agentResponse;
         if (onProgress) onProgress({ skeptic });
       } else if (nextAgentName === 'Mediator') {
-        agentResponse = await mediatorAgent.run(optimizedInput, strategicPoints, historyTranscript, researchData);
+        agentResponse = await mediatorAgent.run(optimizedInput, strategicPoints, historyTranscript, researchData, previousResult?.mediator);
         mediator = agentResponse;
         if (onProgress) onProgress({ mediator });
       }
@@ -505,30 +634,10 @@ export async function analyzeDecision(
     currentTurn++;
   }
 
-  const synthesisPrompt = `
-    DECISION: "${optimizedInput.title}"
-    AGENT REPORTS:
-    1. Analyst: ${analyst?.analysis}
-    2. Strategist: ${strategist?.analysis}
-    3. Skeptic: ${skeptic?.analysis}
-    4. Mediator: ${mediator?.analysis}
-  `;
-
   try {
-    const ai = getAI();
-    const response = await ai.models.generateContent({
-      model: MASTER_MODEL,
-      contents: synthesisPrompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: synthesisSchema as any,
-        temperature: 0.4,
-      }
-    });
-
-    const synthesisData = JSON.parse(response.text || "{}");
-    const finalResult = { analyst, strategist, skeptic, mediator, synthesis: synthesisData, strategicDataPoints: strategicPoints, researchData, trace };
-    addTrace('Synthesis', 'Master', synthesisPrompt, synthesisData);
+    const synthesisResult = await synthesizeOnly(optimizedInput, { analyst, strategist, skeptic, mediator }, humanInsights, previousResult?.synthesis);
+    const finalResult = { ...synthesisResult, strategicDataPoints: strategicPoints, researchData, trace };
+    addTrace('Synthesis', 'Master', 'synthesizeOnly', synthesisResult.synthesis);
     return finalResult;
   } catch (error) {
     // Basic fallback result
@@ -730,7 +839,8 @@ const synthesisSchema = {
         feasibility: { type: Type.NUMBER }
       },
       required: ["risk", "speed", "cost", "impact", "feasibility"]
-    }
+    },
+    changeLog: { type: Type.STRING }
   },
   required: ["verdict", "recommendation", "refinedPaths", "metrics"]
 };

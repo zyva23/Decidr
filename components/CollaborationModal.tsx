@@ -18,8 +18,24 @@ const typeConfig = {
   risk: { icon: '🚩', label: 'Risk', color: 'text-red-400', bg: 'bg-red-500/10' },
   variable: { icon: '🧩', label: 'Variable', color: 'text-blue-400', bg: 'bg-blue-500/10' },
   alternative: { icon: '💡', label: 'Alternative', color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
-  thought: { icon: '🧠', label: 'Self Thought', color: 'text-indigo-400', bg: 'bg-indigo-500/10' }
+  thought: { icon: '🧠', label: 'Strategic Insight', color: 'text-indigo-400', bg: 'bg-indigo-500/10' }
 };
+
+type FlowType = 'raw' | 'augmented' | 'collaborate';
+
+interface Props {
+  isOpen: boolean;
+  onClose: () => void;
+  session: DecisionSession | null;
+  contributions: Contribution[];
+  onSynthesize: (selectedIds: string[], notify: boolean) => void;
+  isSynthesizing: boolean;
+  isOwner: boolean;
+  onSubmitContribution: (name: string, content: string, type: Contribution['type'], isAnonymous: boolean) => Promise<void>;
+  onRefineThought: (text: string) => Promise<string>;
+  isContributing: boolean;
+  isAuthenticated: boolean;
+}
 
 const CollaborationModal: React.FC<Props> = ({ 
   isOpen, 
@@ -30,20 +46,43 @@ const CollaborationModal: React.FC<Props> = ({
   isSynthesizing, 
   isOwner,
   onSubmitContribution,
+  onRefineThought,
   isContributing,
   isAuthenticated
 }) => {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [notify, setNotify] = useState(true);
+  const [activeFlow, setActiveFlow] = useState<FlowType>('raw');
   
   // Contribution Form State
   const [name, setName] = useState('');
   const [content, setContent] = useState('');
-  const [type, setType] = useState<Contribution['type']>('variable');
+  const [type, setType] = useState<Contribution['type']>('thought');
   const [isAnonymous, setIsAnonymous] = useState(!isAuthenticated);
   const [showForm, setShowForm] = useState(!isOwner);
+  const [isRefining, setIsRefining] = useState(false);
 
   if (!isOpen) return null;
+
+  const handleRefine = async () => {
+    if (!content.trim()) return;
+    setIsRefining(true);
+    try {
+      const refined = await onRefineThought(content);
+      setContent(refined);
+      setActiveFlow('raw'); // Switch back to edit mode with the refined text
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsRefining(false);
+    }
+  };
+
+  const handleCopyInvite = () => {
+    const url = window.location.href;
+    navigator.clipboard.writeText(url);
+    alert("Invite link copied to clipboard!");
+  };
 
   const toggleSelection = (id: string) => {
     if (!isOwner) return;
@@ -179,87 +218,134 @@ const CollaborationModal: React.FC<Props> = ({
         {/* Contribution Form Overlay/Drawer */}
         {showForm && (
           <div className="p-6 bg-[#121519] border-t border-slate-700/50 animate-slide-up">
-            <div className="flex justify-between items-center mb-4">
-              <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Contribute Perspective</h4>
-              {isOwner && (
-                <button onClick={() => setShowForm(false)} className="text-[10px] font-bold text-slate-600 hover:text-slate-400 transition-colors uppercase">Cancel</button>
-              )}
-            </div>
-            
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="flex flex-col sm:flex-row gap-4">
-                <div className="flex-1">
-                  {!isAnonymous && (
-                    <input 
-                      type="text"
-                      placeholder="Your Name (Required)"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      className="w-full bg-[#1A1D21] border border-slate-700 rounded-xl px-4 py-3 text-xs text-white outline-none focus:border-indigo-500 transition-all shadow-inner"
-                      required
-                    />
-                  )}
-                </div>
-                {isAuthenticated && (
-                  <div className="flex items-center gap-3 bg-[#1A1D21] border border-slate-700 rounded-xl px-4 py-2 shadow-inner">
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Anonymous</span>
-                    <button 
-                      type="button"
-                      onClick={() => setIsAnonymous(!isAnonymous)}
-                      className={`w-10 h-5 rounded-full transition-all relative ${isAnonymous ? 'bg-indigo-600' : 'bg-slate-800'}`}
-                    >
-                      <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${isAnonymous ? 'left-6' : 'left-1'}`} />
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
-                {(['variable', 'risk', 'alternative', 'thought'] as const).map(t => (
+            <div className="flex justify-between items-center mb-6">
+              <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Deliberation Pathway</h4>
+              <div className="flex gap-2">
+                {(['raw', 'augmented', 'collaborate'] as FlowType[]).map(f => (
                   <button
-                    key={t}
-                    type="button"
-                    onClick={() => setType(t)}
-                    className={`flex-1 min-w-[90px] py-2 rounded-lg text-[9px] font-black uppercase tracking-widest border transition-all ${
-                      type === t 
-                        ? `${typeConfig[t].bg} ${typeConfig[t].color} border-current` 
-                        : 'bg-slate-900 text-slate-500 border-slate-800 hover:border-slate-700'
+                    key={f}
+                    onClick={() => setActiveFlow(f)}
+                    className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border transition-all ${
+                      activeFlow === f 
+                        ? 'bg-indigo-600 border-indigo-500 text-white' 
+                        : 'bg-slate-900 border-slate-800 text-slate-500 hover:border-slate-700'
                     }`}
                   >
-                    {typeConfig[t].icon} {typeConfig[t].label}
+                    {f === 'raw' ? 'Direct Insight' : f === 'augmented' ? 'Refine via Council' : 'Invite Peer Review'}
                   </button>
                 ))}
               </div>
+            </div>
+            
+            {activeFlow === 'collaborate' ? (
+              <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-8 text-center space-y-4">
+                 <div className="w-12 h-12 bg-indigo-500/10 rounded-full flex items-center justify-center mx-auto text-indigo-400">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                 </div>
+                 <div>
+                    <h5 className="text-sm font-bold text-white mb-1">Involve External Intelligence</h5>
+                    <p className="text-xs text-slate-500">Invite trusted experts or stakeholders to contribute to this deliberation channel.</p>
+                 </div>
+                 <button
+                    onClick={handleCopyInvite}
+                    className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl shadow-indigo-900/20 active:scale-95"
+                 >
+                    Copy Intelligence Invitation Link
+                 </button>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <div className="flex-1">
+                    {!isAnonymous && (
+                      <input 
+                        type="text"
+                        placeholder="Expert Name (Required)"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        className="w-full bg-[#1A1D21] border border-slate-700 rounded-xl px-4 py-3 text-xs text-white outline-none focus:border-indigo-500 transition-all shadow-inner"
+                        required
+                      />
+                    )}
+                  </div>
+                  {isAuthenticated && (
+                    <div className="flex items-center gap-3 bg-[#1A1D21] border border-slate-700 rounded-xl px-4 py-2 shadow-inner">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Anonymous</span>
+                      <button 
+                        type="button"
+                        onClick={() => setIsAnonymous(!isAnonymous)}
+                        className={`w-10 h-5 rounded-full transition-all relative ${isAnonymous ? 'bg-indigo-600' : 'bg-slate-800'}`}
+                      >
+                        <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${isAnonymous ? 'left-6' : 'left-1'}`} />
+                      </button>
+                    </div>
+                  )}
+                </div>
 
-              <textarea 
-                placeholder="Share your insight, risk observation, or alternative path..."
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                className="w-full bg-[#1A1D21] border border-slate-700 rounded-xl px-4 py-3 text-xs text-white outline-none focus:border-indigo-500 transition-all min-h-[100px] resize-none shadow-inner"
-              />
+                <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
+                  {(['thought', 'risk', 'variable', 'alternative'] as const).map(t => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => setType(t)}
+                      className={`flex-1 min-w-[90px] py-2 rounded-lg text-[9px] font-black uppercase tracking-widest border transition-all ${
+                        type === t 
+                          ? `${typeConfig[t].bg} ${typeConfig[t].color} border-current` 
+                          : 'bg-slate-900 text-slate-500 border-slate-800 hover:border-slate-700'
+                      }`}
+                    >
+                      {typeConfig[t].icon} {typeConfig[t].label}
+                    </button>
+                  ))}
+                </div>
 
-              <button
-                type="submit"
-                disabled={!isFormValid || isContributing}
-                className={`w-full py-4 rounded-xl font-black uppercase tracking-[0.2em] text-xs transition-all shadow-xl flex items-center justify-center gap-3 ${
-                  !isFormValid || isContributing
-                    ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                    : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-900/20 active:scale-[0.98]'
-                }`}
-              >
-                {isContributing ? (
-                  <>
-                    <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Transmitting...
-                  </>
-                ) : (
-                  <>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-                    Submit Perspective
-                  </>
-                )}
-              </button>
-            </form>
+                <div className="relative group">
+                  <textarea 
+                    placeholder={activeFlow === 'augmented' ? "Describe your raw strategic thought... the Council will refine it using the current deliberation context." : "Share your insight, risk observation, or alternative path..."}
+                    value={content}
+                    onChange={(e) => setContent(e.target.value)}
+                    className="w-full bg-[#1A1D21] border border-slate-700 rounded-xl px-4 py-3 text-xs text-white outline-none focus:border-indigo-500 transition-all min-h-[120px] resize-none shadow-inner pr-20"
+                  />
+                  {activeFlow === 'augmented' && content.trim() && !isRefining && (
+                    <button
+                      type="button"
+                      onClick={handleRefine}
+                      className="absolute right-3 bottom-3 p-2 bg-indigo-500 hover:bg-indigo-400 text-white rounded-lg text-[8px] font-black uppercase tracking-tighter shadow-lg transition-all animate-fade-in"
+                    >
+                      ✨ Refine
+                    </button>
+                  )}
+                  {isRefining && (
+                    <div className="absolute right-3 bottom-3 flex items-center gap-2 text-[8px] font-black uppercase tracking-tighter text-indigo-400">
+                       <div className="w-3 h-3 border-2 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
+                       Synthesizing...
+                    </div>
+                  )}
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={!isFormValid || isContributing || isRefining}
+                  className={`w-full py-4 rounded-xl font-black uppercase tracking-[0.2em] text-xs transition-all shadow-xl flex items-center justify-center gap-3 ${
+                    !isFormValid || isContributing || isRefining
+                      ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                      : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-900/20 active:scale-[0.98]'
+                  }`}
+                >
+                  {isContributing ? (
+                    <>
+                      <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Transmitting...
+                    </>
+                  ) : (
+                    <>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                      {activeFlow === 'augmented' ? 'Submit Refined Insight' : 'Submit Direct Insight'}
+                    </>
+                  )}
+                </button>
+              </form>
+            )}
           </div>
         )}
 

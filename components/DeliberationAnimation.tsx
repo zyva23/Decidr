@@ -9,8 +9,10 @@ const agents = [
 
 const messages = [
   { from: 'analyst', to: 'strategist', text: "Data points identified. ROI variance is significant." },
+  { from: 'human', to: 'analyst', text: "Grounding analysis in Human Strategic Insight..." },
   { from: 'strategist', to: 'skeptic', text: "Pivoting strategy to mitigate market volatility." },
-  { from: 'skeptic', to: 'analyst', text: "Historical failure modes haven't been accounted for." },
+  { from: 'skeptic', to: 'mediator', text: "Aligning agent perspectives with peer intelligence..." },
+  { from: 'human', to: 'mediator', text: "Synthesizing human nuances with agent archetypes." },
   { from: 'mediator', to: 'analyst', text: "Bridging quantitative data with stakeholder sentiment." },
   { from: 'analyst', to: 'mediator', text: "Feeding refined metrics into the consensus engine." },
   { from: 'strategist', to: 'mediator', text: "Strategic paths are converging. Ready for synthesis." },
@@ -34,17 +36,26 @@ const DeliberationAnimation: React.FC = () => {
   }, [activeMessageIdx]);
 
   const currentMsg = messages[activeMessageIdx];
-  const fromAgent = agents.find(a => a.id === currentMsg.from)!;
-  const toAgent = agents.find(a => a.id === currentMsg.to)!;
+  
+  const fromAgent = currentMsg.from === 'human' 
+    ? { id: 'human', angle: 0, x: 0, y: 0 } // Center
+    : agents.find(a => a.id === currentMsg.from)!;
+    
+  const toAgent = currentMsg.to === 'human'
+    ? { id: 'human', angle: 0, x: 0, y: 0 } // Center
+    : agents.find(a => a.id === currentMsg.to)!;
 
   const radius = 110;
-  const getPos = (angle: number) => ({
-    x: Math.cos((angle * Math.PI) / 180) * radius,
-    y: Math.sin((angle * Math.PI) / 180) * radius
-  });
+  const getPos = (agent: any) => {
+    if (agent.id === 'human') return { x: 0, y: 0 };
+    return {
+        x: Math.cos((agent.angle * Math.PI) / 180) * radius,
+        y: Math.sin((agent.angle * Math.PI) / 180) * radius
+    };
+  };
 
-  const fromPos = getPos(fromAgent.angle);
-  const toPos = getPos(toAgent.angle);
+  const fromPos = getPos(fromAgent);
+  const toPos = getPos(toAgent);
 
   return (
     <div className="h-full flex flex-col items-center justify-center p-8 bg-slate-950/50 rounded-3xl border border-slate-800/50 backdrop-blur-xl relative overflow-hidden">
@@ -88,6 +99,15 @@ const DeliberationAnimation: React.FC = () => {
             {/* Arrow Head */}
             <circle cx={toPos.x} cy={toPos.y} r="3" fill="#6366f1" className="animate-ping" />
           </svg>
+
+          {/* Central Human Hub */}
+          <div className="absolute z-20 flex flex-col items-center justify-center">
+             <div className="w-20 h-20 rounded-full bg-indigo-500/10 border border-indigo-500/30 backdrop-blur-2xl flex items-center justify-center text-4xl shadow-[0_0_50px_rgba(99,102,241,0.3)] animate-pulse relative">
+                🧠
+                <div className="absolute inset-0 rounded-full border-2 border-indigo-500/20 animate-[ping_3s_ease-in-out_infinite]"></div>
+             </div>
+             <span className="mt-2 text-[8px] font-black text-indigo-400 uppercase tracking-[0.3em]">Intelligence Core</span>
+          </div>
 
           {agents.map((agent) => {
             const { x, y } = getPos(agent.angle);

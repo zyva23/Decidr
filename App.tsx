@@ -450,15 +450,21 @@ const DecidrApp: React.FC = () => {
 
       let data: CouncilResult;
       if (canRetrySynthesis) { 
-        data = await synthesizeOnly(input, partialResult); 
+        data = await synthesizeOnly(input, partialResult as PartialCouncilResult, [], result?.synthesis); 
       } else { 
-        data = await analyzeDecision(input, (partial) => { 
-          try { 
-            setPartialResult(prev => ({ ...(prev || {}), ...partial })); 
-          } catch (e) { 
-            console.warn("Partial state update skipped", e); 
-          } 
-        }); 
+        data = await analyzeDecision(
+          input, 
+          (partial) => { 
+            try { 
+              setPartialResult(prev => ({ ...(prev || {}), ...partial })); 
+            } catch (e) { 
+              console.warn("Partial state update skipped", e); 
+            } 
+          },
+          undefined, // cachedResearch
+          undefined, // humanInsights
+          result || undefined // previousResult
+        ); 
       }
 
       // VERSIONING LOGIC: Full Snapshots
@@ -583,9 +589,15 @@ const DecidrApp: React.FC = () => {
     
     try {
       // FULL COUNCIL RE-DELIBERATION: Pass insights to all agents
-      const updatedResult = await analyzeDecision(inputValues, (partial) => {
-        setPartialResult(prev => ({ ...(prev || {}), ...partial }));
-      }, result.researchData, selectedPeers);
+      const updatedResult = await analyzeDecision(
+        inputValues, 
+        (partial) => {
+          setPartialResult(prev => ({ ...(prev || {}), ...partial }));
+        }, 
+        result.researchData, 
+        selectedPeers, 
+        result
+      );
       
       // LOGGING LOGIC: Differentiate between Self Thoughts and Peer Insights
       const hasSelfThought = selectedPeers.some(p => p.type === 'thought');
@@ -1326,6 +1338,10 @@ const DecidrApp: React.FC = () => {
         isSynthesizing={isPeerSynthesizing}
         isOwner={isOwner}
         onSubmitContribution={handleSubmitContribution}
+        onRefineThought={async (text) => {
+          if (!result) return text;
+          return await refineSelfThought(text, result);
+        }}
         isContributing={isContributing}
         isAuthenticated={!!user}
       />

@@ -53,9 +53,10 @@ export const agentResponseSchemaObj = {
         required: ["name", "description", "likelihood", "outcome"]
       },
       description: "Scenarios."
-    }
+    },
+    changeSummary: { type: Type.STRING, description: "A brief summary of what changed in this version compared to the last. If nothing changed, return 'No changes'." }
   },
-  required: ["analysis", "keyPoints", "score", "sequence", "chartLabel", "chartData", "alternativeScenarios"]
+  required: ["analysis", "keyPoints", "score", "sequence", "chartLabel", "chartData", "alternativeScenarios", "changeSummary"]
 };
 
 /**
@@ -122,7 +123,13 @@ export abstract class BaseAgent {
     }
   }
 
-  abstract run(input: DecisionInput, strategicDataPoints?: string[], conversationHistory?: string, researchData?: string): Promise<AgentResponse>;
+  abstract run(
+    input: DecisionInput, 
+    strategicDataPoints?: string[], 
+    conversationHistory?: string, 
+    researchData?: string,
+    previousResponse?: AgentResponse
+  ): Promise<AgentResponse>;
 
   /**
    * Centralizes the actual call to the Gemini API.
