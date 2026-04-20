@@ -1050,9 +1050,30 @@ const DecidrApp: React.FC = () => {
                             )}
                           </div>
                           {!isOwner && (
-                            <div className="p-6 border-b border-slate-800/50 bg-[#121519]/30">
-                              <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">Contribute Perspective</h4>
-                              <div className="space-y-4">
+                            <div className="relative overflow-hidden">
+                                {/* Guest Invitation Banner */}
+                                <div className="p-8 bg-gradient-to-br from-indigo-600/20 via-purple-600/10 to-transparent border-b border-indigo-500/30 relative group">
+                                    <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:scale-110 transition-transform duration-1000">
+                                        <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-400"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                                    </div>
+                                    <div className="relative z-10 max-w-xl">
+                                        <div className="inline-flex items-center gap-2 px-3 py-1 bg-indigo-500/20 border border-indigo-400/30 rounded-full mb-4">
+                                            <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-pulse"></div>
+                                            <span className="text-[9px] font-black text-indigo-300 uppercase tracking-widest">Expert Invitation Active</span>
+                                        </div>
+                                        <h3 className="text-xl font-black text-white uppercase tracking-tighter mb-2 italic">You've been summoned as a Strategic Peer.</h3>
+                                        <p className="text-xs text-slate-400 leading-relaxed font-medium">
+                                            The Council has processed the data, but it lacks your unique human intuition. Review the verdict and contribute your perspective to refine the collective intelligence.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="p-6 border-b border-slate-800/50 bg-[#121519]/30">
+                                  <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                     <span className="w-1 h-1 rounded-full bg-indigo-500"></span>
+                                     Contribute Intelligence
+                                  </h4>
+                                  <div className="space-y-4">
                                 <div className="flex flex-col sm:flex-row gap-4">
                                   {!isAnonymous && (
                                     <input 

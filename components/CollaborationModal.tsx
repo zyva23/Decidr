@@ -118,17 +118,19 @@ const CollaborationModal: React.FC<Props> = ({
         )}
 
         {/* Slack-style Header */}
-        <div className="px-6 py-4 border-b border-slate-700/50 flex justify-between items-center bg-[#121519]">
+        <div className={`px-6 py-4 border-b border-slate-700/50 flex justify-between items-center ${!isOwner ? 'bg-gradient-to-r from-indigo-900/60 to-purple-900/40' : 'bg-[#121519]'}`}>
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded bg-indigo-600 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-indigo-900/20">
-              #
+            <div className={`w-8 h-8 rounded flex items-center justify-center text-white font-bold text-sm shadow-lg ${!isOwner ? 'bg-white/20 border border-white/30' : 'bg-indigo-600 shadow-indigo-900/20'}`}>
+              {!isOwner ? '✨' : '#'}
             </div>
             <div>
               <h3 className="text-sm font-black text-white tracking-tight flex items-center gap-2">
-                strategic-peer-review
-                <span className="text-[10px] text-slate-500 font-medium">({contributions.length} experts)</span>
+                {!isOwner ? 'SUMMONED EXPERT FEED' : 'strategic-peer-review'}
+                <span className={`text-[10px] font-medium ${!isOwner ? 'text-indigo-200' : 'text-slate-500'}`}>({contributions.length} experts)</span>
               </h3>
-              <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Deliberation Feed</p>
+              <p className={`text-[10px] font-bold uppercase tracking-widest ${!isOwner ? 'text-indigo-300/80' : 'text-slate-500'}`}>
+                {!isOwner ? 'Contribute to Collective Intelligence' : 'Deliberation Feed'}
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -140,7 +142,7 @@ const CollaborationModal: React.FC<Props> = ({
                 + Add Perspective
               </button>
             )}
-            <button onClick={onClose} className="p-2 text-slate-500 hover:text-white transition-colors rounded-lg hover:bg-slate-800">
+            <button onClick={onClose} className={`p-2 transition-colors rounded-lg ${!isOwner ? 'text-white/50 hover:text-white hover:bg-white/10' : 'text-slate-500 hover:text-white hover:bg-slate-800'}`}>
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
             </button>
           </div>
