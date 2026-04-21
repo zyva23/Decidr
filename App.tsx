@@ -74,6 +74,7 @@ const DecidrApp: React.FC = () => {
   const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
   const [isTreeOpen, setIsTreeOpen] = useState(false);
   const [isAuditModalOpen, setIsAuditModalOpen] = useState(false);
+  const [isDirectInsightModalOpen, setIsDirectInsightModalOpen] = useState(false);
   const [currentPlan, setCurrentPlan] = useState<ActionPlan | null>(null);
   const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
   const [showWaitlist, setShowWaitlist] = useState(false);
@@ -1036,6 +1037,14 @@ const DecidrApp: React.FC = () => {
                                   </button>
                                   <div className="w-1 h-1 rounded-full bg-slate-700"></div>
                                   <button 
+                                    onClick={() => setIsDirectInsightModalOpen(true)}
+                                    className="text-[9px] font-black uppercase tracking-widest text-blue-400 hover:text-blue-300 transition-colors flex items-center gap-1.5"
+                                  >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20"/><path d="M2 12h20"/></svg>
+                                    Add Insight
+                                  </button>
+                                  <div className="w-1 h-1 rounded-full bg-slate-700"></div>
+                                  <button 
                                     onClick={() => setIsShareModalOpen(true)}
                                     className="text-[9px] font-black uppercase tracking-widest text-emerald-400 hover:text-emerald-300 transition-colors flex items-center gap-1.5"
                                   >
@@ -1070,69 +1079,71 @@ const DecidrApp: React.FC = () => {
                                 </div>
                               )}
 
-                              <div className="p-6 border-b border-slate-800/50 bg-[#121519]/30">
-                                <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2">
-                                   <span className="w-1 h-1 rounded-full bg-indigo-500"></span>
-                                   {isOwner ? "Direct Strategic Insight" : "Contribute Intelligence"}
-                                </h4>
-                                <div className="space-y-4">
-                                <div className="flex flex-col sm:flex-row gap-4">
-                                  {!isAnonymous && (
-                                    <input 
-                                      type="text"
-                                      placeholder="Your Name (Required)"
-                                      value={contributionName}
-                                      onChange={(e) => setContributionName(e.target.value)}
-                                      className="flex-1 bg-[#1A1D21] border border-slate-700 rounded-xl px-4 py-3 text-xs text-white outline-none focus:border-indigo-500 transition-all shadow-inner"
-                                      required
-                                    />
-                                  )}
-                                  {(user || isOwner) && (
-                                    <div className="flex items-center gap-3 bg-[#1A1D21] border border-slate-700 rounded-xl px-4 py-2 shadow-inner">
-                                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Anonymous</span>
-                                      <button 
-                                        onClick={() => setIsAnonymous(!isAnonymous)}
-                                        className={`w-10 h-5 rounded-full transition-all relative ${isAnonymous ? 'bg-indigo-600' : 'bg-slate-800'}`}
+                              {!isOwner && (
+                                <div className="p-6 border-b border-slate-800/50 bg-[#121519]/30">
+                                  <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                     <span className="w-1 h-1 rounded-full bg-indigo-500"></span>
+                                     Contribute Intelligence
+                                  </h4>
+                                  <div className="space-y-4">
+                                  <div className="flex flex-col sm:flex-row gap-4">
+                                    {!isAnonymous && (
+                                      <input 
+                                        type="text"
+                                        placeholder="Your Name (Required)"
+                                        value={contributionName}
+                                        onChange={(e) => setContributionName(e.target.value)}
+                                        className="flex-1 bg-[#1A1D21] border border-slate-700 rounded-xl px-4 py-3 text-xs text-white outline-none focus:border-indigo-500 transition-all shadow-inner"
+                                        required
+                                      />
+                                    )}
+                                    {user && (
+                                      <div className="flex items-center gap-3 bg-[#1A1D21] border border-slate-700 rounded-xl px-4 py-2 shadow-inner">
+                                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Anonymous</span>
+                                        <button 
+                                          onClick={() => setIsAnonymous(!isAnonymous)}
+                                          className={`w-10 h-5 rounded-full transition-all relative ${isAnonymous ? 'bg-indigo-600' : 'bg-slate-800'}`}
+                                        >
+                                          <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${isAnonymous ? 'left-6' : 'left-1'}`} />
+                                        </button>
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className="flex gap-2">
+                                    {(['variable', 'risk', 'alternative', 'thought'] as const).map(t => (
+                                      <button
+                                        key={t}
+                                        onClick={() => setContributionType(t)}
+                                        className={`flex-1 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest border transition-all ${
+                                          contributionType === t 
+                                            ? 'bg-indigo-500/20 text-indigo-400 border-indigo-500/50' 
+                                            : 'bg-slate-900 text-slate-500 border-slate-800 hover:border-slate-700'
+                                        }`}
                                       >
-                                        <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${isAnonymous ? 'left-6' : 'left-1'}`} />
+                                        {t === 'risk' ? '🚩 Risk' : t === 'variable' ? '🧩 Variable' : t === 'alternative' ? '💡 Alternative' : '🧠 Thought'}
                                       </button>
-                                    </div>
-                                  )}
+                                    ))}
+                                  </div>
+                                  <textarea 
+                                    placeholder="Share your insight, risk observation, or alternative path..."
+                                    value={contributionContent}
+                                    onChange={(e) => setContributionContent(e.target.value)}
+                                    className="w-full bg-[#1A1D21] border border-slate-700 rounded-xl px-4 py-3 text-xs text-white outline-none focus:border-indigo-500 transition-all min-h-[100px] resize-none shadow-inner"
+                                  />
+                                  <button
+                                    onClick={() => handleSubmitContribution(contributionName, contributionContent, contributionType, isAnonymous)}
+                                    disabled={!contributionContent.trim() || isContributing || (!isAnonymous && !contributionName.trim())}
+                                    className={`w-full py-4 rounded-xl font-black uppercase tracking-[0.2em] text-xs transition-all shadow-xl flex items-center justify-center gap-3 ${
+                                      !contributionContent.trim() || isContributing || (!isAnonymous && !contributionName.trim())
+                                        ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                                        : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-900/20 active:scale-[0.98]'
+                                    }`}
+                                  >
+                                    {isContributing ? "Transmitting..." : "Submit Perspective"}
+                                  </button>
                                 </div>
-                                <div className="flex gap-2">
-                                  {(['variable', 'risk', 'alternative', 'thought'] as const).map(t => (
-                                    <button
-                                      key={t}
-                                      onClick={() => setContributionType(t)}
-                                      className={`flex-1 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest border transition-all ${
-                                        contributionType === t 
-                                          ? 'bg-indigo-500/20 text-indigo-400 border-indigo-500/50' 
-                                          : 'bg-slate-900 text-slate-500 border-slate-800 hover:border-slate-700'
-                                      }`}
-                                    >
-                                      {t === 'risk' ? '🚩 Risk' : t === 'variable' ? '🧩 Variable' : t === 'alternative' ? '💡 Alternative' : '🧠 Thought'}
-                                    </button>
-                                  ))}
-                                </div>
-                                <textarea 
-                                  placeholder={isOwner ? "Directly add a strategic insight, known risk, or refined thought..." : "Share your insight, risk observation, or alternative path..."}
-                                  value={contributionContent}
-                                  onChange={(e) => setContributionContent(e.target.value)}
-                                  className="w-full bg-[#1A1D21] border border-slate-700 rounded-xl px-4 py-3 text-xs text-white outline-none focus:border-indigo-500 transition-all min-h-[100px] resize-none shadow-inner"
-                                />
-                                <button
-                                  onClick={() => handleSubmitContribution(contributionName, contributionContent, contributionType, isAnonymous)}
-                                  disabled={!contributionContent.trim() || isContributing || (!isAnonymous && !contributionName.trim())}
-                                  className={`w-full py-4 rounded-xl font-black uppercase tracking-[0.2em] text-xs transition-all shadow-xl flex items-center justify-center gap-3 ${
-                                    !contributionContent.trim() || isContributing || (!isAnonymous && !contributionName.trim())
-                                      ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                                      : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-900/20 active:scale-[0.98]'
-                                  }`}
-                                >
-                                  {isContributing ? "Transmitting..." : isOwner ? "Incorporate Direct Insight" : "Submit Perspective"}
-                                </button>
                               </div>
-                            </div>
+                            )}
                           </div>
 
 
@@ -1369,6 +1380,84 @@ const DecidrApp: React.FC = () => {
         isContributing={isContributing}
         isAuthenticated={!!user}
       />
+
+      {isDirectInsightModalOpen && (
+        <div className="fixed inset-0 z-[600] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+          <div className="bg-[#1A1D21] border border-slate-700/50 rounded-2xl max-w-lg w-full shadow-2xl animate-fade-in flex flex-col overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-700/50 flex justify-between items-center bg-[#121519]">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded bg-blue-600 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-blue-900/20">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20"/><path d="M2 12h20"/></svg>
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-white tracking-tight uppercase">Direct Strategic Insight</h3>
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Owner Deliberation Pathway</p>
+                </div>
+              </div>
+              <button onClick={() => setIsDirectInsightModalOpen(false)} className="p-2 text-slate-500 hover:text-white hover:bg-slate-800 rounded-lg transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              </button>
+            </div>
+
+            <div className="p-6 space-y-6">
+              <div className="flex gap-2">
+                {(['variable', 'risk', 'alternative', 'thought'] as const).map(t => (
+                  <button
+                    key={t}
+                    onClick={() => setContributionType(t)}
+                    className={`flex-1 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest border transition-all ${
+                      contributionType === t 
+                        ? 'bg-blue-500/20 text-blue-400 border-blue-500/50 shadow-[0_0_15px_rgba(59,130,246,0.2)]' 
+                        : 'bg-slate-900 text-slate-500 border-slate-800 hover:border-slate-700'
+                    }`}
+                  >
+                    {t === 'risk' ? '🚩 Risk' : t === 'variable' ? '🧩 Variable' : t === 'alternative' ? '💡 Alternative' : '🧠 Thought'}
+                  </button>
+                ))}
+              </div>
+
+              <div className="relative">
+                <textarea 
+                  placeholder="Inscribe your strategic insight, known risk, or refined thought directly into the Intelligence Layer..."
+                  value={contributionContent}
+                  onChange={(e) => setContributionContent(e.target.value)}
+                  className="w-full bg-[#121519] border border-slate-700 rounded-xl px-4 py-4 text-sm text-white outline-none focus:border-blue-500 transition-all min-h-[180px] resize-none shadow-inner"
+                  autoFocus
+                />
+                <div className="absolute bottom-3 right-3 text-[8px] font-black text-slate-600 uppercase tracking-widest">
+                  Direct Channel
+                </div>
+              </div>
+
+              <button
+                onClick={async () => {
+                  await handleSubmitContribution("Owner", contributionContent, contributionType, false);
+                  setContributionContent('');
+                  setIsDirectInsightModalOpen(false);
+                }}
+                disabled={!contributionContent.trim() || isContributing}
+                className={`w-full py-4 rounded-xl font-black uppercase tracking-[0.2em] text-xs transition-all shadow-xl flex items-center justify-center gap-3 ${
+                  !contributionContent.trim() || isContributing
+                    ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                    : 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-900/40 active:scale-[0.98]'
+                }`}
+              >
+                {isContributing ? (
+                  <>
+                    <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Transmitting...
+                  </>
+                ) : (
+                  <>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22v-5"/><path d="m9 14 3 3 3-3"/><path d="M12 2v15"/></svg>
+                    Incorporate Direct Insight
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
