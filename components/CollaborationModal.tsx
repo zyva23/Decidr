@@ -98,7 +98,8 @@ const CollaborationModal: React.FC<Props> = ({
     if (!isFormValid) return;
     await onSubmitContribution(name, content, type, isAnonymous);
     setContent('');
-    if (isOwner) setShowForm(false);
+    // Keep form open for owners to allow multiple direct insights
+    if (!isOwner) setShowForm(false);
   };
 
   return (

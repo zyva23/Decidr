@@ -1025,7 +1025,7 @@ const DecidrApp: React.FC = () => {
                                 <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                                 Expert Deliberation Channel
                               </span>
-                              {isOwner && !isPublicSession && (
+                              {isOwner && (
                                 <div className="flex items-center gap-2">
                                   <button 
                                     onClick={() => setIsChatOpen(true)}
@@ -1049,9 +1049,10 @@ const DecidrApp: React.FC = () => {
                               <span className="text-[8px] bg-red-500/20 text-red-400 border border-red-500/20 px-2 py-0.5 rounded-full font-black uppercase shadow-lg shadow-red-900/20">Action Required: {contributions.filter(c => c.status === 'pending').length} New</span>
                             )}
                           </div>
-                          {!isOwner && (
-                            <div className="relative overflow-hidden">
-                                {/* Guest Invitation Banner */}
+                          
+                          <div className="relative overflow-hidden">
+                              {/* Guest Invitation Banner - Only for non-owners in shared view */}
+                              {!isOwner && status === AnalysisStatus.SHARED_VIEW && (
                                 <div className="p-8 bg-gradient-to-br from-indigo-600/20 via-purple-600/10 to-transparent border-b border-indigo-500/30 relative group">
                                     <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:scale-110 transition-transform duration-1000">
                                         <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-400"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
@@ -1067,13 +1068,14 @@ const DecidrApp: React.FC = () => {
                                         </p>
                                     </div>
                                 </div>
+                              )}
 
-                                <div className="p-6 border-b border-slate-800/50 bg-[#121519]/30">
-                                  <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2">
-                                     <span className="w-1 h-1 rounded-full bg-indigo-500"></span>
-                                     Contribute Intelligence
-                                  </h4>
-                                  <div className="space-y-4">
+                              <div className="p-6 border-b border-slate-800/50 bg-[#121519]/30">
+                                <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                   <span className="w-1 h-1 rounded-full bg-indigo-500"></span>
+                                   {isOwner ? "Direct Strategic Insight" : "Contribute Intelligence"}
+                                </h4>
+                                <div className="space-y-4">
                                 <div className="flex flex-col sm:flex-row gap-4">
                                   {!isAnonymous && (
                                     <input 
@@ -1085,7 +1087,7 @@ const DecidrApp: React.FC = () => {
                                       required
                                     />
                                   )}
-                                  {user && (
+                                  {(user || isOwner) && (
                                     <div className="flex items-center gap-3 bg-[#1A1D21] border border-slate-700 rounded-xl px-4 py-2 shadow-inner">
                                       <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Anonymous</span>
                                       <button 
@@ -1113,7 +1115,7 @@ const DecidrApp: React.FC = () => {
                                   ))}
                                 </div>
                                 <textarea 
-                                  placeholder="Share your insight, risk observation, or alternative path..."
+                                  placeholder={isOwner ? "Directly add a strategic insight, known risk, or refined thought..." : "Share your insight, risk observation, or alternative path..."}
                                   value={contributionContent}
                                   onChange={(e) => setContributionContent(e.target.value)}
                                   className="w-full bg-[#1A1D21] border border-slate-700 rounded-xl px-4 py-3 text-xs text-white outline-none focus:border-indigo-500 transition-all min-h-[100px] resize-none shadow-inner"
@@ -1127,12 +1129,12 @@ const DecidrApp: React.FC = () => {
                                       : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-900/20 active:scale-[0.98]'
                                   }`}
                                 >
-                                  {isContributing ? "Transmitting..." : "Submit Perspective"}
+                                  {isContributing ? "Transmitting..." : isOwner ? "Incorporate Direct Insight" : "Submit Perspective"}
                                 </button>
                               </div>
                             </div>
                           </div>
-                        )}
+
 
                           <div className="divide-y divide-slate-800/30 max-h-[400px] overflow-y-auto custom-scrollbar text-left">
                             {contributions.filter(c => isOwner || c.status === 'accepted' || (c.status === 'revision_requested' && !isOwner)).map((c) => (
