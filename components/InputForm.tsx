@@ -30,6 +30,7 @@ const InputForm: React.FC<Props> = ({ initialValues, onSubmit, isLoading, sessio
   const [brainstormLoading, setBrainstormLoading] = useState(false);
   const [isLoadingBrainstorm, setIsLoadingBrainstorm] = useState(false);
   const [brainstormData, setBrainstormData] = useState<BrainstormResult | null>(null);
+  const [brainstormCache, setBrainstormCache] = useState<Record<string, BrainstormResult>>({});
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [activeCategory, setActiveCategory] = useState('Personal');
   const [activeExample, setActiveExample] = useState<string | null>(null);
@@ -71,32 +72,41 @@ const InputForm: React.FC<Props> = ({ initialValues, onSubmit, isLoading, sessio
         },
         onExtraAction: async () => {
           try {
-            // Trigger AI Enrichment
+            // Trigger AI Enrichment in background
             setIsLoadingBrainstorm(true);
-            const enriched = await extractDeepInquiry(input);
-            if (enriched && enriched.situationalNuances && enriched.frictionalRealities) {
-              const nuanceText = `\n\n--- SITUATIONAL NUANCE ---\n${enriched.situationalNuances.join('\n')}\n\n--- FRICTIONAL REALITIES ---\n${enriched.frictionalRealities.join('\n')}`;
-              
-              // Update state and UI
-              const updatedInput = { ...input, context: input.context + nuanceText };
-              setInput(updatedInput);
-              setHasChangesSinceSelection(true);
-              
-              // IMMEDIATELY Trigger the interactive AI Help (brainstormer)
-              // We stop our background loading first so the brainstormer's own loading can show
-              setIsLoadingBrainstorm(false);
-              handleBrainstorm('context'); 
+            
+            // Run extraction and brainstorming in parallel for both fields
+            const [enriched, contextRes, constraintsRes] = await Promise.all([
+              extractDeepInquiry(input),
+              exploreBrainstorm('context', input.title, input.context),
+              exploreBrainstorm('constraints', input.title, input.context)
+            ]);
 
-              // Note: We don't show a success prompt here because we want the user 
-              // to see the interactive questions immediately as the "modals" requested.
-            } else {
-              setIsLoadingBrainstorm(false);
-              showPrompt({
-                type: 'alert',
-                title: 'Enrichment Minimal',
-                message: 'The Council could not extract additional nuances from the current context. Please provide more detail manually.'
-              });
+            const newCache: Record<string, BrainstormResult> = {};
+
+            if (contextRes) {
+              newCache['context'] = {
+                ...contextRes,
+                suggestions: [...enriched.situationalNuances, ...contextRes.suggestions]
+              };
             }
+
+            if (constraintsRes) {
+              newCache['constraints'] = {
+                ...constraintsRes,
+                suggestions: [...enriched.frictionalRealities, ...constraintsRes.suggestions]
+              };
+            }
+
+            setBrainstormCache(newCache);
+            setHasChangesSinceSelection(true);
+            setIsLoadingBrainstorm(false);
+
+            // Automatically open the Context AI Help panel with the cached data
+            setActiveBrainstorm('context');
+            setBrainstormData(newCache['context']);
+            setCurrentQuestionIndex(0);
+
           } catch (err) {
             console.error("AI Personalization failed:", err);
             setIsLoadingBrainstorm(false);
