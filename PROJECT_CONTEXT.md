@@ -3,37 +3,34 @@
 ## Advanced Architecture Overview
 This branch implements the **Supervisor-Worker Orchestration** pattern, featuring an **Incremental Delta-Update** system that minimizes text churn while surgically incorporating new data.
 
-## Core Council Workflows (v4.0 - Collective Intelligence & Stability)
+## Core Council Workflows (v4.5 - Intelligence & Experience)
 
 1. **Incremental Delta-Update System (The Gatekeeper)**:
    - **Triage Phase**: Pre-deliberation check (ALREADY_COVERED, NO_RESEARCH_NEEDED, NEW_RESEARCH_NEEDED).
-   - **Targeted Intelligence Patching**: Instead of re-researching everything, the system executes gap-specific queries and patches the Intelligence Dossier, removing outdated facts to prevent context bloat.
-   - **Blast Radius Agent Logic**: Agents use strict "Stability Protocols." If new data doesn't logically affect their specific domain, they return their previous analysis word-for-word, preventing stylistic churn.
+   - **Targeted Intelligence Patching**: Instead of re-researching everything, the system executes gap-specific queries and patches the Intelligence Dossier.
+   - **Blast Radius Agent Logic**: Agents use strict "Stability Protocols" to prevent stylistic churn when data remains logically consistent.
 
-2. **Human Intelligence Layer (v2.0)**:
-   - **Three Strategic Pathways**: 
-     - *Direct Insight*: Rapid-track submission for raw observations.
-     - *Refine via Council*: Rough thoughts are elevated using Council Intelligence into high-fidelity strategic insights.
-     - *Expert Deliberation Channel*: Dedicated flow for inviting peer reviewers and external expert reviews.
-   - **Council Chat Promotion**: Direct promotion of chat-session insights into the collective intelligence dossier.
+2. **Human Intelligence Layer (v3.0)**:
+   - **Multi-Modal Strategic Pathways**: 
+     - *Direct Strategic Insight*: Modal-based flow for session owners to add high-fidelity observations without UI clutter.
+     - *Refine via Council*: Leverages the Council's current stance to elevate raw thoughts into professional strategic insights.
+     - *Expert Deliberation Channel*: Guest flow for external peer review with prominent recruitment interfaces.
+   - **Non-Destructive AI Assistance**: AI help now populates a **Brainstorm Cache** rather than injecting text directly into fields. Users select which specific nuances or options to incorporate.
 
-3. **High-Fidelity Audit Trail (v2.0)**:
-   - **Temporal Pivot Navigation**: Side-by-side version comparison with mobile-responsive stacked navigation.
-   - **Causal Reasoning Layer**: AI-generated logic bridges that explain the evolution between deliberation versions.
+3. **Intelligent Personalization (The Background Agent)**:
+   - **Automated Enrichment**: "Personalize with AI" triggers a background architect to extract Situational Nuances and Frictional Realities.
+   - **Field-Specific Intelligence**: 
+     - *Background*: Provides structured Q&A and nuances.
+     - *Constraints/Options*: Generates direct "Real Options" for rapid selection.
 
-4. **Recursive Research Engine**: 
-   - Multi-phase scan (Horizon Scan → Gap Analysis) with a grounding density of 15-20 URL-backed data points.
-
-## UI/UX Engineering (Collective Intelligence)
-- **Summoned Expert Interface**: Colorful, high-impact recruitment banners for guests in shared sessions.
-- **Collective Intelligence Core**: Deliberation animation centered around a "Human Intelligence Hub" (Brain icon), visually demonstrating the grounding of agents in human intuition.
-- **Mobile-Responsive Audit Modals**: Specialized layouts for narrow screens ensuring version comparisons remain legible.
-- **Sanitized Sharing**: Public links surgically strip version history and technical traces to protect deliberation privacy.
+4. **UI/UX Engineering (Integrated Aesthetic)**:
+   - **Themed Prompt System**: Custom `PromptModal` replaces browser-default alerts/confirms with a sophisticated, three-option interaction model (Personalize / AI Enrich / Continue).
+   - **Example Templates v2**: Dedicated, collapsible library with active template tags and instant-clear functionality.
+   - **Deliberation Animation**: Enhanced transmission logs accounting for human-in-the-loop insights.
 
 ## Stability & Performance
-- **Executive Change Logs**: Synthesis engine builds concise (max 50 words) logs of what shifted between versions.
-- **Dynamic Model Fallback**: Prioritizes Gemini 3 Flash with automatic pivoting to Gemini 1.5 Flash for high uptime.
-- **Firestore Sanitizer**: Strips `undefined` values to prevent serialization errors.
+- **Dynamic Model Fallback (Resilient)**: Proactive detection of 503 (High Demand) and 429 (Rate Limit) errors with automatic pivoting to stable models.
+- **Brainstorm Caching**: Prevents redundant AI calls when switching between fields or re-opening help sections.
 
 ## Environment Requirements
 - `VITE_GEMINI_API_KEY`: Strategic API access.
