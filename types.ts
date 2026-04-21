@@ -132,6 +132,11 @@ export interface BrainstormResult {
   suggestions: string[];
 }
 
+export interface DeepInquiryResult {
+  situationalNuances: string[];
+  frictionalRealities: string[];
+}
+
 export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;

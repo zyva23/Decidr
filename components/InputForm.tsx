@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { DecisionInput, BrainstormResult, DecisionSession } from '../types';
-import { exploreBrainstorm } from '../services/geminiService';
+import { exploreBrainstorm, extractDeepInquiry } from '../services/geminiService';
 import DocumentUpload from './DocumentUpload';
-import { Attachment } from '../types';
+import { Attachment, DeepInquiryResult } from '../types';
 import { UI_CONTENT } from '../src/constants/uiContent';
 
 interface Props {
@@ -73,9 +73,9 @@ const InputForm: React.FC<Props> = ({ initialValues, onSubmit, isLoading, sessio
           try {
             // Trigger AI Enrichment
             setIsLoadingBrainstorm(true);
-            const enriched = await exploreBrainstorm(input);
-            if (enriched) {
-              const nuanceText = `\n\n--- SITUATIONAL NUANCE ---\n${enriched.questions.join('\n')}\n\n--- FRICTIONAL REALITIES ---\n${enriched.options.join('\n')}`;
+            const enriched = await extractDeepInquiry(input);
+            if (enriched && enriched.situationalNuances && enriched.frictionalRealities) {
+              const nuanceText = `\n\n--- SITUATIONAL NUANCE ---\n${enriched.situationalNuances.join('\n')}\n\n--- FRICTIONAL REALITIES ---\n${enriched.frictionalRealities.join('\n')}`;
               setInput(prev => ({
                 ...prev,
                 context: prev.context + nuanceText
@@ -85,6 +85,12 @@ const InputForm: React.FC<Props> = ({ initialValues, onSubmit, isLoading, sessio
                 type: 'success',
                 title: 'Intelligence Enriched',
                 message: 'Situational nuances and frictional realities have been extracted and integrated into your context.'
+              });
+            } else {
+              showPrompt({
+                type: 'alert',
+                title: 'Enrichment Minimal',
+                message: 'The Council could not extract additional nuances from the current context. Please provide more detail manually.'
               });
             }
           } catch (err) {

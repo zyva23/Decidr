@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import { DecisionInput, CouncilResult, BrainstormResult, ChatMessage, ActionPlan, PartialCouncilResult, DecisionTree, Contribution, TriageStatus, TriageResult, AgentResponse } from "../types";
+import { DecisionInput, CouncilResult, BrainstormResult, ChatMessage, ActionPlan, PartialCouncilResult, DecisionTree, Contribution, TriageStatus, TriageResult, AgentResponse, DeepInquiryResult } from "../types";
 import { AnalystAgent } from "./agents/AnalystAgent";
 import { StrategistAgent } from "./agents/StrategistAgent";
 import { SkepticAgent } from "./agents/SkepticAgent";
@@ -652,6 +652,38 @@ export async function analyzeDecision(
   }
 }
 
+export async function extractDeepInquiry(input: DecisionInput): Promise<DeepInquiryResult> {
+  const prompt = `
+    DECISION INQUIRY: "${input.title}"
+    CONTEXT: ${input.context}
+    
+    You are a Strategic Architect. Extract the deeper inquiry from this situational noise.
+    
+    TASK:
+    1. SITUATIONAL NUANCE: Identify 3-5 subtle, high-impact variables or "gray areas" that the user might have missed.
+    2. FRICTIONAL REALITIES: Identify 3-5 specific constraints, psychological barriers, or logical trade-offs (the "friction").
+    
+    Output ONLY a JSON object: { "situationalNuances": ["string"], "frictionalRealities": ["string"] }
+  `;
+
+  try {
+    const ai = getAI();
+    const response = await generateWithFallback(ai, prompt, {
+      responseMimeType: "application/json",
+      responseSchema: deepInquirySchema as any,
+      temperature: 0.5,
+    });
+    const data = JSON.parse(response.text || "{}");
+    return {
+      situationalNuances: data.situationalNuances || [],
+      frictionalRealities: data.frictionalRealities || []
+    };
+  } catch (error) {
+    console.error("Deep Inquiry Extraction Error:", error);
+    return { situationalNuances: [], frictionalRealities: [] };
+  }
+}
+
 export async function exploreBrainstorm(field: 'constraints' | 'options' | 'context', title: string, context: string): Promise<BrainstormResult> {
   const prompt = `
     Decision Inquiry: ${title}. 
@@ -843,6 +875,15 @@ const synthesisSchema = {
     changeLog: { type: Type.STRING }
   },
   required: ["verdict", "recommendation", "refinedPaths", "metrics"]
+};
+
+const deepInquirySchema = {
+  type: Type.OBJECT,
+  properties: {
+    situationalNuances: { type: Type.ARRAY, items: { type: Type.STRING } },
+    frictionalRealities: { type: Type.ARRAY, items: { type: Type.STRING } }
+  },
+  required: ["situationalNuances", "frictionalRealities"]
 };
 
 const brainstormSchema = {
