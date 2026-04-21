@@ -7,8 +7,10 @@ interface PromptModalProps {
   message: string;
   confirmLabel?: string;
   cancelLabel?: string;
+  extraLabel?: string;
   onConfirm: () => void;
   onCancel?: () => void;
+  onExtraAction?: () => void;
 }
 
 const PromptModal: React.FC<PromptModalProps> = ({
@@ -18,8 +20,10 @@ const PromptModal: React.FC<PromptModalProps> = ({
   message,
   confirmLabel = 'Acknowledge',
   cancelLabel = 'Cancel',
+  extraLabel,
   onConfirm,
-  onCancel
+  onCancel,
+  onExtraAction
 }) => {
   if (!isOpen) return null;
 
@@ -52,20 +56,28 @@ const PromptModal: React.FC<PromptModalProps> = ({
           {isConfirm && (
             <button 
               onClick={onCancel}
-              className="flex-1 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 hover:text-white hover:bg-slate-800/50 transition-all border-r border-slate-800/50"
+              className="flex-1 py-4 text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 hover:text-white hover:bg-slate-800/50 transition-all border-r border-slate-800/50"
             >
               {cancelLabel}
             </button>
           )}
+          {extraLabel && onExtraAction && (
+            <button 
+              onClick={onExtraAction}
+              className="flex-1 py-4 text-[9px] font-black uppercase tracking-[0.2em] text-indigo-400 hover:text-white hover:bg-indigo-600/20 transition-all border-r border-slate-800/50"
+            >
+              {extraLabel}
+            </button>
+          )}
           <button 
             onClick={onConfirm}
-            className={`flex-1 py-4 text-[10px] font-black uppercase tracking-[0.2em] hover:brightness-110 transition-all ${
+            className={`flex-1 py-4 text-[9px] font-black uppercase tracking-[0.2em] hover:brightness-110 transition-all ${
               isSuccess ? 'bg-emerald-600 text-white' : 
               isConfirm ? 'bg-indigo-600 text-white' : 
               'bg-amber-600 text-white'
             }`}
           >
-            {isConfirm ? 'Confirm' : confirmLabel}
+            {isConfirm ? (confirmLabel === 'Acknowledge' ? 'Confirm' : confirmLabel) : confirmLabel}
           </button>
         </div>
       </div>

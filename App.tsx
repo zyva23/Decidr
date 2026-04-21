@@ -58,8 +58,11 @@ interface PromptConfig {
   title: string;
   message: string;
   confirmLabel?: string;
+  cancelLabel?: string;
+  extraLabel?: string;
   onConfirm?: () => void;
   onCancel?: () => void;
+  onExtraAction?: () => void;
 }
 
 const DecidrApp: React.FC = () => {
@@ -1516,12 +1519,17 @@ const DecidrApp: React.FC = () => {
         title={promptConfig.title}
         message={promptConfig.message}
         confirmLabel={promptConfig.confirmLabel}
+        extraLabel={promptConfig.extraLabel}
         onConfirm={() => {
           if (promptConfig.onConfirm) promptConfig.onConfirm();
           closePrompt();
         }}
         onCancel={() => {
           if (promptConfig.onCancel) promptConfig.onCancel();
+          closePrompt();
+        }}
+        onExtraAction={() => {
+          if (promptConfig.onExtraAction) promptConfig.onExtraAction();
           closePrompt();
         }}
       />

@@ -28,6 +28,7 @@ const InputForm: React.FC<Props> = ({ initialValues, onSubmit, isLoading, sessio
   const [listeningField, setListeningField] = useState<keyof DecisionInput | null>(null);
   const [activeBrainstorm, setActiveBrainstorm] = useState<'constraints' | 'options' | 'context' | null>(null);
   const [brainstormLoading, setBrainstormLoading] = useState(false);
+  const [isLoadingBrainstorm, setIsLoadingBrainstorm] = useState(false);
   const [brainstormData, setBrainstormData] = useState<BrainstormResult | null>(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [activeCategory, setActiveCategory] = useState('Personal');
@@ -53,15 +54,44 @@ const InputForm: React.FC<Props> = ({ initialValues, onSubmit, isLoading, sessio
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Requirement 3: Personalization Nudge
+    // Requirement: Personalization Nudge with three options
     if (activeExample && !hasChangesSinceSelection) {
       showPrompt({
         type: 'confirm',
         title: 'Personalize for Precision',
-        message: 'You are using an example prompt as-is. For best results, we recommend personalizing it with your specific details. Run anyway?',
-        confirmLabel: 'Run Anyway',
-        onConfirm: () => {
-          proceedSubmit();
+        message: 'You are using an example prompt. To get the most accurate archetypal deliberation, we recommend tailoring it to your unique situation.',
+        confirmLabel: 'Continue anyway',
+        cancelLabel: 'Personalize',
+        extraLabel: 'Personalize with AI',
+        onConfirm: () => proceedSubmit(),
+        onCancel: () => {
+          // Just close and let user edit - maybe focus the context box
+          const contextEl = document.getElementsByName('context')[0];
+          if (contextEl) contextEl.focus();
+        },
+        onExtraAction: async () => {
+          try {
+            // Trigger AI Enrichment
+            setIsLoadingBrainstorm(true);
+            const enriched = await exploreBrainstorm(input);
+            if (enriched) {
+              const nuanceText = `\n\n--- SITUATIONAL NUANCE ---\n${enriched.questions.join('\n')}\n\n--- FRICTIONAL REALITIES ---\n${enriched.options.join('\n')}`;
+              setInput(prev => ({
+                ...prev,
+                context: prev.context + nuanceText
+              }));
+              setHasChangesSinceSelection(true);
+              showPrompt({
+                type: 'success',
+                title: 'Intelligence Enriched',
+                message: 'Situational nuances and frictional realities have been extracted and integrated into your context.'
+              });
+            }
+          } catch (err) {
+            console.error("AI Personalization failed:", err);
+          } finally {
+            setIsLoadingBrainstorm(false);
+          }
         }
       });
       return;
