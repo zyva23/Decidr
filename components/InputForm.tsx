@@ -59,13 +59,13 @@ const InputForm: React.FC<Props> = ({ initialValues, onSubmit, isLoading, sessio
       showPrompt({
         type: 'confirm',
         title: 'Personalize for Precision',
-        message: 'You are using an example prompt. To get the most accurate archetypal deliberation, we recommend tailoring it to your unique situation.',
+        message: 'You are using an example template. To get the most accurate archetypal deliberation, we recommend tailoring it to your unique situation.',
         confirmLabel: 'Continue anyway',
         cancelLabel: 'Personalize',
         extraLabel: 'Personalize with AI',
         onConfirm: () => proceedSubmit(),
         onCancel: () => {
-          // Just close and let user edit - maybe focus the context box
+          // Just close and let user edit - focus the context box
           const contextEl = document.getElementsByName('context')[0];
           if (contextEl) contextEl.focus();
         },
@@ -76,17 +76,21 @@ const InputForm: React.FC<Props> = ({ initialValues, onSubmit, isLoading, sessio
             const enriched = await extractDeepInquiry(input);
             if (enriched && enriched.situationalNuances && enriched.frictionalRealities) {
               const nuanceText = `\n\n--- SITUATIONAL NUANCE ---\n${enriched.situationalNuances.join('\n')}\n\n--- FRICTIONAL REALITIES ---\n${enriched.frictionalRealities.join('\n')}`;
-              setInput(prev => ({
-                ...prev,
-                context: prev.context + nuanceText
-              }));
+              
+              // Update state and UI
+              const updatedInput = { ...input, context: input.context + nuanceText };
+              setInput(updatedInput);
               setHasChangesSinceSelection(true);
-              showPrompt({
-                type: 'success',
-                title: 'Intelligence Enriched',
-                message: 'Situational nuances and frictional realities have been extracted and integrated into your context.'
-              });
+              
+              // IMMEDIATELY Trigger the interactive AI Help (brainstormer)
+              // We stop our background loading first so the brainstormer's own loading can show
+              setIsLoadingBrainstorm(false);
+              handleBrainstorm('context'); 
+
+              // Note: We don't show a success prompt here because we want the user 
+              // to see the interactive questions immediately as the "modals" requested.
             } else {
+              setIsLoadingBrainstorm(false);
               showPrompt({
                 type: 'alert',
                 title: 'Enrichment Minimal',
@@ -95,7 +99,6 @@ const InputForm: React.FC<Props> = ({ initialValues, onSubmit, isLoading, sessio
             }
           } catch (err) {
             console.error("AI Personalization failed:", err);
-          } finally {
             setIsLoadingBrainstorm(false);
           }
         }
@@ -199,6 +202,42 @@ const InputForm: React.FC<Props> = ({ initialValues, onSubmit, isLoading, sessio
   const handleBrainstorm = async (field: 'constraints' | 'options' | 'context') => {
     if (field === 'context' ? !isTitleReady : !isContextReady) return;
     if (activeBrainstorm === field) { setActiveBrainstorm(null); setBrainstormData(null); setCurrentQuestionIndex(0); return; }
+    
+    // Requirement: Deeper Inquiry for context field specifically
+    if (field === 'context') {
+      setActiveBrainstorm('context');
+      setBrainstormLoading(true);
+      try {
+        const enriched = await extractDeepInquiry(input);
+        if (enriched && (enriched.situationalNuances.length > 0 || enriched.frictionalRealities.length > 0)) {
+          const nuanceText = `\n\n--- SITUATIONAL NUANCE ---\n${enriched.situationalNuances.map(n => `• ${n}`).join('\n')}\n\n--- FRICTIONAL REALITIES ---\n${enriched.frictionalRealities.map(r => `• ${r}`).join('\n')}`;
+          setInput(prev => ({ ...prev, context: prev.context + nuanceText }));
+          setHasChangesSinceSelection(true);
+          
+          // Now proceed to regular brainstorming after extraction
+          const result = await exploreBrainstorm(field, input.title, input.context + nuanceText);
+          setBrainstormData(result);
+        } else {
+          // Fallback to regular brainstorm if extraction yields nothing new
+          const result = await exploreBrainstorm(field, input.title, input.context);
+          setBrainstormData(result);
+        }
+      } catch (e) {
+        console.error("Deep Inquiry failed:", e);
+        // Fallback
+        try {
+          const result = await exploreBrainstorm(field, input.title, input.context);
+          setBrainstormData(result);
+        } catch (err) {
+          console.error(err);
+          setActiveBrainstorm(null);
+        }
+      } finally {
+        setBrainstormLoading(false);
+      }
+      return;
+    }
+
     setActiveBrainstorm(field);
     setBrainstormLoading(true);
     setBrainstormData(null);
@@ -424,7 +463,24 @@ const InputForm: React.FC<Props> = ({ initialValues, onSubmit, isLoading, sessio
 
 
   return (
-    <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 shadow-2xl backdrop-blur-xl h-full flex flex-col overflow-hidden text-left">
+    <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 shadow-2xl backdrop-blur-xl h-full flex flex-col overflow-hidden text-left relative">
+      {/* Background Agent Loading Overlay */}
+      {isLoadingBrainstorm && (
+        <div className="absolute inset-0 z-[100] bg-slate-900/90 backdrop-blur-md flex flex-col items-center justify-center rounded-2xl animate-fade-in">
+           <div className="relative w-20 h-20 mb-6">
+              <div className="absolute inset-0 border-4 border-indigo-500/20 rounded-full"></div>
+              <div className="absolute inset-0 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+              <div className="absolute inset-0 flex items-center justify-center text-2xl animate-pulse">🧠</div>
+           </div>
+           <div className="text-center px-8">
+              <h3 className="text-sm font-black text-white uppercase tracking-[0.3em] mb-2 italic">Background Agent Active</h3>
+              <p className="text-[10px] text-indigo-400 font-bold uppercase tracking-widest animate-pulse max-w-xs leading-relaxed">
+                Extracting situational nuances and frictional realities from your strategic inquiry...
+              </p>
+           </div>
+        </div>
+      )}
+
       {/* Example Templates Section (Expandable) */}
       <div className="flex-shrink-0 mb-4 bg-slate-950/40 border border-slate-800/60 rounded-xl overflow-hidden transition-all duration-500">
         <button 
