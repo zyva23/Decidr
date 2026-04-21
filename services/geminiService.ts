@@ -698,17 +698,29 @@ export async function extractDeepInquiry(input: DecisionInput): Promise<DeepInqu
 }
 
 export async function exploreBrainstorm(field: 'constraints' | 'options' | 'context', title: string, context: string): Promise<BrainstormResult> {
+  const fieldDescriptions = {
+    context: "Situational Nuance & Background (the 'Why' and 'How' of the current moment)",
+    constraints: "Frictional Realities & Constraints (the boundaries and limitations)",
+    options: "Paths of Action & Strategic Choices (the distinct directions being weighed)"
+  };
+
   const prompt = `
     Decision Inquiry: ${title}. 
     Current Context: ${context}
     
-    You are a Strategic Architect. Help the user flesh out the "${field}" field.
+    You are a Strategic Architect. Help the user flesh out the "${fieldDescriptions[field]}" field.
     
-    REQUIREMENTS:
-    1. STRUCTURED QUESTIONS: Generate 7 high-impact, binary or multiple-choice questions that clarify fundamental missing information.
-    2. OPTIONS: Each question must have 3-4 distinct options (e.g., "Yes", "No", "Uncertain" or specific strategic choices).
-    3. TONE: Sophisticated and precise.
-    4. SUGGESTIONS: Provide 5 short one-line suggestions for topics they haven't mentioned yet.
+    TASK:
+    Generate 7 high-impact, binary or multiple-choice questions that clarify fundamental missing information specific to ${field.toUpperCase()}.
+    
+    REQUIREMENTS per field:
+    - If CONTEXT: Focus on underlying dynamics, human elements, and historical weight.
+    - If CONSTRAINTS: Focus on capital, time, ethics, and social physics.
+    - If OPTIONS: Focus on the trade-offs between specific paths, execution risks, and opportunity costs.
+    
+    1. STRUCTURED QUESTIONS: SOPHISTICATED and PRECISE.
+    2. OPTIONS: Each question must have 3-4 distinct strategic choices.
+    3. SUGGESTIONS: Provide 5 short one-line suggestions for ${field.toUpperCase()} they haven't mentioned yet.
     
     Output in JSON format matching the schema.
   `;
