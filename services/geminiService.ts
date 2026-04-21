@@ -145,14 +145,27 @@ async function generateWithFallback(ai: GoogleGenAI, prompt: string, config: any
       config
     });
   } catch (e: any) {
-    const isModelError = e.message?.includes('404') || e.message?.includes('not found') || e.message?.includes('not supported');
-    if (retryWithFallback && isModelError) {
-      console.warn(`[ORCHESTRATOR] ${MASTER_MODEL} failed, falling back to ${FALLBACK_MODEL}`);
-      return await ai.models.generateContent({
-        model: FALLBACK_MODEL,
-        contents: prompt,
-        config
-      });
+    const errorMsg = e.message || "";
+    // Trigger fallback for model not found, not supported, high demand (503), or rate limits (429)
+    const shouldFallback = errorMsg.includes('404') || 
+                          errorMsg.includes('not found') || 
+                          errorMsg.includes('not supported') || 
+                          errorMsg.includes('503') || 
+                          errorMsg.includes('high demand') ||
+                          errorMsg.includes('429');
+
+    if (retryWithFallback && shouldFallback) {
+      console.warn(`[ORCHESTRATOR] ${MASTER_MODEL} failed (Error: ${errorMsg.substring(0, 50)}...), falling back to ${FALLBACK_MODEL}`);
+      try {
+        return await ai.models.generateContent({
+          model: FALLBACK_MODEL,
+          contents: prompt,
+          config
+        });
+      } catch (fallbackError: any) {
+        console.error(`[ORCHESTRATOR] Fallback model ${FALLBACK_MODEL} also failed:`, fallbackError.message);
+        throw fallbackError;
+      }
     }
     throw e;
   }
@@ -702,14 +715,10 @@ export async function exploreBrainstorm(field: 'constraints' | 'options' | 'cont
   
   try {
     const ai = getAI();
-    const response = await ai.models.generateContent({
-      model: MASTER_MODEL, 
-      contents: prompt,
-      config: { 
-        responseMimeType: "application/json", 
-        responseSchema: brainstormSchema as any, 
-        temperature: 0.7 
-      }
+    const response = await generateWithFallback(ai, prompt, { 
+      responseMimeType: "application/json", 
+      responseSchema: brainstormSchema as any, 
+      temperature: 0.7 
     });
     return JSON.parse(response.text || "{}");
   } catch (e) {
