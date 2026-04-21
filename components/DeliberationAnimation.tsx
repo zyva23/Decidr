@@ -47,15 +47,18 @@ const DeliberationAnimation: React.FC = () => {
 
   const radius = 110;
   const getPos = (agent: any) => {
-    if (agent.id === 'human') return { x: 0, y: 0 };
+    if (!agent || agent.id === 'human') return { x: 0, y: 0 };
+    const angle = agent.angle !== undefined ? agent.angle : 0;
     return {
-        x: Math.cos((agent.angle * Math.PI) / 180) * radius,
-        y: Math.sin((agent.angle * Math.PI) / 180) * radius
+        x: Math.cos((angle * Math.PI) / 180) * radius,
+        y: Math.sin((angle * Math.PI) / 180) * radius
     };
   };
 
   const fromPos = getPos(fromAgent);
   const toPos = getPos(toAgent);
+
+  const allAgents = [...agents, { id: 'human', name: 'Human', color: 'text-indigo-400', bg: 'bg-indigo-500/10', border: 'border-indigo-500/20', icon: '🧠', angle: 0 }];
 
   return (
     <div className="h-full flex flex-col items-center justify-center p-8 bg-slate-950/50 rounded-3xl border border-slate-800/50 backdrop-blur-xl relative overflow-hidden">
@@ -110,7 +113,7 @@ const DeliberationAnimation: React.FC = () => {
           </div>
 
           {agents.map((agent) => {
-            const { x, y } = getPos(agent.angle);
+            const { x, y } = getPos(agent);
             const isActive = currentMsg.from === agent.id || currentMsg.to === agent.id;
             const isSpeaking = currentMsg.from === agent.id;
 
@@ -140,8 +143,8 @@ const DeliberationAnimation: React.FC = () => {
         {/* Transmission Log */}
         <div className="space-y-3 bg-slate-900/40 p-6 rounded-2xl border border-slate-800/50 min-h-[160px] flex flex-col justify-center">
           {visibleMessages.map((msg, i) => {
-            const fA = agents.find(a => a.id === msg.from)!;
-            const tA = agents.find(a => a.id === msg.to)!;
+            const fA = allAgents.find(a => a.id === msg.from) || allAgents[0];
+            const tA = allAgents.find(a => a.id === msg.to) || allAgents[0];
             const isLast = i === visibleMessages.length - 1;
             
             return (
