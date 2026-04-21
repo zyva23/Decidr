@@ -419,7 +419,7 @@ const InputForm: React.FC<Props> = ({ initialValues, onSubmit, isLoading, sessio
 
   return (
     <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 shadow-2xl backdrop-blur-xl h-full flex flex-col overflow-hidden text-left">
-      {/* Strategic Templates Section (Expandable) */}
+      {/* Example Templates Section (Expandable) */}
       <div className="flex-shrink-0 mb-4 bg-slate-950/40 border border-slate-800/60 rounded-xl overflow-hidden transition-all duration-500">
         <button 
           onClick={() => setIsTemplatesExpanded(!isTemplatesExpanded)}
@@ -427,7 +427,7 @@ const InputForm: React.FC<Props> = ({ initialValues, onSubmit, isLoading, sessio
         >
           <div className="flex items-center gap-2">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-400"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
-            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 group-hover:text-indigo-400 transition-colors">Strategic Templates</span>
+            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 group-hover:text-indigo-400 transition-colors">Example Templates</span>
             {activeExample && <span className="ml-2 px-2 py-0.5 bg-indigo-600 text-white text-[8px] font-black uppercase rounded-full">Active</span>}
           </div>
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className={`text-slate-600 transition-transform duration-300 ${isTemplatesExpanded ? 'rotate-180' : ''}`}><path d="m6 9 6 6 6-6"/></svg>
@@ -457,24 +457,46 @@ const InputForm: React.FC<Props> = ({ initialValues, onSubmit, isLoading, sessio
         )}
       </div>
 
-      <div className="flex items-center justify-between mb-4 px-1">
-        <h2 className="text-sm font-black text-white uppercase tracking-[0.2em] flex items-center gap-2">
-           <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.6)]"></span>
-           Your Inquiry
-        </h2>
-        <div className="flex items-center gap-3">
-          {isLocked && (
-            <button 
-              type="button" 
-              onClick={onUnlock}
-              title="Modify Strategic Parameters"
-              className="p-1.5 text-indigo-400 border border-indigo-500/30 rounded-lg hover:bg-indigo-500/10 transition-all flex items-center justify-center shadow-lg shadow-indigo-900/10"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-            </button>
-          )}
-          {isContextReady && <span className="text-[8px] font-black uppercase tracking-widest text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded border border-emerald-400/20">Analysis Ready</span>}
+      <div className="flex flex-col gap-3 mb-4 px-1">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-black text-white uppercase tracking-[0.2em] flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.6)]"></span>
+            Your Inquiry
+          </h2>
+          <div className="flex items-center gap-3">
+            {isLocked && (
+              <button 
+                type="button" 
+                onClick={onUnlock}
+                title="Modify Strategic Parameters"
+                className="p-1.5 text-indigo-400 border border-indigo-500/30 rounded-lg hover:bg-indigo-500/10 transition-all flex items-center justify-center shadow-lg shadow-indigo-900/10"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              </button>
+            )}
+            {isContextReady && <span className="text-[8px] font-black uppercase tracking-widest text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded border border-emerald-400/20">Analysis Ready</span>}
+          </div>
         </div>
+
+        {/* Active Template Tag */}
+        {activeExample && (
+          <div className="flex animate-fade-in">
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-indigo-500/10 border border-indigo-500/30 rounded-full group">
+              <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">Using: {activeExample}</span>
+              <button 
+                type="button"
+                onClick={() => {
+                  const t = Object.values(categorizedTemplates).flat().find(x => x.label === activeExample);
+                  if (t) handleTemplateClick(t);
+                }}
+                className="hover:text-red-400 transition-colors"
+                title="Clear Template"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto custom-scrollbar space-y-6 pr-2 text-left">
