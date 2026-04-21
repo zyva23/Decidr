@@ -213,49 +213,44 @@ const InputForm: React.FC<Props> = ({ initialValues, onSubmit, isLoading, sessio
     if (field === 'context' ? !isTitleReady : !isContextReady) return;
     if (activeBrainstorm === field) { setActiveBrainstorm(null); setBrainstormData(null); setCurrentQuestionIndex(0); return; }
     
-    // Requirement: Deeper Inquiry for context field specifically
-    if (field === 'context') {
-      setActiveBrainstorm('context');
-      setBrainstormLoading(true);
-      try {
-        const enriched = await extractDeepInquiry(input);
-        if (enriched && (enriched.situationalNuances.length > 0 || enriched.frictionalRealities.length > 0)) {
-          const nuanceText = `\n\n--- SITUATIONAL NUANCE ---\n${enriched.situationalNuances.map(n => `• ${n}`).join('\n')}\n\n--- FRICTIONAL REALITIES ---\n${enriched.frictionalRealities.map(r => `• ${r}`).join('\n')}`;
-          setInput(prev => ({ ...prev, context: prev.context + nuanceText }));
-          setHasChangesSinceSelection(true);
-          
-          // Now proceed to regular brainstorming after extraction
-          const result = await exploreBrainstorm(field, input.title, input.context + nuanceText);
-          setBrainstormData(result);
-        } else {
-          // Fallback to regular brainstorm if extraction yields nothing new
-          const result = await exploreBrainstorm(field, input.title, input.context);
-          setBrainstormData(result);
-        }
-      } catch (e) {
-        console.error("Deep Inquiry failed:", e);
-        // Fallback
-        try {
-          const result = await exploreBrainstorm(field, input.title, input.context);
-          setBrainstormData(result);
-        } catch (err) {
-          console.error(err);
-          setActiveBrainstorm(null);
-        }
-      } finally {
-        setBrainstormLoading(false);
-      }
+    setActiveBrainstorm(field);
+    setCurrentQuestionIndex(0);
+
+    // 1. Check Cache first
+    if (brainstormCache[field]) {
+      setBrainstormData(brainstormCache[field]);
       return;
     }
 
-    setActiveBrainstorm(field);
     setBrainstormLoading(true);
     setBrainstormData(null);
-    setCurrentQuestionIndex(0);
+
     try {
-      const result = await exploreBrainstorm(field, input.title, input.context);
-      setBrainstormData(result);
-    } catch (e) { console.error(e); setActiveBrainstorm(null); } finally { setBrainstormLoading(false); }
+      if (field === 'context') {
+        // Run deep inquiry and regular brainstorm in parallel
+        const [enriched, result] = await Promise.all([
+          extractDeepInquiry(input),
+          exploreBrainstorm(field, input.title, input.context)
+        ]);
+
+        const mergedResult: BrainstormResult = {
+          ...result,
+          suggestions: [...(enriched.situationalNuances || []), ...result.suggestions]
+        };
+
+        setBrainstormData(mergedResult);
+        setBrainstormCache(prev => ({ ...prev, [field]: mergedResult }));
+      } else {
+        const result = await exploreBrainstorm(field, input.title, input.context);
+        setBrainstormData(result);
+        setBrainstormCache(prev => ({ ...prev, [field]: result }));
+      }
+    } catch (e) { 
+      console.error(e); 
+      setActiveBrainstorm(null); 
+    } finally { 
+      setBrainstormLoading(false); 
+    }
   };
 
   const selectBrainstormOption = (question: string, option: string) => {
