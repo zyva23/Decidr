@@ -30,6 +30,8 @@ const InputForm: React.FC<InputFormProps> = ({ initialValues, onSubmit, isLoadin
   const [brainstormData, setBrainstormData] = useState<BrainstormResult | null>(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [activeCategory, setActiveCategory] = useState('Personal');
+  const [activeExample, setActiveExample] = useState<string | null>(null);
+  const [hasChangesSinceSelection, setHasChangesSinceSelection] = useState(false);
 
   const isTitleReady = input.title.trim().length > 3;
   const isContextReady = isTitleReady && input.context.trim().length > 10;
@@ -49,6 +51,13 @@ const InputForm: React.FC<InputFormProps> = ({ initialValues, onSubmit, isLoadin
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Requirement 3: Personalization Nudge
+    if (activeExample && !hasChangesSinceSelection) {
+      const confirmPersonalize = window.confirm("You are using an example prompt as-is. For best results, we recommend personalizing it with your specific details. Run anyway?");
+      if (!confirmPersonalize) return;
+    }
+
     if (input.title && input.context) {
       let finalContext = input.context;
       if (attachments.length > 0) {
@@ -61,6 +70,31 @@ const InputForm: React.FC<InputFormProps> = ({ initialValues, onSubmit, isLoadin
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setInput(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    if (activeExample) {
+      setHasChangesSinceSelection(true);
+    }
+  };
+
+  const handleTemplateClick = (t: any) => {
+    // Requirement 1: Toggle example (unclick to remove)
+    if (activeExample === t.label) {
+      if (hasChangesSinceSelection) {
+        if (!window.confirm("This will clear your modifications. Continue?")) return;
+      }
+      setInput({ title: '', context: '', constraints: '', options: '' });
+      setActiveExample(null);
+      setHasChangesSinceSelection(false);
+      return;
+    }
+
+    // Requirement 2: Warning if modified
+    if (hasChangesSinceSelection) {
+      if (!window.confirm("You have modified the current example. Switching will lose your changes. Continue?")) return;
+    }
+
+    setInput({ title: t.title, context: t.context, constraints: t.constraints, options: t.options });
+    setActiveExample(t.label);
+    setHasChangesSinceSelection(false);
   };
 
   const handleVoiceInput = (field: keyof DecisionInput) => {
@@ -134,6 +168,9 @@ const InputForm: React.FC<InputFormProps> = ({ initialValues, onSubmit, isLoadin
       context: `${prefix}${prev.context}`
     }));
     setShowHistoryLink(false);
+    // Reset example state
+    setActiveExample(null);
+    setHasChangesSinceSelection(false);
   };
 
   const handleUnlink = () => {
@@ -343,7 +380,14 @@ const InputForm: React.FC<InputFormProps> = ({ initialValues, onSubmit, isLoadin
           </div>
           <div className="flex flex-wrap gap-2 animate-fade-in" key={activeCategory}>
             {categorizedTemplates[activeCategory].map(t => (
-              <button key={t.label} type="button" onClick={() => setInput({ title: t.title, context: t.context, constraints: t.constraints, options: t.options })} className="text-[10px] bg-slate-800/50 hover:bg-indigo-600 border border-slate-700 hover:border-indigo-500 text-slate-300 px-2.5 py-1 rounded-full transition-all">{t.label}</button>
+              <button 
+                key={t.label} 
+                type="button" 
+                onClick={() => handleTemplateClick(t)} 
+                className={`text-[10px] border px-2.5 py-1 rounded-full transition-all ${activeExample === t.label ? 'bg-indigo-600 border-indigo-400 text-white shadow-[0_0_10px_rgba(99,102,241,0.3)]' : 'bg-slate-800/50 border-slate-700 text-slate-300 hover:bg-slate-700 hover:border-slate-600'}`}
+              >
+                {t.label}
+              </button>
             ))}
           </div>
         </div>
