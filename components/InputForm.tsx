@@ -345,7 +345,8 @@ const InputForm: React.FC<Props> = ({ initialValues, onSubmit, isLoading, sessio
               </div>
             ) : brainstormData ? (
               <div className="space-y-6">
-                {brainstormData.structuredQuestions.length > 0 && (
+                {/* Questions: Only for Context field */}
+                {field === 'context' && brainstormData.structuredQuestions.length > 0 && (
                   <div className="animate-fade-in">
                     <div className="flex justify-between items-center mb-4">
                        <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Question {currentQuestionIndex + 1} of {brainstormData.structuredQuestions.length}</span>
@@ -359,9 +360,25 @@ const InputForm: React.FC<Props> = ({ initialValues, onSubmit, isLoading, sessio
                     </div>
                   </div>
                 )}
-                <div className="pt-4 border-t border-slate-800/50">
-                  <h4 className="text-[9px] font-black uppercase text-slate-500 mb-2 tracking-[0.2em]">Nuance Suggestions</h4>
-                  <div className="flex flex-wrap gap-2">{brainstormData.suggestions.map((s, i) => (<button key={i} type="button" onClick={() => addSuggestion(s)} className="text-[10px] bg-slate-950/50 hover:bg-slate-800 border border-slate-800 hover:border-slate-600 text-slate-400 py-1 px-2.5 rounded transition-all">+ {s}</button>))}</div>
+                
+                {/* Suggestions/Real Options Section */}
+                <div className={`${(field === 'context' && brainstormData.structuredQuestions.length > 0) ? 'pt-4 border-t border-slate-800/50' : ''}`}>
+                  <h4 className="text-[9px] font-black uppercase text-slate-500 mb-3 tracking-[0.2em]">
+                    {field === 'context' ? 'Nuance Suggestions' : field === 'constraints' ? 'Strategic Constraints' : 'Actionable Paths'}
+                  </h4>
+                  <div className="flex flex-col gap-2 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+                    {brainstormData.suggestions.map((s, i) => (
+                      <button 
+                        key={i} 
+                        type="button" 
+                        onClick={() => addSuggestion(s)} 
+                        className="text-left bg-slate-950/50 hover:bg-indigo-600/10 border border-slate-800 hover:border-indigo-500/50 text-slate-300 py-3 px-4 rounded-xl transition-all flex items-start gap-3 group"
+                      >
+                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-1.5 shrink-0 group-hover:scale-125 transition-transform"></span>
+                        <span className="text-xs font-medium leading-relaxed">{s}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             ) : (<div className="text-red-400 text-xs py-10 text-center font-bold">Inquiry generation failed. Please try again.</div>)}
