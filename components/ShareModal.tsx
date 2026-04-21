@@ -7,9 +7,10 @@ interface ShareModalProps {
   sessionId: string;
   title: string;
   isPublicInitial: boolean;
+  showPrompt: (config: any) => void;
 }
 
-const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, sessionId, title, isPublicInitial }) => {
+const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, sessionId, title, isPublicInitial, showPrompt }) => {
   const [isPublic, setIsPublic] = useState(isPublicInitial);
   const [copied, setCopied] = useState(false);
 
@@ -33,7 +34,11 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, sessionId, tit
 
   const copyMessage = () => {
     navigator.clipboard.writeText(messageTemplate);
-    alert("Message template copied to clipboard!");
+    showPrompt({
+      type: 'success',
+      title: 'Message Copied',
+      message: 'The strategic invitation template has been copied to your clipboard.'
+    });
   };
 
   return (

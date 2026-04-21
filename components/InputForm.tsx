@@ -5,16 +5,17 @@ import DocumentUpload from './DocumentUpload';
 import { Attachment } from '../types';
 import { UI_CONTENT } from '../src/constants/uiContent';
 
-interface InputFormProps {
+interface Props {
   initialValues: DecisionInput;
   onSubmit: (input: DecisionInput) => void;
   isLoading: boolean;
   sessions: DecisionSession[];
-  isLocked?: boolean;
-  onUnlock?: () => void;
+  isLocked: boolean;
+  onUnlock: () => void;
+  showPrompt: (config: any) => void;
 }
 
-const InputForm: React.FC<InputFormProps> = ({ initialValues, onSubmit, isLoading, sessions, isLocked, onUnlock }) => {
+const InputForm: React.FC<Props> = ({ initialValues, onSubmit, isLoading, sessions, isLocked, onUnlock, showPrompt }) => {
   const [input, setInput] = useState<DecisionInput>(initialValues);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [showHistoryLink, setShowHistoryLink] = useState(false);
@@ -54,10 +55,22 @@ const InputForm: React.FC<InputFormProps> = ({ initialValues, onSubmit, isLoadin
     
     // Requirement 3: Personalization Nudge
     if (activeExample && !hasChangesSinceSelection) {
-      const confirmPersonalize = window.confirm("You are using an example prompt as-is. For best results, we recommend personalizing it with your specific details. Run anyway?");
-      if (!confirmPersonalize) return;
+      showPrompt({
+        type: 'confirm',
+        title: 'Personalize for Precision',
+        message: 'You are using an example prompt as-is. For best results, we recommend personalizing it with your specific details. Run anyway?',
+        confirmLabel: 'Run Anyway',
+        onConfirm: () => {
+          proceedSubmit();
+        }
+      });
+      return;
     }
 
+    proceedSubmit();
+  };
+
+  const proceedSubmit = () => {
     if (input.title && input.context) {
       let finalContext = input.context;
       if (attachments.length > 0) {
@@ -79,7 +92,17 @@ const InputForm: React.FC<InputFormProps> = ({ initialValues, onSubmit, isLoadin
     // Requirement 1: Toggle example (unclick to remove)
     if (activeExample === t.label) {
       if (hasChangesSinceSelection) {
-        if (!window.confirm("This will clear your modifications. Continue?")) return;
+        showPrompt({
+          type: 'confirm',
+          title: 'Discard Modifications?',
+          message: 'This will clear your modifications to this example. Continue?',
+          onConfirm: () => {
+            setInput({ title: '', context: '', constraints: '', options: '' });
+            setActiveExample(null);
+            setHasChangesSinceSelection(false);
+          }
+        });
+        return;
       }
       setInput({ title: '', context: '', constraints: '', options: '' });
       setActiveExample(null);
@@ -89,7 +112,17 @@ const InputForm: React.FC<InputFormProps> = ({ initialValues, onSubmit, isLoadin
 
     // Requirement 2: Warning if modified
     if (hasChangesSinceSelection) {
-      if (!window.confirm("You have modified the current example. Switching will lose your changes. Continue?")) return;
+      showPrompt({
+        type: 'confirm',
+        title: 'Switch Example?',
+        message: 'You have modified the current example. Switching will lose your changes. Continue?',
+        onConfirm: () => {
+          setInput({ title: t.title, context: t.context, constraints: t.constraints, options: t.options });
+          setActiveExample(t.label);
+          setHasChangesSinceSelection(false);
+        }
+      });
+      return;
     }
 
     setInput({ title: t.title, context: t.context, constraints: t.constraints, options: t.options });
@@ -99,7 +132,11 @@ const InputForm: React.FC<InputFormProps> = ({ initialValues, onSubmit, isLoadin
 
   const handleVoiceInput = (field: keyof DecisionInput) => {
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-      alert(UI_CONTENT.FORM.MESSAGES.VOICE_NOT_SUPPORTED);
+      showPrompt({
+        type: 'alert',
+        title: 'Voice Not Supported',
+        message: UI_CONTENT.FORM.MESSAGES.VOICE_NOT_SUPPORTED
+      });
       return;
     }
     if (listeningField === field) { setListeningField(null); return; }

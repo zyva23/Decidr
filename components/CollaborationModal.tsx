@@ -28,13 +28,14 @@ interface Props {
   onClose: () => void;
   session: DecisionSession | null;
   contributions: Contribution[];
-  onSynthesize: (selectedIds: string[], notify: boolean) => void;
+  onSynthesize: () => void;
   isSynthesizing: boolean;
   isOwner: boolean;
-  onSubmitContribution: (name: string, content: string, type: Contribution['type'], isAnonymous: boolean) => Promise<void>;
+  onSubmitContribution: (name: string, content: string, type: Contribution['type'], isAnon: boolean) => Promise<void>;
   onRefineThought: (text: string) => Promise<string>;
   isContributing: boolean;
   isAuthenticated: boolean;
+  showPrompt: (config: any) => void;
 }
 
 const CollaborationModal: React.FC<Props> = ({ 
@@ -48,7 +49,8 @@ const CollaborationModal: React.FC<Props> = ({
   onSubmitContribution,
   onRefineThought,
   isContributing,
-  isAuthenticated
+  isAuthenticated,
+  showPrompt
 }) => {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [notify, setNotify] = useState(true);
@@ -81,7 +83,11 @@ const CollaborationModal: React.FC<Props> = ({
   const handleCopyInvite = () => {
     const url = window.location.href;
     navigator.clipboard.writeText(url);
-    alert("Invite link copied to clipboard!");
+    showPrompt({
+      type: 'success',
+      title: 'Invite Copied',
+      message: 'Strategic invitation link has been copied to your clipboard.'
+    });
   };
 
   const toggleSelection = (id: string) => {

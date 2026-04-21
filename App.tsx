@@ -18,6 +18,7 @@ import DeliberationAnimation from './components/DeliberationAnimation';
 import MindfulCommitModal from './components/MindfulCommitModal';
 import AuditTrailModal from './components/AuditTrailModal';
 import Auth from './components/Auth';
+import PromptModal from './components/PromptModal';
 import { UI_CONTENT } from './src/constants/uiContent';
 import { analyzeDecision, generateActionPlan, generateDecisionTree, synthesizeOnly, generateCausalSummary, refineSelfThought } from './services/geminiService';
 import { saveSession, getSessions, deleteSession, getLocalSessions } from './services/storageService';
@@ -51,6 +52,16 @@ class ErrorBoundary extends Component<{children: ReactNode}, {hasError: boolean,
 
 const MAX_FREE_CREDITS = 100;
 
+interface PromptConfig {
+  isOpen: boolean;
+  type: 'alert' | 'confirm' | 'success';
+  title: string;
+  message: string;
+  confirmLabel?: string;
+  onConfirm?: () => void;
+  onCancel?: () => void;
+}
+
 const DecidrApp: React.FC = () => {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isAuthChecking, setIsAuthChecking] = useState(true);
@@ -75,6 +86,18 @@ const DecidrApp: React.FC = () => {
   const [isTreeOpen, setIsTreeOpen] = useState(false);
   const [isAuditModalOpen, setIsAuditModalOpen] = useState(false);
   const [isDirectInsightModalOpen, setIsDirectInsightModalOpen] = useState(false);
+  const [promptConfig, setPromptConfig] = useState<PromptConfig>({
+    isOpen: false,
+    type: 'alert',
+    title: '',
+    message: '',
+  });
+
+  const handlePrompt = (config: Omit<PromptConfig, 'isOpen'>) => {
+    setPromptConfig({ ...config, isOpen: true });
+  };
+
+  const closePrompt = () => setPromptConfig(prev => ({ ...prev, isOpen: false }));
   const [currentPlan, setCurrentPlan] = useState<ActionPlan | null>(null);
   const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
   const [showWaitlist, setShowWaitlist] = useState(false);
@@ -315,7 +338,14 @@ const DecidrApp: React.FC = () => {
       if (session) {
         setCurrentSessionId(session.id); setInputValues(session.input); setResult(session.result);
         setStatus(AnalysisStatus.SHARED_VIEW); setContributions([]); setIsPublicSession(true);
-      } else { alert("Shared deliberation not found."); setStatus(AnalysisStatus.IDLE); }
+      } else { 
+        handlePrompt({
+          type: 'alert',
+          title: 'Session Not Found',
+          message: 'This shared deliberation could not be retrieved. It may have been deleted or the link is invalid.'
+        });
+        setStatus(AnalysisStatus.IDLE); 
+      }
     } catch (e) { console.error(e); setStatus(AnalysisStatus.IDLE); } finally { setIsSharedLoading(false); }
   };
 
@@ -655,7 +685,11 @@ const DecidrApp: React.FC = () => {
     } catch (e) { 
       console.error(e); 
       setStatus(AnalysisStatus.ERROR);
-      alert("Council failed to incorporate peer insights."); 
+      handlePrompt({
+        type: 'alert',
+        title: 'Synthesis Failed',
+        message: 'The Council encountered a structural error while incorporating insights. Please try again.'
+      });
     } finally { 
       setIsPeerSynthesizing(false); 
     }
@@ -688,9 +722,17 @@ const DecidrApp: React.FC = () => {
       setContributions(prev => [contribution, ...prev]); // Add to top
       
       if (type === 'thought') {
-        alert("Self Thought refined and integrated into the Intelligence Layer.");
+        handlePrompt({
+          type: 'success',
+          title: 'Intelligence Refined',
+          message: 'Your strategic thought has been enhanced by the Council and integrated into the Intelligence Layer.'
+        });
       } else {
-        alert("Perspective submitted for review.");
+        handlePrompt({
+          type: 'success',
+          title: 'Perspective Received',
+          message: 'Your perspective has been submitted to the session owner for review.'
+        });
       }
     } catch (e) {
       console.error(e);
@@ -740,7 +782,14 @@ const DecidrApp: React.FC = () => {
       )}
 
       {isShareModalOpen && currentSessionId && (
-        <ShareModal isOpen={isShareModalOpen} onClose={() => setIsShareModalOpen(false)} sessionId={currentSessionId} title={inputValues.title} isPublicInitial={isPublicSession} />
+        <ShareModal 
+          isOpen={isShareModalOpen} 
+          onClose={() => setIsShareModalOpen(false)} 
+          sessionId={currentSessionId} 
+          title={inputValues.title} 
+          isPublicInitial={isPublicSession} 
+          showPrompt={handlePrompt}
+        />
       )}
 
       {showWaitlist && (
@@ -777,7 +826,7 @@ const DecidrApp: React.FC = () => {
                 {inputValues.options && <div><h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 text-left">Paths Explored</h4><div className="space-y-2">{inputValues.options.split('\n').filter(o => o.trim()).map((opt, i) => (<div key={i} className="p-3 bg-indigo-500/5 border border-indigo-500/10 rounded-lg text-xs text-indigo-200/70 flex gap-3 text-left"><span className="font-mono text-indigo-500 opacity-50 text-left">0{i+1}</span>{opt}</div>))}</div></div>}
               </div>
             </div>
-          ) : <InputForm initialValues={inputValues} onSubmit={handleAnalysis} isLoading={status === AnalysisStatus.ANALYZING} sessions={sessions} isLocked={isInputLocked} onUnlock={() => setIsInputLocked(false)} />}
+          ) : <InputForm initialValues={inputValues} onSubmit={handleAnalysis} isLoading={status === AnalysisStatus.ANALYZING} sessions={sessions} isLocked={isInputLocked} onUnlock={() => setIsInputLocked(false)} showPrompt={handlePrompt} />}
           right={
             <div className="h-full overflow-y-auto custom-scrollbar text-left">
               {status === AnalysisStatus.ANALYZING && !result && (
@@ -1325,6 +1374,7 @@ const DecidrApp: React.FC = () => {
           onSubmitContribution={handleSubmitContribution}
           userName={contributionName}
           isUserAuthenticated={!!user}
+          showPrompt={handlePrompt}
         />
       )}
       
@@ -1379,6 +1429,7 @@ const DecidrApp: React.FC = () => {
         }}
         isContributing={isContributing}
         isAuthenticated={!!user}
+        showPrompt={handlePrompt}
       />
 
       {isDirectInsightModalOpen && (
@@ -1458,6 +1509,22 @@ const DecidrApp: React.FC = () => {
           </div>
         </div>
       )}
+
+      <PromptModal
+        isOpen={promptConfig.isOpen}
+        type={promptConfig.type}
+        title={promptConfig.title}
+        message={promptConfig.message}
+        confirmLabel={promptConfig.confirmLabel}
+        onConfirm={() => {
+          if (promptConfig.onConfirm) promptConfig.onConfirm();
+          closePrompt();
+        }}
+        onCancel={() => {
+          if (promptConfig.onCancel) promptConfig.onCancel();
+          closePrompt();
+        }}
+      />
     </div>
   );
 };

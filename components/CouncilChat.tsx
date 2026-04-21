@@ -13,6 +13,7 @@ interface CouncilChatProps {
   onSubmitContribution: (name: string, content: string, type: Contribution['type'], isAnonymous: boolean) => Promise<void>;
   userName: string;
   isUserAuthenticated: boolean;
+  showPrompt: (config: any) => void;
 }
 
 const CouncilChat: React.FC<CouncilChatProps> = ({ 
@@ -25,7 +26,8 @@ const CouncilChat: React.FC<CouncilChatProps> = ({
   onReAnalyze,
   onSubmitContribution,
   userName,
-  isUserAuthenticated
+  isUserAuthenticated,
+  showPrompt
 }) => {
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -91,19 +93,29 @@ const CouncilChat: React.FC<CouncilChatProps> = ({
     const userMessages = chatHistory.filter(m => m.role === 'user');
     if (userMessages.length === 0) return;
 
-    if (confirm(`Incorporate ${userMessages.length} chat points into the Council's Collective Intelligence?`)) {
-      setIsLoading(true);
-      try {
-        // We concatenate all user insights into one refined strategic thought for the layer
-        const unifiedInsight = userMessages.map(m => m.content).join("\n---\n");
-        await onSubmitContribution(userName, unifiedInsight, 'thought', !isUserAuthenticated);
-        alert("Insights integrated into the Human Intelligence Layer.");
-      } catch (err) {
-        console.error("Batch incorporation failed:", err);
-      } finally {
-        setIsLoading(false);
+    showPrompt({
+      type: 'confirm',
+      title: 'Incorporate Insights',
+      message: `Incorporate ${userMessages.length} chat points into the Council's Collective Intelligence?`,
+      confirmLabel: 'Incorporate',
+      onConfirm: async () => {
+        setIsLoading(true);
+        try {
+          // We concatenate all user insights into one refined strategic thought for the layer
+          const unifiedInsight = userMessages.map(m => m.content).join("\n---\n");
+          await onSubmitContribution(userName, unifiedInsight, 'thought', !isUserAuthenticated);
+          showPrompt({
+            type: 'success',
+            title: 'Intelligence Unified',
+            message: 'Insights have been successfully integrated into the Human Intelligence Layer.'
+          });
+        } catch (err) {
+          console.error("Batch incorporation failed:", err);
+        } finally {
+          setIsLoading(false);
+        }
       }
-    }
+    });
   };
 
   if (!isOpen) return null;
