@@ -36,7 +36,9 @@ const SessionHistory: React.FC<Props> = ({
         const shared = sessions.filter(s => s.isPublic);
         await Promise.all(shared.map(async (s) => {
           const contributions = await getSessionContributions(s.id);
-          counts[s.id] = contributions.length;
+          // Only count contributions that are NOT 'thought' (which are self/council refined)
+          const peerOnly = contributions.filter(c => c.type !== 'thought');
+          counts[s.id] = peerOnly.length;
         }));
         setLiveCounts(counts);
       };
@@ -81,7 +83,7 @@ const SessionHistory: React.FC<Props> = ({
 
              {contributionCount > 0 && (
                <span className={`flex items-center gap-1 text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-sm border ${hasUnreadContributions ? 'text-amber-400 bg-amber-500/10 border-amber-500/20' : 'text-slate-400 bg-slate-800 border-slate-700'}`}>
-                 {contributionCount} {contributionCount === 1 ? 'Peer' : 'Peers'}
+                 {contributionCount} {contributionCount === 1 ? 'Peer Insight' : 'Peer Insights'}
                </span>
              )}
 
