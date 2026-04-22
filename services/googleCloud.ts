@@ -218,3 +218,13 @@ export const deleteSessionContribution = async (sessionId: string, contributionI
     console.error("Error deleting contribution:", e);
   }
 };
+
+export const updateContributionStatus = async (sessionId: string, contributionId: string, updates: Partial<Contribution>) => {
+  if (!db) return;
+  try {
+    const docRef = doc(db, "sessions", sessionId, "human_perspectives", contributionId);
+    await updateDoc(docRef, updates);
+  } catch (e) {
+    console.error("Error updating contribution status:", e);
+  }
+};

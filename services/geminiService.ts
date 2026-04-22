@@ -704,6 +704,8 @@ export async function exploreBrainstorm(field: 'constraints' | 'options' | 'cont
     options: "Paths of Action & Strategic Choices (the distinct directions being weighed)"
   };
 
+  const isContext = field === 'context';
+
   const prompt = `
     Decision Inquiry: ${title}. 
     Current Context: ${context}
@@ -711,18 +713,17 @@ export async function exploreBrainstorm(field: 'constraints' | 'options' | 'cont
     You are a Strategic Architect. Help the user flesh out the "${fieldDescriptions[field]}" field.
     
     TASK:
-    Generate 7 high-impact, binary or multiple-choice questions that clarify fundamental missing information specific to ${field.toUpperCase()}.
+    ${isContext 
+      ? 'Generate 7 high-impact, binary or multiple-choice questions that clarify fundamental missing information, AND 5 short one-line suggestions for nuances they haven\'t mentioned yet.'
+      : `Generate 12-15 specific, actionable, and sophisticated "Real Options" for the ${field.toUpperCase()} field that are highly relevant to this inquiry. These should be items the user can directly add to their list.`
+    }
     
-    REQUIREMENTS per field:
-    - If CONTEXT: Focus on underlying dynamics, human elements, and historical weight.
-    - If CONSTRAINTS: Focus on capital, time, ethics, and social physics.
-    - If OPTIONS: Focus on the trade-offs between specific paths, execution risks, and opportunity costs.
+    REQUIREMENTS:
+    1. ${isContext ? 'STRUCTURED QUESTIONS: SOPHISTICATED and PRECISE.' : 'REAL OPTIONS: Tactical, diverse, and grounded in the provided context.'}
+    2. ${isContext ? 'OPTIONS: Each question must have 3-4 distinct strategic choices.' : 'NO QUESTIONS: Do not provide any questions for this field, only the list of options.'}
+    3. SUGGESTIONS: Provide the results in the "suggestions" array of the JSON.
     
-    1. STRUCTURED QUESTIONS: SOPHISTICATED and PRECISE.
-    2. OPTIONS: Each question must have 3-4 distinct strategic choices.
-    3. SUGGESTIONS: Provide 5 short one-line suggestions for ${field.toUpperCase()} they haven't mentioned yet.
-    
-    Output in JSON format matching the schema.
+    Output in JSON format matching the schema. ${!isContext ? 'Keep "structuredQuestions" as an empty array.' : ''}
   `;
   
   try {
