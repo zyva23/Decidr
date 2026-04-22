@@ -20,7 +20,7 @@ import AuditTrailModal from './components/AuditTrailModal';
 import Auth from './components/Auth';
 import PromptModal from './components/PromptModal';
 import { UI_CONTENT } from './src/constants/uiContent';
-import { analyzeDecision, generateActionPlan, generateDecisionTree, synthesizeOnly, generateCausalSummary, refineSelfThought } from './services/geminiService';
+import { analyzeDecision, generateActionPlan, generateDecisionTree, synthesizeOnly, generateCausalSummary, refineSelfThought, synthesizeChatHistory } from './services/geminiService';
 import { saveSession, getSessions, deleteSession, getLocalSessions } from './services/storageService';
 import { auth, logActivity, onAuthStateChanged, signOut, isGCPConfigured, saveDetailedFeedback, saveToWaitlist, getUserProfile, saveUserProfile, getPublicSession, addSessionContribution, updateContributionStatus, getSessionContributions, deleteSessionContribution } from './services/googleCloud';
 import { generateDecisionPDF } from './services/pdfService';
@@ -1425,6 +1425,10 @@ const DecidrApp: React.FC = () => {
           onRefineThought={async (text) => {
              if (!result) return text;
              return await refineSelfThought(text, result);
+          }}
+          onSynthesizeChatHistory={async (msgs) => {
+             if (!result) return msgs.map(m => m.content).join('\n');
+             return await synthesizeChatHistory(msgs, result);
           }}
           userName={contributionName}
           isUserAuthenticated={!!user}

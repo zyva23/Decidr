@@ -12,6 +12,7 @@ interface CouncilChatProps {
   onReAnalyze: (newContext: string) => void;
   onSubmitContribution: (name: string, content: string, type: Contribution['type'], isAnonymous: boolean) => Promise<void>;
   onRefineThought: (text: string) => Promise<string>;
+  onSynthesizeChatHistory: (messages: ChatMessage[]) => Promise<string>;
   userName: string;
   isUserAuthenticated: boolean;
   showPrompt: (config: any) => void;
@@ -27,6 +28,7 @@ const CouncilChat: React.FC<CouncilChatProps> = ({
   onReAnalyze,
   onSubmitContribution,
   onRefineThought,
+  onSynthesizeChatHistory,
   userName,
   isUserAuthenticated,
   showPrompt
@@ -133,17 +135,15 @@ const CouncilChat: React.FC<CouncilChatProps> = ({
 
     setIsLoading(true);
     try {
-      const rawUnified = userMessages.map(m => m.content).join("\n---\n");
+      // 1. Get AI Synthesis for the specific history window
+      const refined = await onSynthesizeChatHistory(chatHistory.slice(lastIncorporatedIndex + 1));
       
-      // 1. Get AI Refinement for the batch
-      const refined = await onRefineThought(rawUnified);
-      
-      // 2. Show modal
+      // 2. Show modal with synthesized text
       let currentVal = refined;
       showPrompt({
         type: 'confirm',
         title: 'Unified Batch Integration',
-        message: 'The Council has synthesized your NEW chat points into a cohesive strategic insight. Review and polish before integrating.',
+        message: 'The Council has synthesized your NEW chat points into high-fidelity intelligence. Review and polish before integrating.',
         confirmLabel: 'Integrate New',
         editableValue: refined,
         onValueChange: (val) => { currentVal = val; },

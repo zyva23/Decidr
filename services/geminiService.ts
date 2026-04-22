@@ -282,6 +282,41 @@ export async function refineSelfThought(rawThought: string, councilResult: Counc
   }
 }
 
+export async function synthesizeChatHistory(messages: ChatMessage[], councilResult: CouncilResult): Promise<string> {
+  const chatContent = messages.map(m => `${m.role === 'user' ? 'User' : 'Council'}: ${m.content}`).join('\n');
+  const prompt = `
+    You are the Cognitive Synthesis lead of the Decision Council.
+    You have a chat history between a User and the Council. 
+    
+    CHAT HISTORY:
+    ${chatContent}
+    
+    COUNCIL STANCE (Current Verdict): ${councilResult.synthesis.verdict}
+    
+    TASK:
+    Analyze the chat and extract the most high-impact strategic insights, questions resolved, or new variables introduced by the user.
+    Synthesize this into a single, professional, high-fidelity strategic thought.
+    
+    REQUIREMENTS:
+    1. Focus on depth and sophistication.
+    2. Elevate raw conversation into "Council-grade" intelligence.
+    3. Make it actionable or specifically note how it evolves the current strategic direction.
+    4. Output ONLY the refined text. 
+    5. STRICT LIMIT: Maximum 100 words.
+  `;
+
+  try {
+    const ai = getAI();
+    const response = await generateWithFallback(ai, prompt, {
+      temperature: 0.4,
+    });
+    return response.text || "Insight extraction yielded no new strategic data.";
+  } catch (error) {
+    console.error("Chat Synthesis Error:", error);
+    return "Error synthesizing chat history.";
+  }
+}
+
 export async function synthesizeOnly(
   input: DecisionInput, 
   agents: PartialCouncilResult, 
