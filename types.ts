@@ -156,6 +156,7 @@ export interface Notification {
 
 export interface Contribution {
   id: string;
+  authorId: string; // User UID or Guest ID
   name: string;
   content: string;
   timestamp: number;

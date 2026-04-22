@@ -137,6 +137,13 @@ const DecidrApp: React.FC = () => {
   const [feedbackTargetId, setFeedbackTargetId] = useState<string | null>(null);
   const [revisionComment, setRevisionComment] = useState('');
   const [pendingShareId, setPendingShareId] = useState<string | null>(null);
+  const [guestId] = useState(() => {
+    const saved = localStorage.getItem('dc_guest_id');
+    if (saved) return saved;
+    const newId = `guest_${crypto.randomUUID()}`;
+    localStorage.setItem('dc_guest_id', newId);
+    return newId;
+  });
 
   const handleDiscardContribution = async (id: string) => {
     if (!currentSessionId) return;
