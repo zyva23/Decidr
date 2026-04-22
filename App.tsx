@@ -762,14 +762,18 @@ const DecidrApp: React.FC = () => {
     try {
       let finalContent = content.trim();
       
-      // REFINE THOUGHT: If it's a thought and NOT already refined, enhance it
-      if (type === 'thought' && result && !skipRefine) {
+      // REFINE THOUGHT: ONLY refine if the current user is the OWNER. 
+      // If a guest submits a thought, we keep their raw insight to avoid "mixing up" with owner context.
+      if (type === 'thought' && result && !skipRefine && isOwner) {
         finalContent = await refineSelfThought(finalContent, result);
       }
 
       const finalName = isAnon ? "Anonymous Expert" : (name.trim() || "Anonymous Expert");
+      const currentAuthorId = user?.id || guestId;
+
       const contribution: Contribution = { 
         id: crypto.randomUUID(), 
+        authorId: currentAuthorId,
         name: finalName, 
         content: finalContent, 
         type: type, 
@@ -780,7 +784,7 @@ const DecidrApp: React.FC = () => {
       await addSessionContribution(currentSessionId, contribution);
       setContributions(prev => [contribution, ...prev]); // Add to top
       
-      if (type === 'thought') {
+      if (type === 'thought' && isOwner) {
         handlePrompt({
           type: 'success',
           title: 'Intelligence Refined',
@@ -1354,13 +1358,30 @@ const DecidrApp: React.FC = () => {
                                         <button onClick={() => toggleContributionSelection(c.id)} className={`px-3 py-1.5 rounded-lg border text-[9px] font-black uppercase tracking-widest transition-all ${selectedContributionIds.includes(c.id) ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-indigo-500/10 border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/20'}`}>
                                           {selectedContributionIds.includes(c.id) ? 'Selected' : 'Select'}
                                         </button>
-                                        {(c.name !== contributionName && c.type !== 'thought') && (
+                                        {c.authorId !== (user?.id || guestId) && (
                                           <button onClick={() => setFeedbackTargetId(c.id)} className="px-3 py-1.5 bg-amber-500/10 border border-amber-500/30 text-amber-400 rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-amber-500/20 transition-all">
                                             Resend with Comment
                                           </button>
                                         )}
                                         <button onClick={() => handleDiscardContribution(c.id)} className="px-3 py-1.5 bg-red-500/10 border border-red-500/30 text-red-400 rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-red-500/20 transition-all">
                                           Discard
+                                        </button>
+                                      </div>
+                                    )}
+
+                                    {!isOwner && c.authorId === (user?.id || guestId) && c.status === 'revision_requested' && (
+                                      <div className="mt-4 flex justify-start">
+                                        <button 
+                                          onClick={() => {
+                                            setContributionContent(c.content);
+                                            setContributionType(c.type);
+                                            setContributionName(c.name);
+                                            // Handle scroll to form if needed
+                                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                                          }}
+                                          className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white text-[10px] font-black uppercase tracking-widest rounded-lg transition-all shadow-lg shadow-amber-900/40"
+                                        >
+                                          Edit & Resubmit
                                         </button>
                                       </div>
                                     )}
