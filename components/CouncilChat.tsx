@@ -37,6 +37,7 @@ const CouncilChat: React.FC<CouncilChatProps> = ({
   
   // Confirmation Modal State (Manual Edit Control)
   const [pendingText, setPendingText] = useState('');
+  const [lastIncorporatedIndex, setLastIncorporatedIndex] = useState(-1);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -126,7 +127,8 @@ const CouncilChat: React.FC<CouncilChatProps> = ({
   };
 
   const handleBatchIncorporate = async () => {
-    const userMessages = chatHistory.filter(m => m.role === 'user');
+    // Only get user messages AFTER the last incorporated index
+    const userMessages = chatHistory.slice(lastIncorporatedIndex + 1).filter(m => m.role === 'user');
     if (userMessages.length === 0) return;
 
     setIsLoading(true);
@@ -141,12 +143,13 @@ const CouncilChat: React.FC<CouncilChatProps> = ({
       showPrompt({
         type: 'confirm',
         title: 'Unified Batch Integration',
-        message: 'The Council has synthesized your chat points into a cohesive strategic insight. Review and polish before integrating.',
-        confirmLabel: 'Integrate All',
+        message: 'The Council has synthesized your NEW chat points into a cohesive strategic insight. Review and polish before integrating.',
+        confirmLabel: 'Integrate New',
         editableValue: refined,
         onValueChange: (val) => { currentVal = val; },
-        onConfirm: () => {
-          executeContribution(currentVal, 'thought');
+        onConfirm: async () => {
+          await executeContribution(currentVal, 'thought');
+          setLastIncorporatedIndex(chatHistory.length - 1);
         }
       });
     } catch (err) {
@@ -155,6 +158,8 @@ const CouncilChat: React.FC<CouncilChatProps> = ({
       setIsLoading(false);
     }
   };
+
+  const hasNewMessages = chatHistory.slice(lastIncorporatedIndex + 1).some(m => m.role === 'user');
 
   if (!isOpen) return null;
 
@@ -182,14 +187,19 @@ const CouncilChat: React.FC<CouncilChatProps> = ({
           </div>
           
           <div className="flex items-center gap-3">
-            {chatHistory.length > 2 && (
+            {(chatHistory.length > 0) && (
                 <button 
                   onClick={handleBatchIncorporate}
-                  className="text-[10px] font-black uppercase tracking-widest bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-lg transition-colors border border-emerald-500/50 shadow-sm flex items-center gap-2"
-                  title="Incorporate all chat insights into the Council Intelligence layer"
+                  disabled={!hasNewMessages || isLoading}
+                  className={`text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg transition-all border shadow-sm flex items-center gap-2 ${
+                    hasNewMessages && !isLoading
+                    ? "bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-500/50" 
+                    : "bg-slate-800 text-slate-500 border-slate-700 cursor-not-allowed opacity-50"
+                  }`}
+                  title={hasNewMessages ? "Incorporate new chat insights" : "No new user insights to incorporate"}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h.01"/><path d="M12 16h.01"/><path d="M12 12h.01"/><path d="M12 8h.01"/><path d="M12 4h.01"/><path d="M8 20h.01"/><path d="M8 16h.01"/><path d="M8 12h.01"/><path d="M8 8h.01"/><path d="M8 4h.01"/><path d="M16 20h.01"/><path d="M16 16h.01"/><path d="M16 12h.01"/><path d="M16 8h.01"/><path d="M16 4h.01"/></svg>
-                  <span className="hidden sm:inline">Incorporate Insights</span>
+                  <span className="hidden sm:inline">{hasNewMessages ? 'Incorporate Insights' : 'Insights Integrated'}</span>
                 </button>
             )}
             <button 
