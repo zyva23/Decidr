@@ -782,7 +782,7 @@ const DecidrApp: React.FC = () => {
       };
 
       await addSessionContribution(currentSessionId, contribution);
-      setContributions(prev => [contribution, ...prev]); // Add to top
+      setContributions(prev => [contribution, ...prev].sort((a, b) => b.timestamp - a.timestamp)); // Always sort newest first
       
       if (type === 'thought' && isOwner) {
         handlePrompt({
