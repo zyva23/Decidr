@@ -209,12 +209,12 @@ export const getSessionContributions = async (sessionId: string): Promise<Contri
   }
 };
 
-export const updateContributionStatus = async (sessionId: string, contributionId: string, updates: Partial<Contribution>) => {
+export const deleteSessionContribution = async (sessionId: string, contributionId: string) => {
   if (!db) return;
   try {
     const docRef = doc(db, "sessions", sessionId, "human_perspectives", contributionId);
-    await updateDoc(docRef, updates);
+    await deleteDoc(docRef);
   } catch (e) {
-    console.error("Error updating contribution status:", e);
+    console.error("Error deleting contribution:", e);
   }
 };

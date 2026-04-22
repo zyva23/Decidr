@@ -22,7 +22,7 @@ import PromptModal from './components/PromptModal';
 import { UI_CONTENT } from './src/constants/uiContent';
 import { analyzeDecision, generateActionPlan, generateDecisionTree, synthesizeOnly, generateCausalSummary, refineSelfThought } from './services/geminiService';
 import { saveSession, getSessions, deleteSession, getLocalSessions } from './services/storageService';
-import { auth, logActivity, onAuthStateChanged, signOut, isGCPConfigured, saveDetailedFeedback, saveToWaitlist, getUserProfile, saveUserProfile, getPublicSession, addSessionContribution, updateContributionStatus, getSessionContributions } from './services/googleCloud';
+import { auth, logActivity, onAuthStateChanged, signOut, isGCPConfigured, saveDetailedFeedback, saveToWaitlist, getUserProfile, saveUserProfile, getPublicSession, addSessionContribution, updateContributionStatus, getSessionContributions, deleteSessionContribution } from './services/googleCloud';
 import { generateDecisionPDF } from './services/pdfService';
 import { DecisionInput, CouncilResult, AnalysisStatus, DecisionSession, ChatMessage, UserProfile, ActionPlan, PartialCouncilResult, DecisionTree, Contribution, Notification } from './types';
 
@@ -153,6 +153,27 @@ const DecidrApp: React.FC = () => {
       setFeedbackTargetId(null);
       setRevisionComment('');
     } catch (e) { console.error(e); }
+  };
+
+  const handleDeleteContribution = async (id: string) => {
+    if (!currentSessionId) return;
+    handlePrompt({
+      type: 'confirm',
+      title: 'Delete Strategic Insight?',
+      message: 'This will permanently remove this insight from the Intelligence Layer. This action cannot be undone.',
+      confirmLabel: 'Delete Permanently',
+      onConfirm: async () => {
+        try {
+          await deleteSessionContribution(currentSessionId, id);
+          setContributions(prev => prev.filter(c => c.id !== id));
+          if (selectedContributionIds.includes(id)) {
+            setSelectedContributionIds(prev => prev.filter(i => i !== id));
+          }
+        } catch (e) {
+          console.error("Delete failed:", e);
+        }
+      }
+    });
   };
 
   // Notification State
@@ -1255,6 +1276,19 @@ const DecidrApp: React.FC = () => {
                                         </button>
                                         <button onClick={() => handleDiscardContribution(c.id)} className="px-3 py-1.5 bg-red-500/10 border border-red-500/30 text-red-400 rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-red-500/20 transition-all">
                                           Discard
+                                        </button>
+                                      </div>
+                                    )}
+
+                                    {isOwner && (c.name === contributionName || c.type === 'thought') && (
+                                      <div className="mt-4 flex items-center justify-end">
+                                        <button 
+                                          onClick={() => handleDeleteContribution(c.id)}
+                                          className="flex items-center gap-1.5 px-3 py-1.5 text-slate-600 hover:text-red-400 transition-colors group/del"
+                                          title="Permanently remove your insight"
+                                        >
+                                          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="opacity-50 group-hover/del:opacity-100 transition-opacity"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                                          <span className="text-[9px] font-black uppercase tracking-widest">Delete Insight</span>
                                         </button>
                                       </div>
                                     )}
