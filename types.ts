@@ -171,7 +171,8 @@ export enum AnalysisStatus {
   COMPLETE = 'COMPLETE',
   ERROR = 'ERROR',
   OUT_OF_CREDITS = 'OUT_OF_CREDITS',
-  SHARED_VIEW = 'SHARED_VIEW'
+  SHARED_VIEW = 'SHARED_VIEW',
+  RECRUITMENT_GATE = 'RECRUITMENT_GATE'
 }
 
 export interface DecisionSession {

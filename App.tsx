@@ -136,6 +136,7 @@ const DecidrApp: React.FC = () => {
   const [currentSynthesisIndex, setCurrentSynthesisIndex] = useState(0);
   const [feedbackTargetId, setFeedbackTargetId] = useState<string | null>(null);
   const [revisionComment, setRevisionComment] = useState('');
+  const [pendingShareId, setPendingShareId] = useState<string | null>(null);
 
   const handleDiscardContribution = async (id: string) => {
     if (!currentSessionId) return;
@@ -344,7 +345,13 @@ const DecidrApp: React.FC = () => {
         }
         
         logActivity(firebaseUser.uid, 'login');
-        setSessions(await getSessions(firebaseUser.uid));
+        const userSessions = await getSessions(firebaseUser.uid);
+        setSessions(userSessions);
+
+        // RESUME PENDING SHARED SESSION
+        if (pendingShareId) {
+          handleLoadSharedSession(pendingShareId);
+        }
       } else {
         setUser(null); setSessions(getLocalSessions());
         setXp(parseInt(localStorage.getItem('dc_xp_guest') || '0', 10));
@@ -364,12 +371,20 @@ const DecidrApp: React.FC = () => {
   }, []);
 
   const handleLoadSharedSession = async (shareId: string) => {
+    // GATE CHECK: If no user, show recruitment gate first
+    if (!user) {
+      setPendingShareId(shareId);
+      setStatus(AnalysisStatus.RECRUITMENT_GATE);
+      return;
+    }
+
     setIsSharedLoading(true);
     try {
       const session = await getPublicSession(shareId);
       if (session) {
         setCurrentSessionId(session.id); setInputValues(session.input); setResult(session.result);
         setStatus(AnalysisStatus.SHARED_VIEW); setContributions([]); setIsPublicSession(true);
+        setPendingShareId(null);
       } else { 
         handlePrompt({
           type: 'alert',
@@ -788,6 +803,67 @@ const DecidrApp: React.FC = () => {
   };
 
   if (isAuthChecking) { return <div className="flex items-center justify-center h-screen bg-slate-950"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div></div>; }
+
+  // RECRUITMENT GATE: Shared link access for unauthenticated users
+  if (!user && status === AnalysisStatus.RECRUITMENT_GATE && pendingShareId) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
+        <div className="max-w-2xl w-full bg-slate-900 border border-slate-800 rounded-[2.5rem] p-8 md:p-12 shadow-2xl animate-fade-in relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-8 opacity-5">
+            <svg width="150" height="150" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-400"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </div>
+          
+          <div className="relative z-10 text-center max-w-lg mx-auto">
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-indigo-500/10 border border-indigo-500/20 rounded-full mb-8">
+              <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-pulse"></div>
+              <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest text-left">Strategic Summons Active</span>
+            </div>
+            
+            <h2 className="text-4xl font-black text-white uppercase tracking-tighter mb-4 italic text-left">You've been summoned as a Strategic Peer.</h2>
+            <p className="text-slate-400 text-lg mb-12 leading-relaxed font-medium text-left">
+              The Council has processed the data, but it lacks human intuition. Access the full deliberation to contribute your perspective.
+            </p>
+            
+            <div className="flex flex-col gap-4">
+              <button 
+                onClick={async () => {
+                   // Auth.tsx already handles the login, we just need to trigger a state change 
+                   // that Auth.tsx uses. Currently Auth is returned if no user and not guest.
+                   // So we set isGuestMode to false and let the main return handle it?
+                   // No, we need a way to trigger the auth popup from here.
+                   // Actually, we can just render the Auth component but with a special mode.
+                   setStatus(AnalysisStatus.IDLE); // Reset to trigger standard Auth UI
+                }}
+                className="w-full py-5 bg-white text-slate-950 font-black uppercase tracking-[0.2em] text-sm rounded-2xl hover:bg-indigo-50 transition-all shadow-xl shadow-white/5 active:scale-[0.98]"
+              >
+                Sign In as Verified Expert
+              </button>
+              
+              <button 
+                onClick={async () => {
+                  setIsGuestMode(true);
+                  if (pendingShareId) {
+                    setIsSharedLoading(true);
+                    try {
+                      const session = await getPublicSession(pendingShareId);
+                      if (session) {
+                        setCurrentSessionId(session.id); setInputValues(session.input); setResult(session.result);
+                        setStatus(AnalysisStatus.SHARED_VIEW); setContributions([]); setIsPublicSession(true);
+                      }
+                    } catch (e) { console.error(e); setStatus(AnalysisStatus.IDLE); } finally { setIsSharedLoading(false); }
+                  }
+                }}
+                className="w-full py-5 bg-slate-950 text-slate-400 border border-slate-800 font-bold uppercase tracking-widest text-xs rounded-2xl hover:text-white hover:bg-slate-900 transition-all active:scale-[0.98]"
+              >
+                Continue as Guest Observer
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (!user && !isGuestMode && (status !== AnalysisStatus.SHARED_VIEW || shouldStartNewAfterLogin)) { 
     return (
       <Auth onContinueAsGuest={() => { 
@@ -1577,7 +1653,7 @@ const DecidrApp: React.FC = () => {
         confirmLabel={promptConfig.confirmLabel}
         extraLabel={promptConfig.extraLabel}
         editableValue={promptConfig.editableValue}
-        onValueChange={promptConfig.onValueChange}
+        onValueChange={(val) => setPromptConfig(prev => ({ ...prev, editableValue: val }))}
         onConfirm={() => {
           if (promptConfig.onConfirm) promptConfig.onConfirm();
           closePrompt();
