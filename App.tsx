@@ -303,7 +303,13 @@ const DecidrApp: React.FC = () => {
         const localCredits = parseInt(localStorage.getItem('dc_credits_used') || '0', 10);
         const finalCredits = cloudProfile?.credits !== undefined ? cloudProfile.credits : localCredits;
 
-        setUser({ id: firebaseUser.uid, email: firebaseUser.email || "User", xp: finalXp, level: finalLevel });
+        setUser({ 
+          id: firebaseUser.uid, 
+          email: firebaseUser.email || "User", 
+          displayName: firebaseUser.displayName || undefined,
+          xp: finalXp, 
+          level: finalLevel 
+        });
         setXp(finalXp); setLevel(finalLevel); setCredits(finalCredits);
         
         localStorage.setItem(`dc_xp_${firebaseUser.uid}`, finalXp.toString());
@@ -698,7 +704,12 @@ const DecidrApp: React.FC = () => {
     }
   };
 
-  useEffect(() => { if (user && !isAnonymous && !contributionName) { setContributionName(user.email.split('@')[0]); } }, [user, isAnonymous]);
+  useEffect(() => { 
+    if (user && !isAnonymous && !contributionName) { 
+      setContributionName(user.displayName || user.email.split('@')[0]); 
+    } 
+  }, [user, isAnonymous]);
+
   const handleSubmitContribution = async (name: string, content: string, type: Contribution['type'], isAnon: boolean) => {
     if (!currentSessionId || !content.trim()) return;
     setIsContributing(true);
@@ -1433,6 +1444,7 @@ const DecidrApp: React.FC = () => {
         isContributing={isContributing}
         isAuthenticated={!!user}
         showPrompt={handlePrompt}
+        userName={contributionName}
       />
 
       {isDirectInsightModalOpen && (
@@ -1485,7 +1497,7 @@ const DecidrApp: React.FC = () => {
 
               <button
                 onClick={async () => {
-                  await handleSubmitContribution("Owner", contributionContent, contributionType, false);
+                  await handleSubmitContribution(contributionName || "Anonymous Expert", contributionContent, contributionType, false);
                   setContributionContent('');
                   setIsDirectInsightModalOpen(false);
                 }}

@@ -226,6 +226,7 @@ export interface PivotPoint {
 export interface UserProfile {
   id: string;
   email: string;
+  displayName?: string;
   xp: number;
   level: number;
 }

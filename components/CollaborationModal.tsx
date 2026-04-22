@@ -36,6 +36,7 @@ interface Props {
   isContributing: boolean;
   isAuthenticated: boolean;
   showPrompt: (config: any) => void;
+  userName?: string;
 }
 
 const CollaborationModal: React.FC<Props> = ({ 
@@ -50,19 +51,27 @@ const CollaborationModal: React.FC<Props> = ({
   onRefineThought,
   isContributing,
   isAuthenticated,
-  showPrompt
+  showPrompt,
+  userName
 }) => {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [notify, setNotify] = useState(true);
   const [activeFlow, setActiveFlow] = useState<FlowType>('raw');
   
   // Contribution Form State
-  const [name, setName] = useState('');
+  const [name, setName] = useState(userName || '');
   const [content, setContent] = useState('');
   const [type, setType] = useState<Contribution['type']>('thought');
   const [isAnonymous, setIsAnonymous] = useState(!isAuthenticated);
   const [showForm, setShowForm] = useState(!isOwner);
   const [isRefining, setIsRefining] = useState(false);
+
+  // Sync name with userName when it becomes available
+  React.useEffect(() => {
+    if (userName && !name) {
+      setName(userName);
+    }
+  }, [userName, name]);
 
   if (!isOpen) return null;
 
