@@ -32,6 +32,10 @@ const CouncilChat: React.FC<CouncilChatProps> = ({
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isPromoting, setIsPromoting] = useState<string | null>(null);
+  
+  // Confirmation Modal State
+  const [pendingContribution, setPendingContribution] = useState<{content: string, type: Contribution['type']} | null>(null);
+  
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -76,44 +80,52 @@ const CouncilChat: React.FC<CouncilChatProps> = ({
     }
   };
 
-  const handlePromoteToThought = async (content: string, msgId: number) => {
-    const idStr = msgId.toString();
-    setIsPromoting(idStr);
+  const executeContribution = async (content: string, type: Contribution['type']) => {
+    setIsLoading(true);
     try {
-      await onSubmitContribution(userName, content, 'thought', !isUserAuthenticated);
-      // Optional: Add a system message or visual cue that it was added
+      await onSubmitContribution(userName, content, type, !isUserAuthenticated);
+      showPrompt({
+        type: 'success',
+        title: 'Intelligence Integrated',
+        message: 'Insight has been successfully moved to the Human Intelligence Layer.'
+      });
     } catch (err) {
-      console.error("Promotion failed:", err);
+      console.error("Contribution failed:", err);
     } finally {
-      setIsPromoting(null);
+      setIsLoading(false);
     }
   };
 
-  const handleBatchIncorporate = async () => {
+  const handlePromoteToThought = (content: string, msgId: number) => {
+    let currentContent = content;
+    showPrompt({
+      type: 'confirm',
+      title: 'Incorporate Self Thought',
+      message: 'Review and refine your strategic thought before integrating it into the Master Verdict layer.',
+      confirmLabel: 'Incorporate',
+      editableValue: currentContent,
+      onValueChange: (val) => { currentContent = val; },
+      onConfirm: () => {
+        executeContribution(currentContent, 'thought');
+      }
+    });
+  };
+
+  const handleBatchIncorporate = () => {
     const userMessages = chatHistory.filter(m => m.role === 'user');
     if (userMessages.length === 0) return;
 
+    let unifiedInsight = userMessages.map(m => m.content).join("\n---\n");
+    
     showPrompt({
       type: 'confirm',
-      title: 'Incorporate Insights',
-      message: `Incorporate ${userMessages.length} chat points into the Council's Collective Intelligence?`,
-      confirmLabel: 'Incorporate',
-      onConfirm: async () => {
-        setIsLoading(true);
-        try {
-          // We concatenate all user insights into one refined strategic thought for the layer
-          const unifiedInsight = userMessages.map(m => m.content).join("\n---\n");
-          await onSubmitContribution(userName, unifiedInsight, 'thought', !isUserAuthenticated);
-          showPrompt({
-            type: 'success',
-            title: 'Intelligence Unified',
-            message: 'Insights have been successfully integrated into the Human Intelligence Layer.'
-          });
-        } catch (err) {
-          console.error("Batch incorporation failed:", err);
-        } finally {
-          setIsLoading(false);
-        }
+      title: 'Unified Batch Integration',
+      message: 'Combine and refine your recent chat points into a single cohesive strategic insight.',
+      confirmLabel: 'Integrate All',
+      editableValue: unifiedInsight,
+      onValueChange: (val) => { unifiedInsight = val; },
+      onConfirm: () => {
+        executeContribution(unifiedInsight, 'thought');
       }
     });
   };

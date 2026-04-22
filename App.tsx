@@ -63,6 +63,8 @@ interface PromptConfig {
   onConfirm?: () => void;
   onCancel?: () => void;
   onExtraAction?: () => void;
+  editableValue?: string;
+  onValueChange?: (value: string) => void;
 }
 
 const DecidrApp: React.FC = () => {

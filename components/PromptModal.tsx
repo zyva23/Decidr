@@ -11,6 +11,8 @@ interface PromptModalProps {
   onConfirm: () => void;
   onCancel?: () => void;
   onExtraAction?: () => void;
+  editableValue?: string;
+  onValueChange?: (value: string) => void;
 }
 
 const PromptModal: React.FC<PromptModalProps> = ({
@@ -23,7 +25,9 @@ const PromptModal: React.FC<PromptModalProps> = ({
   extraLabel,
   onConfirm,
   onCancel,
-  onExtraAction
+  onExtraAction,
+  editableValue,
+  onValueChange
 }) => {
   if (!isOpen) return null;
 
@@ -32,7 +36,7 @@ const PromptModal: React.FC<PromptModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
-      <div className="bg-[#1A1D21] border border-slate-700/50 rounded-2xl max-w-sm w-full shadow-2xl overflow-hidden animate-slide-up">
+      <div className={`bg-[#1A1D21] border border-slate-700/50 rounded-2xl ${editableValue !== undefined ? 'max-w-lg' : 'max-w-sm'} w-full shadow-2xl overflow-hidden animate-slide-up`}>
         <div className="p-6 text-center">
           <div className={`w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center border-2 ${
             isSuccess ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-500' : 
@@ -49,7 +53,22 @@ const PromptModal: React.FC<PromptModalProps> = ({
           </div>
           
           <h3 className="text-lg font-black text-white uppercase tracking-tighter mb-2 italic">{title}</h3>
-          <p className="text-sm text-slate-400 font-medium leading-relaxed">{message}</p>
+          <p className="text-sm text-slate-400 font-medium leading-relaxed mb-4">{message}</p>
+
+          {editableValue !== undefined && onValueChange && (
+            <div className="mt-4 text-left">
+              <textarea
+                value={editableValue}
+                onChange={(e) => onValueChange(e.target.value)}
+                className="w-full bg-[#121519] border border-slate-700 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-indigo-500 transition-all min-h-[150px] resize-none shadow-inner"
+                autoFocus
+              />
+              <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-2 flex items-center gap-1.5">
+                <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                Finalize Intelligence Text
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="flex border-t border-slate-800/50">
