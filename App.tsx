@@ -1572,6 +1572,8 @@ const DecidrApp: React.FC = () => {
         message={promptConfig.message}
         confirmLabel={promptConfig.confirmLabel}
         extraLabel={promptConfig.extraLabel}
+        editableValue={promptConfig.editableValue}
+        onValueChange={promptConfig.onValueChange}
         onConfirm={() => {
           if (promptConfig.onConfirm) promptConfig.onConfirm();
           closePrompt();
