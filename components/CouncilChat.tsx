@@ -174,6 +174,30 @@ const CouncilChat: React.FC<CouncilChatProps> = ({
       {/* Modal Container */}
       <div className="relative w-full max-w-2xl bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden flex flex-col h-[80vh] animate-fade-in">
         
+        {/* Full Modal Loading Overlay */}
+        {(isLoading || isPromoting !== null) && (
+          <div className="absolute inset-0 z-[100] bg-slate-950/80 backdrop-blur-md flex flex-col items-center justify-center p-8 animate-fade-in text-center">
+            <div className="relative w-20 h-20 mb-6">
+              <div className="absolute inset-0 bg-indigo-500/20 rounded-full animate-ping opacity-25"></div>
+              <div className="relative w-20 h-20 bg-indigo-500/10 border border-indigo-500/30 rounded-full flex items-center justify-center shadow-[0_0_40px_rgba(99,102,241,0.3)]">
+                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-400 animate-pulse">
+                  <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
+                </svg>
+              </div>
+            </div>
+            <div className="space-y-3">
+              <h3 className="text-base font-black text-white uppercase tracking-[0.4em] italic">
+                {isPromoting !== null ? "Refining Thought" : "Council Synthesis"}
+              </h3>
+              <p className="text-[11px] text-indigo-400 font-bold uppercase tracking-[0.2em] animate-pulse max-w-xs leading-relaxed mx-auto">
+                {isPromoting !== null 
+                  ? "Architecting high-fidelity strategic thought from your input..." 
+                  : "Architecting high-fidelity strategic insight from your deliberation..."}
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Header */}
         <div className="p-4 bg-slate-900 border-b border-slate-800 flex justify-between items-center shrink-0">
           <div className="flex items-center gap-3">
@@ -277,15 +301,6 @@ const CouncilChat: React.FC<CouncilChatProps> = ({
               </div>
             </div>
           ))}
-          {isLoading && (
-            <div className="flex justify-start">
-              <div className="bg-slate-800 border border-slate-700 rounded-2xl rounded-tl-none p-4 flex items-center gap-2">
-                <span className="w-1.5 h-1.5 bg-slate-500 rounded-full animate-bounce"></span>
-                <span className="w-1.5 h-1.5 bg-slate-500 rounded-full animate-bounce delay-75"></span>
-                <span className="w-1.5 h-1.5 bg-slate-500 rounded-full animate-bounce delay-150"></span>
-              </div>
-            </div>
-          )}
           <div ref={messagesEndRef} />
         </div>
 
