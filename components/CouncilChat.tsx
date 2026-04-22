@@ -212,7 +212,30 @@ const CouncilChat: React.FC<CouncilChatProps> = ({
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar bg-slate-950/30 scroll-smooth">
+        <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar bg-slate-950/30 scroll-smooth relative">
+          {(isLoading || isPromoting !== null) && (
+            <div className="absolute inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex flex-col items-center justify-center p-8 animate-fade-in text-center">
+              <div className="relative w-16 h-16 mb-6">
+                <div className="absolute inset-0 bg-indigo-500/20 rounded-full animate-ping opacity-25"></div>
+                <div className="relative w-16 h-16 bg-indigo-500/10 border border-indigo-500/30 rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(99,102,241,0.2)]">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-400 animate-pulse">
+                    <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
+                  </svg>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-sm font-black text-white uppercase tracking-[0.3em] italic">
+                  {isPromoting !== null ? "Refining Thought" : "Council Synthesis"}
+                </h3>
+                <p className="text-[10px] text-indigo-400 font-bold uppercase tracking-widest animate-pulse max-w-xs leading-relaxed">
+                  {isPromoting !== null 
+                    ? "Architecting high-fidelity strategic thought from your input..." 
+                    : "Architecting high-fidelity strategic insight from your deliberation..."}
+                </p>
+              </div>
+            </div>
+          )}
+
           {chatHistory.length === 0 && (
             <div className="text-center py-20 text-slate-500">
               <div className="w-16 h-16 bg-slate-800/50 rounded-full flex items-center justify-center mx-auto mb-4">
