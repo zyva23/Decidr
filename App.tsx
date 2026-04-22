@@ -1347,9 +1347,11 @@ const DecidrApp: React.FC = () => {
                                         <button onClick={() => toggleContributionSelection(c.id)} className={`px-3 py-1.5 rounded-lg border text-[9px] font-black uppercase tracking-widest transition-all ${selectedContributionIds.includes(c.id) ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-indigo-500/10 border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/20'}`}>
                                           {selectedContributionIds.includes(c.id) ? 'Selected' : 'Select'}
                                         </button>
-                                        <button onClick={() => setFeedbackTargetId(c.id)} className="px-3 py-1.5 bg-amber-500/10 border border-amber-500/30 text-amber-400 rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-amber-500/20 transition-all">
-                                          Resend with Comment
-                                        </button>
+                                        {c.type !== 'thought' && (
+                                          <button onClick={() => setFeedbackTargetId(c.id)} className="px-3 py-1.5 bg-amber-500/10 border border-amber-500/30 text-amber-400 rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-amber-500/20 transition-all">
+                                            Resend with Comment
+                                          </button>
+                                        )}
                                         <button onClick={() => handleDiscardContribution(c.id)} className="px-3 py-1.5 bg-red-500/10 border border-red-500/30 text-red-400 rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-red-500/20 transition-all">
                                           Discard
                                         </button>
