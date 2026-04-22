@@ -11,6 +11,7 @@ interface CouncilChatProps {
   onUpdateHistory: (msgs: ChatMessage[]) => void;
   onReAnalyze: (newContext: string) => void;
   onSubmitContribution: (name: string, content: string, type: Contribution['type'], isAnonymous: boolean) => Promise<void>;
+  onRefineThought: (text: string) => Promise<string>;
   userName: string;
   isUserAuthenticated: boolean;
   showPrompt: (config: any) => void;
@@ -25,6 +26,7 @@ const CouncilChat: React.FC<CouncilChatProps> = ({
   onUpdateHistory,
   onReAnalyze,
   onSubmitContribution,
+  onRefineThought,
   userName,
   isUserAuthenticated,
   showPrompt
@@ -33,9 +35,9 @@ const CouncilChat: React.FC<CouncilChatProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [isPromoting, setIsPromoting] = useState<string | null>(null);
   
-  // Confirmation Modal State
-  const [pendingContribution, setPendingContribution] = useState<{content: string, type: Contribution['type']} | null>(null);
-  
+  // Confirmation Modal State (Manual Edit Control)
+  const [pendingText, setPendingText] = useState('');
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -83,6 +85,7 @@ const CouncilChat: React.FC<CouncilChatProps> = ({
   const executeContribution = async (content: string, type: Contribution['type']) => {
     setIsLoading(true);
     try {
+      // We pass content as is because it's ALREADY been refined/edited
       await onSubmitContribution(userName, content, type, !isUserAuthenticated);
       showPrompt({
         type: 'success',
@@ -96,38 +99,61 @@ const CouncilChat: React.FC<CouncilChatProps> = ({
     }
   };
 
-  const handlePromoteToThought = (content: string, msgId: number) => {
-    let currentContent = content;
-    showPrompt({
-      type: 'confirm',
-      title: 'Incorporate Self Thought',
-      message: 'Review and refine your strategic thought before integrating it into the Master Verdict layer.',
-      confirmLabel: 'Incorporate',
-      editableValue: currentContent,
-      onValueChange: (val) => { currentContent = val; },
-      onConfirm: () => {
-        executeContribution(currentContent, 'thought');
-      }
-    });
+  const handlePromoteToThought = async (content: string, msgId: number) => {
+    setIsPromoting(msgId.toString());
+    try {
+      // 1. First, get AI Refinement
+      const refined = await onRefineThought(content);
+      
+      // 2. Then show the modal with refined text
+      let currentVal = refined;
+      showPrompt({
+        type: 'confirm',
+        title: 'Review Self Thought',
+        message: 'The Council has refined your thought into high-fidelity intelligence. Review and polish before integrating.',
+        confirmLabel: 'Incorporate',
+        editableValue: refined,
+        onValueChange: (val) => { currentVal = val; },
+        onConfirm: () => {
+          executeContribution(currentVal, 'thought');
+        }
+      });
+    } catch (err) {
+      console.error("Refinement failed:", err);
+    } finally {
+      setIsPromoting(null);
+    }
   };
 
-  const handleBatchIncorporate = () => {
+  const handleBatchIncorporate = async () => {
     const userMessages = chatHistory.filter(m => m.role === 'user');
     if (userMessages.length === 0) return;
 
-    let unifiedInsight = userMessages.map(m => m.content).join("\n---\n");
-    
-    showPrompt({
-      type: 'confirm',
-      title: 'Unified Batch Integration',
-      message: 'Combine and refine your recent chat points into a single cohesive strategic insight.',
-      confirmLabel: 'Integrate All',
-      editableValue: unifiedInsight,
-      onValueChange: (val) => { unifiedInsight = val; },
-      onConfirm: () => {
-        executeContribution(unifiedInsight, 'thought');
-      }
-    });
+    setIsLoading(true);
+    try {
+      const rawUnified = userMessages.map(m => m.content).join("\n---\n");
+      
+      // 1. Get AI Refinement for the batch
+      const refined = await onRefineThought(rawUnified);
+      
+      // 2. Show modal
+      let currentVal = refined;
+      showPrompt({
+        type: 'confirm',
+        title: 'Unified Batch Integration',
+        message: 'The Council has synthesized your chat points into a cohesive strategic insight. Review and polish before integrating.',
+        confirmLabel: 'Integrate All',
+        editableValue: refined,
+        onValueChange: (val) => { currentVal = val; },
+        onConfirm: () => {
+          executeContribution(currentVal, 'thought');
+        }
+      });
+    } catch (err) {
+      console.error("Batch refinement failed:", err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   if (!isOpen) return null;

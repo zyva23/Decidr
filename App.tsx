@@ -712,15 +712,15 @@ const DecidrApp: React.FC = () => {
     } 
   }, [user, isAnonymous]);
 
-  const handleSubmitContribution = async (name: string, content: string, type: Contribution['type'], isAnon: boolean) => {
+  const handleSubmitContribution = async (name: string, content: string, type: Contribution['type'], isAnon: boolean, skipRefine = false) => {
     if (!currentSessionId || !content.trim()) return;
     setIsContributing(true);
     
     try {
       let finalContent = content.trim();
       
-      // REFINE THOUGHT: If it's a thought, enhance it with Council Intelligence
-      if (type === 'thought' && result) {
+      // REFINE THOUGHT: If it's a thought and NOT already refined, enhance it
+      if (type === 'thought' && result && !skipRefine) {
         finalContent = await refineSelfThought(finalContent, result);
       }
 
@@ -1387,7 +1387,11 @@ const DecidrApp: React.FC = () => {
           chatHistory={chatHistory} 
           onUpdateHistory={setChatHistory} 
           onReAnalyze={(newCtx) => handleAnalysis({...inputValues, context: inputValues.context + newCtx})} 
-          onSubmitContribution={handleSubmitContribution}
+          onSubmitContribution={(name, content, type, isAnon) => handleSubmitContribution(name, content, type, isAnon, true)}
+          onRefineThought={async (text) => {
+             if (!result) return text;
+             return await refineSelfThought(text, result);
+          }}
           userName={contributionName}
           isUserAuthenticated={!!user}
           showPrompt={handlePrompt}
