@@ -1254,69 +1254,81 @@ const DecidrApp: React.FC = () => {
 
                               {!isOwner && (
                                 <div className="p-6 border-b border-slate-800/50 bg-[#121519]/30">
-                                  <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2">
-                                     <span className="w-1 h-1 rounded-full bg-indigo-500"></span>
-                                     Contribute Intelligence
-                                  </h4>
-                                  <div className="space-y-4">
-                                  <div className="flex flex-col sm:flex-row gap-4">
-                                    {!isAnonymous && (
-                                      <input 
-                                        type="text"
-                                        placeholder="Your Name (Required)"
-                                        value={contributionName}
-                                        onChange={(e) => setContributionName(e.target.value)}
-                                        className="flex-1 bg-[#1A1D21] border border-slate-700 rounded-xl px-4 py-3 text-xs text-white outline-none focus:border-indigo-500 transition-all shadow-inner"
-                                        required
-                                      />
-                                    )}
-                                    {user && (
-                                      <div className="flex items-center gap-3 bg-[#1A1D21] border border-slate-700 rounded-xl px-4 py-2 shadow-inner">
-                                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Anonymous</span>
-                                        <button 
-                                          onClick={() => setIsAnonymous(!isAnonymous)}
-                                          className={`w-10 h-5 rounded-full transition-all relative ${isAnonymous ? 'bg-indigo-600' : 'bg-slate-800'}`}
-                                        >
-                                          <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${isAnonymous ? 'left-6' : 'left-1'}`} />
-                                        </button>
+                                  {contributions.some(c => c.authorId === guestId && c.status !== 'revision_requested') ? (
+                                    <div className="py-8 text-center animate-fade-in">
+                                      <div className="w-12 h-12 bg-indigo-500/10 border border-indigo-500/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-400"><polyline points="20 6 9 17 4 12"/></svg>
                                       </div>
-                                    )}
-                                  </div>
-                                  <div className="flex gap-2">
-                                    {(['variable', 'risk', 'alternative', 'thought'] as const).map(t => (
+                                      <h4 className="text-sm font-black text-white uppercase tracking-widest mb-1">Perspective Sealed</h4>
+                                      <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Thank you for your strategic contribution.</p>
+                                    </div>
+                                  ) : (
+                                    <>
+                                      <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                         <span className="w-1 h-1 rounded-full bg-indigo-500"></span>
+                                         Contribute Intelligence
+                                      </h4>
+                                      <div className="space-y-4">
+                                      <div className="flex flex-col sm:flex-row gap-4">
+                                        {!isAnonymous && (
+                                          <input 
+                                            type="text"
+                                            placeholder="Your Name (Required)"
+                                            value={contributionName}
+                                            onChange={(e) => setContributionName(e.target.value)}
+                                            className="flex-1 bg-[#1A1D21] border border-slate-700 rounded-xl px-4 py-3 text-xs text-white outline-none focus:border-indigo-500 transition-all shadow-inner"
+                                            required
+                                          />
+                                        )}
+                                        {user && (
+                                          <div className="flex items-center gap-3 bg-[#1A1D21] border border-slate-700 rounded-xl px-4 py-2 shadow-inner">
+                                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Anonymous</span>
+                                            <button 
+                                              onClick={() => setIsAnonymous(!isAnonymous)}
+                                              className={`w-10 h-5 rounded-full transition-all relative ${isAnonymous ? 'bg-indigo-600' : 'bg-slate-800'}`}
+                                            >
+                                              <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${isAnonymous ? 'left-6' : 'left-1'}`} />
+                                            </button>
+                                          </div>
+                                        )}
+                                      </div>
+                                      <div className="flex gap-2">
+                                        {(['variable', 'risk', 'alternative', 'thought'] as const).map(t => (
+                                          <button
+                                            key={t}
+                                            onClick={() => setContributionType(t)}
+                                            className={`flex-1 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest border transition-all ${
+                                              contributionType === t 
+                                                ? 'bg-indigo-500/20 text-indigo-400 border-indigo-500/50' 
+                                                : 'bg-slate-900 text-slate-500 border-slate-800 hover:border-slate-700'
+                                            }`}
+                                          >
+                                            {t === 'risk' ? '🚩 Risk' : t === 'variable' ? '🧩 Variable' : t === 'alternative' ? '💡 Alternative' : '🧠 Thought'}
+                                          </button>
+                                        ))}
+                                      </div>
+                                      <textarea 
+                                        placeholder="Share your insight, risk observation, or alternative path..."
+                                        value={contributionContent}
+                                        onChange={(e) => setContributionContent(e.target.value)}
+                                        className="w-full bg-[#1A1D21] border border-slate-700 rounded-xl px-4 py-3 text-xs text-white outline-none focus:border-indigo-500 transition-all min-h-[100px] resize-none shadow-inner"
+                                      />
                                       <button
-                                        key={t}
-                                        onClick={() => setContributionType(t)}
-                                        className={`flex-1 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest border transition-all ${
-                                          contributionType === t 
-                                            ? 'bg-indigo-500/20 text-indigo-400 border-indigo-500/50' 
-                                            : 'bg-slate-900 text-slate-500 border-slate-800 hover:border-slate-700'
+                                        onClick={() => handleSubmitContribution(contributionName, contributionContent, contributionType, isAnonymous)}
+                                        disabled={!contributionContent.trim() || isContributing || (!isAnonymous && !contributionName.trim())}
+                                        className={`w-full py-4 rounded-xl font-black uppercase tracking-[0.2em] text-xs transition-all shadow-xl flex items-center justify-center gap-3 ${
+                                          !contributionContent.trim() || isContributing || (!isAnonymous && !contributionName.trim())
+                                            ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                                            : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-900/20 active:scale-[0.98]'
                                         }`}
                                       >
-                                        {t === 'risk' ? '🚩 Risk' : t === 'variable' ? '🧩 Variable' : t === 'alternative' ? '💡 Alternative' : '🧠 Thought'}
+                                        {isContributing ? "Transmitting..." : "Submit Perspective"}
                                       </button>
-                                    ))}
-                                  </div>
-                                  <textarea 
-                                    placeholder="Share your insight, risk observation, or alternative path..."
-                                    value={contributionContent}
-                                    onChange={(e) => setContributionContent(e.target.value)}
-                                    className="w-full bg-[#1A1D21] border border-slate-700 rounded-xl px-4 py-3 text-xs text-white outline-none focus:border-indigo-500 transition-all min-h-[100px] resize-none shadow-inner"
-                                  />
-                                  <button
-                                    onClick={() => handleSubmitContribution(contributionName, contributionContent, contributionType, isAnonymous)}
-                                    disabled={!contributionContent.trim() || isContributing || (!isAnonymous && !contributionName.trim())}
-                                    className={`w-full py-4 rounded-xl font-black uppercase tracking-[0.2em] text-xs transition-all shadow-xl flex items-center justify-center gap-3 ${
-                                      !contributionContent.trim() || isContributing || (!isAnonymous && !contributionName.trim())
-                                        ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                                        : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-900/20 active:scale-[0.98]'
-                                    }`}
-                                  >
-                                    {isContributing ? "Transmitting..." : "Submit Perspective"}
-                                  </button>
+                                    </div>
+                                  </>
+                                  )}
                                 </div>
-                              </div>
-                            )}
+                              )}
                           </div>
 
 
@@ -1335,8 +1347,8 @@ const DecidrApp: React.FC = () => {
                                     </div>
                                     <div className="mb-2 text-left">
                                       {c.type === 'thought' ? (
-                                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider border bg-indigo-500/20 text-indigo-300 border-indigo-500/50 shadow-[0_0_10px_rgba(99,102,241,0.3)]">
-                                          🧠 High-Fidelity Strategic Thought
+                                        <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider border ${c.authorId === (user?.id || guestId) ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/50 shadow-[0_0_10px_rgba(99,102,241,0.3)]' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>
+                                          🧠 {c.authorId === (user?.id || guestId) ? 'High-Fidelity Strategic Thought' : 'Strategic Thought'}
                                         </span>
                                       ) : (
                                         <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider border shadow-sm ${c.type === 'risk' ? 'bg-red-500/10 text-red-400 border-red-500/20' : c.type === 'variable' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'}`}>
