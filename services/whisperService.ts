@@ -21,7 +21,7 @@ export const transcribeAudio = async (audioBlob: Blob): Promise<string> => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'gemini-3-flash-preview',
+        model: 'gemini-2.0-flash',
         contents: [
           {
             role: 'user',

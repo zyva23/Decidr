@@ -119,8 +119,8 @@ const getAI = () => {
   return aiInstance;
 };
 
-const MASTER_MODEL = "gemini-3-flash-preview"; 
-const FALLBACK_MODEL = "gemini-3-flash-preview"; // No longer using 1.5 since it was deprecated for this API version
+const MASTER_MODEL = "gemini-2.0-flash"; 
+const FALLBACK_MODEL = "gemini-2.0-flash";
 
 const truncateContext = (text: string, maxChars: number = 2000): string => {
   if (text.length <= maxChars) return text;
