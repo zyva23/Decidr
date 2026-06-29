@@ -114,15 +114,8 @@ export interface CouncilTrace {
   fullTranscript: string;
 }
 
-let aiInstance: GoogleGenAI | null = null;
+let aiInstance: any = {};
 const getAI = () => {
-  const apiKey = process.env.API_KEY || (import.meta as any).env?.VITE_GEMINI_API_KEY;
-  if (!apiKey || apiKey === 'undefined') {
-    throw new Error("Strategic API Key is missing. Please set VITE_GEMINI_API_KEY in your environment.");
-  }
-  if (!aiInstance) {
-    aiInstance = new GoogleGenAI({ apiKey });
-  }
   return aiInstance;
 };
 
@@ -137,13 +130,22 @@ const truncateContext = (text: string, maxChars: number = 2000): string => {
 /**
  * HELPER: Attempt content generation with fallback
  */
-async function generateWithFallback(ai: GoogleGenAI, prompt: string, config: any, retryWithFallback = true): Promise<any> {
-  try {
-    return await ai.models.generateContent({
-      model: MASTER_MODEL,
-      contents: prompt,
-      config
+async function generateWithFallback(ai: any, prompt: string, config: any, retryWithFallback = true): Promise<any> {
+  const fetchFromApi = async (model: string) => {
+    const response = await fetch('/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model, contents: prompt, config })
     });
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || response.statusText);
+    }
+    return response.json();
+  };
+
+  try {
+    return await fetchFromApi(MASTER_MODEL);
   } catch (e: any) {
     const errorMsg = e.message || "";
     // Trigger fallback for model not found, not supported, high demand (503), or rate limits (429)
@@ -155,13 +157,9 @@ async function generateWithFallback(ai: GoogleGenAI, prompt: string, config: any
                           errorMsg.includes('429');
 
     if (retryWithFallback && shouldFallback) {
-      console.warn(`[ORCHESTRATOR] ${MASTER_MODEL} failed (Error: ${errorMsg.substring(0, 50)}...), falling back to ${FALLBACK_MODEL}`);
+      console.warn(`[ORCHESTRATOR] ${MASTER_MODEL} failed, falling back to ${FALLBACK_MODEL}`);
       try {
-        return await ai.models.generateContent({
-          model: FALLBACK_MODEL,
-          contents: prompt,
-          config
-        });
+        return await fetchFromApi(FALLBACK_MODEL);
       } catch (fallbackError: any) {
         console.error(`[ORCHESTRATOR] Fallback model ${FALLBACK_MODEL} also failed:`, fallbackError.message);
         throw fallbackError;
@@ -450,11 +448,9 @@ export async function performComprehensiveResearch(input: DecisionInput, strateg
   };
 
   try {
-    console.log(`[RESEARCH] Phase 1: Horizon Scan for: ${input.title}`);
     const phase1Results = await executeResearch(strategicPoints.join('\n'));
     
     // PHASE 2: GAP ANALYSIS & ITERATIVE DEEPENING
-    console.log(`[RESEARCH] Initial scan complete (${phase1Results.length} chars). Identifying data gaps...`);
     const ai = getAI();
     const gapAnalysisPrompt = `
         INITIAL FINDINGS:
@@ -469,7 +465,6 @@ export async function performComprehensiveResearch(input: DecisionInput, strateg
     const gapResponse = await generateWithFallback(ai, gapAnalysisPrompt, { temperature: 0.2 });
     const gaps = gapResponse.text || "";
     
-    console.log(`[RESEARCH] Phase 2: Targeted Deep-Dive into: ${gaps}`);
     const phase2Results = await executeResearch(`TARGETED DEEP-DIVE: ${gaps}`, true);
 
     return `
@@ -533,14 +528,18 @@ async function determineNextAgent(
     Output ONLY a JSON object: { "nextAgent": "Analyst" | "Strategist" | "Skeptic" | "Mediator" | "End", "reason": "string" }
   `;
   try {
-    const ai = getAI();
-    const response = await ai.models.generateContent({
-      model: MASTER_MODEL,
-      contents: prompt,
-      config: { responseMimeType: "application/json", temperature: 0.3 }
+    const response = await fetch('/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: MASTER_MODEL,
+        contents: prompt,
+        config: { responseMimeType: "application/json", temperature: 0.3 }
+      })
     });
-    const data = JSON.parse(response.text || "{}");
-    const agent = data.nextAgent;
+    const data = await response.json();
+    const agentData = JSON.parse(data.text || "{}");
+    const agent = agentData.nextAgent;
     if (['Analyst', 'Strategist', 'Skeptic', 'Mediator', 'End'].includes(agent)) {
       return agent;
     }
@@ -561,7 +560,6 @@ export async function analyzeDecision(
     const step = { phase, agent, query, response, timestamp: Date.now() };
     trace.steps.push(step);
     trace.fullTranscript += `\n\n[${new Date(step.timestamp).toISOString()}] PHASE: ${phase}${agent ? ` | AGENT: ${agent}` : ""}\nQUERY: ${query}\nRESPONSE: ${typeof response === 'string' ? response : JSON.stringify(response, null, 2)}`;
-    console.log(`[TRACE][${phase}]`, agent || "", response);
   };
 
   const optimizedInput: DecisionInput = {
@@ -569,10 +567,7 @@ export async function analyzeDecision(
     context: truncateContext(input.context)
   };
 
-  const apiKey = process.env.API_KEY || (import.meta as any).env?.VITE_GEMINI_API_KEY;
-  if (!apiKey || apiKey === 'undefined') {
-     throw new Error("Strategic API Key is missing.");
-  }
+  // API key proxy is handled by the backend
 
   // NEW: TRIAGE PHASE
   let researchData = cachedResearch || previousResult?.researchData;
@@ -583,7 +578,6 @@ export async function analyzeDecision(
     addTrace('Triage', 'Gatekeeper', 'triageNewInformation', triage);
 
     if (triage.status === TriageStatus.ALREADY_COVERED) {
-      console.log("[ORCHESTRATOR] New information already covered. Returning previous result.");
       return { 
         ...previousResult, 
         synthesis: { 
@@ -615,10 +609,10 @@ export async function analyzeDecision(
     addTrace('Research', 'Researcher', 'Research Context Established', researchData.substring(0, 100) + "...");
   }
 
-  const analystAgent = new AnalystAgent(apiKey as string);
-  const strategistAgent = new StrategistAgent(apiKey as string);
-  const skepticAgent = new SkepticAgent(apiKey as string);
-  const mediatorAgent = new MediatorAgent(apiKey as string);
+  const analystAgent = new AnalystAgent("proxy");
+  const strategistAgent = new StrategistAgent("proxy");
+  const skepticAgent = new SkepticAgent("proxy");
+  const mediatorAgent = new MediatorAgent("proxy");
 
   // STEP 3: Supervisor Loop Execution (3 Rounds)
   let historyTranscript = "";
@@ -647,7 +641,6 @@ export async function analyzeDecision(
       break;
     }
 
-    console.log(`Council Turn ${currentTurn + 1}: ${nextAgentName}`);
     addTrace('Supervisor', 'Supervisor', `Selecting turn ${currentTurn + 1}`, { nextAgent: nextAgentName, currentTurn });
 
     let agentResponse: AgentResponse | undefined;

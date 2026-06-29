@@ -67,11 +67,10 @@ export const agentResponseSchemaObj = {
  * - Unified grounding source extraction.
  */
 export abstract class BaseAgent {
-  protected ai: GoogleGenAI;
   protected modelName: string = "gemini-3-flash-preview";
 
   constructor(apiKey: string) {
-    this.ai = new GoogleGenAI({ apiKey });
+    // API key proxy is handled by the backend
   }
 
   /**
@@ -153,11 +152,22 @@ export abstract class BaseAgent {
     const contents = `${systemPrompt}\n\nUSER INPUT:\n${userPrompt}\n\nOUTPUT INSTRUCTIONS:\nReturn valid JSON adhering to schema. Analysis max 500 words.`;
 
     return this.withRetry(async () => {
-      const response = await this.ai.models.generateContent({
-        model: this.modelName,
-        contents: contents,
-        config: config
+      const fetchResponse = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: this.modelName,
+          contents,
+          config
+        })
       });
+
+      if (!fetchResponse.ok) {
+        const errorData = await fetchResponse.json();
+        throw new Error(errorData.error || fetchResponse.statusText);
+      }
+
+      const response = await fetchResponse.json();
 
       const text = response.text || "";
       let sources: string[] = [];

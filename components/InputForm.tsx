@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { DecisionInput, BrainstormResult, DecisionSession } from '../types';
 import { exploreBrainstorm, extractDeepInquiry } from '../services/geminiService';
+import { transcribeAudio } from '../services/whisperService';
 import DocumentUpload from './DocumentUpload';
 import { Attachment, DeepInquiryResult } from '../types';
 import { UI_CONTENT } from '../src/constants/uiContent';
@@ -26,6 +27,10 @@ const InputForm: React.FC<Props> = ({ initialValues, onSubmit, isLoading, sessio
   }, [initialValues]);
 
   const [listeningField, setListeningField] = useState<keyof DecisionInput | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const [transcribingField, setTranscribingField] = useState<keyof DecisionInput | null>(null);
   const [activeBrainstorm, setActiveBrainstorm] = useState<'constraints' | 'options' | 'context' | null>(null);
   const [brainstormLoading, setBrainstormLoading] = useState(false);
   const [isLoadingBrainstorm, setIsLoadingBrainstorm] = useState(false);
@@ -179,34 +184,69 @@ const InputForm: React.FC<Props> = ({ initialValues, onSubmit, isLoading, sessio
     setHasChangesSinceSelection(false);
   };
 
-  const handleVoiceInput = (field: keyof DecisionInput) => {
-    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-      showPrompt({
-        type: 'alert',
-        title: 'Voice Not Supported',
-        message: UI_CONTENT.FORM.MESSAGES.VOICE_NOT_SUPPORTED
-      });
+  const handleVoiceInput = async (field: keyof DecisionInput) => {
+    if (listeningField === field) {
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+        mediaRecorderRef.current.stop();
+      }
       return;
     }
-    if (listeningField === field) { setListeningField(null); return; }
-    // @ts-ignore
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    const recognition = new SpeechRecognition();
-    recognition.continuous = false;
-    recognition.interimResults = false;
-    recognition.lang = 'en-US';
-    recognition.onstart = () => setListeningField(field);
-    recognition.onresult = (event: any) => {
-      const transcript = event.results[0][0].transcript;
-      setInput(prev => {
-        const current = prev[field];
-        return { ...prev, [field]: current ? `${current} ${transcript}` : transcript };
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstart = () => {
+        setListeningField(field);
+      };
+
+      mediaRecorder.onstop = async () => {
+        setListeningField(null);
+        stream.getTracks().forEach(track => track.stop());
+
+        if (audioChunksRef.current.length === 0) return;
+        
+        const audioBlob = new Blob(audioChunksRef.current, { type: mediaRecorder.mimeType || 'audio/webm' });
+        
+        try {
+          setIsTranscribing(true);
+          setTranscribingField(field);
+          const transcript = await transcribeAudio(audioBlob);
+          if (transcript) {
+            setInput(prev => {
+              const current = prev[field];
+              return { ...prev, [field]: current ? `${current} ${transcript}` : transcript };
+            });
+          }
+        } catch (error: any) {
+          showPrompt({
+            type: 'alert',
+            title: 'Transcription Failed',
+            message: error.message || 'Failed to transcribe audio. Please check your API key.'
+          });
+        } finally {
+          setIsTranscribing(false);
+          setTranscribingField(null);
+        }
+      };
+
+      mediaRecorder.start();
+    } catch (err) {
+      console.error('Error accessing microphone:', err);
+      showPrompt({
+        type: 'alert',
+        title: 'Microphone Access Denied',
+        message: 'Please allow microphone access to use voice input.'
       });
-      setListeningField(null);
-    };
-    recognition.onerror = () => setListeningField(null);
-    recognition.onend = () => setListeningField(null);
-    recognition.start();
+    }
   };
 
   const handleBrainstorm = async (field: 'constraints' | 'options' | 'context') => {
@@ -327,8 +367,8 @@ const InputForm: React.FC<Props> = ({ initialValues, onSubmit, isLoading, sessio
                 {aiIconType === 'question' ? <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> : <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>}
               </button>
             )}
-            <button type="button" disabled={isLocked} onClick={() => handleVoiceInput(field)} className={`p-1.5 rounded-full transition-all duration-300 backdrop-blur-md border ${isListening ? 'bg-red-500 text-white border-red-400 animate-pulse' : isLocked ? 'bg-slate-900/50 text-slate-700 border-slate-800 cursor-not-allowed' : 'bg-slate-800/80 text-slate-400 border-slate-600 hover:text-white hover:border-slate-400'}`}>
-              {isListening ? <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg> : <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>}
+            <button type="button" disabled={isLocked || (isTranscribing && transcribingField === field)} onClick={() => handleVoiceInput(field)} className={`p-1.5 rounded-full transition-all duration-300 backdrop-blur-md border ${isListening ? 'bg-red-500 text-white border-red-400 animate-pulse' : (isTranscribing && transcribingField === field) ? 'bg-indigo-500 text-white border-indigo-400 animate-pulse' : isLocked ? 'bg-slate-900/50 text-slate-700 border-slate-800 cursor-not-allowed' : 'bg-slate-800/80 text-slate-400 border-slate-600 hover:text-white hover:border-slate-400'}`}>
+              {isListening ? <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg> : (isTranscribing && transcribingField === field) ? <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> : <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>}
             </button>
           </div>
         </div>
