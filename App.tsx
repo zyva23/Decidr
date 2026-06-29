@@ -73,7 +73,13 @@ const DecidrApp: React.FC = () => {
   const [isGuestMode, setIsGuestMode] = useState(false);
   const [sessions, setSessions] = useState<DecisionSession[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
-  const [inputValues, setInputValues] = useState<DecisionInput>({ title: '', context: '', constraints: '', options: '' });
+  const [inputValues, setInputValues] = useState<DecisionInput>(() => {
+    try {
+      const draft = localStorage.getItem('dc_draft_input');
+      if (draft) return JSON.parse(draft);
+    } catch (e) {}
+    return { title: '', context: '', constraints: '', options: '' };
+  });
   const [status, setStatus] = useState<AnalysisStatus>(AnalysisStatus.IDLE);
   const [result, setResult] = useState<CouncilResult | null>(null);
   const [partialResult, setPartialResult] = useState<PartialCouncilResult | null>(null);
@@ -144,6 +150,43 @@ const DecidrApp: React.FC = () => {
     localStorage.setItem('dc_guest_id', newId);
     return newId;
   });
+
+  // PERSIST CURRENT SESSION TO URL HASH
+  useEffect(() => {
+    if (currentSessionId) {
+      window.history.replaceState(null, '', `#${currentSessionId}`);
+    } else if (window.location.hash) {
+      window.history.replaceState(null, '', window.location.pathname + window.location.search);
+    }
+  }, [currentSessionId]);
+
+  // AUTOSAVE DRAFT INPUT
+  useEffect(() => {
+    if (status === AnalysisStatus.IDLE) {
+      localStorage.setItem('dc_draft_input', JSON.stringify(inputValues));
+    }
+  }, [inputValues, status]);
+
+  // RESTORE SESSION FROM URL HASH ON INITIAL LOAD
+  useEffect(() => {
+    if (sessions.length > 0 && !currentSessionId && status === AnalysisStatus.IDLE) {
+      const hash = window.location.hash.replace('#', '');
+      if (hash) {
+        const sessionToRestore = sessions.find(s => s.id === hash);
+        if (sessionToRestore) {
+          // Inline loadSession logic since the function might be declared below
+          setCurrentSessionId(sessionToRestore.id);
+          setInputValues(sessionToRestore.input);
+          setResult(sessionToRestore.result);
+          setChatHistory(sessionToRestore.chatHistory || []);
+          setStatus(AnalysisStatus.COMPLETE);
+          setIsPublicSession(sessionToRestore.isPublic || false);
+          setIsInputLocked(true);
+          setContributions(sessionToRestore.contributions || []);
+        }
+      }
+    }
+  }, [sessions]); // Runs when sessions are loaded or updated
 
   const handleDiscardContribution = async (id: string) => {
     if (!currentSessionId) return;
