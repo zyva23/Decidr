@@ -32,6 +32,7 @@ const InputForm: React.FC<Props> = ({ initialValues, onSubmit, isLoading, sessio
   const audioContextRef = useRef<AudioContext | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const silenceStartRef = useRef<number>(0);
+  const pulseRingRef = useRef<HTMLDivElement>(null);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [transcribingField, setTranscribingField] = useState<keyof DecisionInput | null>(null);
   const [activeBrainstorm, setActiveBrainstorm] = useState<'constraints' | 'options' | 'context' | null>(null);
@@ -230,6 +231,13 @@ const InputForm: React.FC<Props> = ({ initialValues, onSubmit, isLoading, sessio
           
           analyser.getByteFrequencyData(dataArray);
           const maxVolume = Math.max(...dataArray);
+
+          if (pulseRingRef.current) {
+            const scale = 1 + (maxVolume / 255) * 1.5;
+            const opacity = 0.1 + (maxVolume / 255) * 0.4;
+            pulseRingRef.current.style.transform = `scale(${scale})`;
+            pulseRingRef.current.style.opacity = `${opacity}`;
+          }
           
           if (maxVolume > silenceThreshold) {
             silenceStartRef.current = Date.now(); // Reset timer if sound detected
@@ -753,7 +761,7 @@ const InputForm: React.FC<Props> = ({ initialValues, onSubmit, isLoading, sessio
           {listeningField ? (
             <div className="flex flex-col items-center">
               <div className="relative flex items-center justify-center mb-8">
-                <div className="absolute inset-0 bg-red-500 rounded-full animate-ping opacity-30 w-32 h-32 -mx-8 -my-8"></div>
+                <div ref={pulseRingRef} className="absolute inset-0 bg-red-500 rounded-full w-32 h-32 -mx-8 -my-8 transition-all duration-75" style={{ opacity: 0.1, transform: 'scale(1)' }}></div>
                 <div className="absolute inset-0 bg-red-400 rounded-full animate-pulse opacity-20 w-24 h-24 -mx-4 -my-4"></div>
                 <div className="relative bg-gradient-to-br from-red-500 to-rose-700 p-6 rounded-full shadow-[0_0_40px_rgba(239,68,68,0.6)]">
                   <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
