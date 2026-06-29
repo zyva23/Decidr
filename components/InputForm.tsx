@@ -29,6 +29,9 @@ const InputForm: React.FC<Props> = ({ initialValues, onSubmit, isLoading, sessio
   const [listeningField, setListeningField] = useState<keyof DecisionInput | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
+  const silenceStartRef = useRef<number>(0);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [transcribingField, setTranscribingField] = useState<keyof DecisionInput | null>(null);
   const [activeBrainstorm, setActiveBrainstorm] = useState<'constraints' | 'options' | 'context' | null>(null);
@@ -205,11 +208,55 @@ const InputForm: React.FC<Props> = ({ initialValues, onSubmit, isLoading, sessio
 
       mediaRecorder.onstart = () => {
         setListeningField(field);
+
+        // Web Audio API Silence Detection
+        const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+        const audioContext = new AudioContext();
+        audioContextRef.current = audioContext;
+        
+        const source = audioContext.createMediaStreamSource(stream);
+        const analyser = audioContext.createAnalyser();
+        analyser.fftSize = 256;
+        source.connect(analyser);
+        
+        const bufferLength = analyser.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+        
+        silenceStartRef.current = Date.now();
+        const silenceThreshold = 5; // Low threshold for background noise
+
+        const checkSilence = () => {
+          if (mediaRecorder.state !== 'recording') return;
+          
+          analyser.getByteFrequencyData(dataArray);
+          const maxVolume = Math.max(...dataArray);
+          
+          if (maxVolume > silenceThreshold) {
+            silenceStartRef.current = Date.now(); // Reset timer if sound detected
+          } else {
+            // Check if 10 seconds have passed since last sound
+            if (Date.now() - silenceStartRef.current > 10000) {
+              if (mediaRecorder.state === 'recording') {
+                mediaRecorder.stop();
+                return;
+              }
+            }
+          }
+          animationFrameRef.current = requestAnimationFrame(checkSilence);
+        };
+        
+        checkSilence();
       };
 
       mediaRecorder.onstop = async () => {
         setListeningField(null);
         stream.getTracks().forEach(track => track.stop());
+
+        if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
+        if (audioContextRef.current) {
+          audioContextRef.current.close();
+          audioContextRef.current = null;
+        }
 
         if (audioChunksRef.current.length === 0) return;
         
@@ -699,6 +746,47 @@ const InputForm: React.FC<Props> = ({ initialValues, onSubmit, isLoading, sessio
           ) : isLocked ? 'Rerun Deliberation' : UI_CONTENT.FORM.BUTTONS.ANALYZE}
         </button>
       </form>
+
+      {/* Voice Input Overlay */}
+      {(listeningField || isTranscribing) && (
+        <div className="absolute inset-0 z-[200] bg-slate-950/80 backdrop-blur-xl flex flex-col items-center justify-center rounded-2xl animate-fade-in">
+          {listeningField ? (
+            <div className="flex flex-col items-center">
+              <div className="relative flex items-center justify-center mb-8">
+                <div className="absolute inset-0 bg-red-500 rounded-full animate-ping opacity-30 w-32 h-32 -mx-8 -my-8"></div>
+                <div className="absolute inset-0 bg-red-400 rounded-full animate-pulse opacity-20 w-24 h-24 -mx-4 -my-4"></div>
+                <div className="relative bg-gradient-to-br from-red-500 to-rose-700 p-6 rounded-full shadow-[0_0_40px_rgba(239,68,68,0.6)]">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                </div>
+              </div>
+              <h3 className="text-2xl font-black text-white uppercase tracking-widest mb-3">Listening</h3>
+              <p className="text-sm text-red-300 font-medium tracking-wider animate-pulse mb-8">Speak now...</p>
+              <button 
+                onClick={() => {
+                  if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+                    mediaRecorderRef.current.stop();
+                  }
+                }}
+                className="px-8 py-3 bg-red-500/20 hover:bg-red-500/40 text-red-400 font-bold uppercase tracking-widest rounded-xl border border-red-500/50 transition-all active:scale-95"
+              >
+                Stop Recording
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center">
+              <div className="relative w-24 h-24 mb-8">
+                <div className="absolute inset-0 border-4 border-indigo-500/30 rounded-full"></div>
+                <div className="absolute inset-0 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-400 animate-pulse"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
+                </div>
+              </div>
+              <h3 className="text-2xl font-black text-white uppercase tracking-widest mb-3">Transcribing</h3>
+              <p className="text-sm text-indigo-300 font-medium tracking-wider animate-pulse">Processing your thoughts...</p>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
