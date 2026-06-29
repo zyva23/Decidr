@@ -198,9 +198,24 @@ const InputForm: React.FC<Props> = ({ initialValues, onSubmit, isLoading, sessio
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
 
-      mediaRecorder.ondataavailable = (event) => {
+      mediaRecorder.ondataavailable = async (event) => {
         if (event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
+          const chunkBlob = new Blob([event.data], { type: mediaRecorder.mimeType || 'audio/webm' });
+          try {
+            setIsTranscribing(true);
+            setTranscribingField(field);
+            const transcript = await transcribeAudio(chunkBlob);
+            if (transcript) {
+              setInput(prev => {
+                const current = prev[field];
+                return { ...prev, [field]: current ? `${current} ${transcript}` : transcript };
+              });
+            }
+          } catch (error) {
+            console.error('Chunk transcription failed:', error);
+          } finally {
+            setIsTranscribing(false);
+          }
         }
       };
 
@@ -208,37 +223,14 @@ const InputForm: React.FC<Props> = ({ initialValues, onSubmit, isLoading, sessio
         setListeningField(field);
       };
 
-      mediaRecorder.onstop = async () => {
+      mediaRecorder.onstop = () => {
         setListeningField(null);
         stream.getTracks().forEach(track => track.stop());
-
-        if (audioChunksRef.current.length === 0) return;
-        
-        const audioBlob = new Blob(audioChunksRef.current, { type: mediaRecorder.mimeType || 'audio/webm' });
-        
-        try {
-          setIsTranscribing(true);
-          setTranscribingField(field);
-          const transcript = await transcribeAudio(audioBlob);
-          if (transcript) {
-            setInput(prev => {
-              const current = prev[field];
-              return { ...prev, [field]: current ? `${current} ${transcript}` : transcript };
-            });
-          }
-        } catch (error: any) {
-          showPrompt({
-            type: 'alert',
-            title: 'Transcription Failed',
-            message: error.message || 'Failed to transcribe audio. Please check your API key.'
-          });
-        } finally {
-          setIsTranscribing(false);
-          setTranscribingField(null);
-        }
+        setTranscribingField(null);
       };
 
-      mediaRecorder.start();
+      // Slice audio into 3000ms chunks to transcribe incrementally
+      mediaRecorder.start(3000);
     } catch (err) {
       console.error('Error accessing microphone:', err);
       showPrompt({
