@@ -413,12 +413,43 @@ const DecidrApp: React.FC = () => {
     return () => unsubscribe();
   }, []);
 
-  // SHARED LINK EFFECT
+  // SHARED LINK OR IMPORT EFFECT
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const shareId = params.get('share');
-    if (shareId) { handleLoadSharedSession(shareId); }
-  }, []);
+    if (shareId) { handleLoadSharedSession(shareId); return; }
+
+    const importData = params.get('import');
+    if (importData) {
+      try {
+        const decoded = JSON.parse(decodeURIComponent(atob(importData)));
+        if (decoded.input && decoded.result) {
+          const newSessionId = `imported_${Date.now()}`;
+          const newSession = {
+            id: newSessionId,
+            timestamp: Date.now(),
+            input: decoded.input,
+            result: decoded.result,
+            status: AnalysisStatus.COMPLETE,
+            user_id: user?.id || undefined, // link to logged in user if available
+          };
+          
+          saveSession(newSession).then(() => {
+            setSessions(getLocalSessions());
+            setCurrentSessionId(newSessionId);
+            setInputValues(decoded.input);
+            setResult(decoded.result);
+            setStatus(AnalysisStatus.COMPLETE);
+            setIsInputLocked(true);
+            // Clean up the URL query parameters without reloading and set hash
+            window.history.replaceState(null, '', window.location.pathname + `#${newSessionId}`);
+          });
+        }
+      } catch (e) {
+        console.error("Failed to import session from URL query param:", e);
+      }
+    }
+  }, [user]); // Re-run if user status updates to map session correctly
 
   const handleLoadSharedSession = async (shareId: string) => {
     // GATE CHECK: If no user, show recruitment gate first
