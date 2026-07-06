@@ -1,6 +1,6 @@
 import { initializeApp, getApp, getApps } from "firebase/app";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
-import { getFirestore, collection, addDoc, serverTimestamp, doc, getDoc, setDoc, updateDoc, arrayUnion, query, getDocs } from "firebase/firestore";
+import { getFirestore, collection, addDoc, serverTimestamp, doc, getDoc, setDoc, updateDoc, arrayUnion, query, getDocs, deleteDoc } from "firebase/firestore";
 import { DecisionSession, Contribution, AnalysisStatus } from "../types";
 
 const firebaseConfig = {
@@ -120,13 +120,13 @@ export const saveToWaitlist = async (email: string, userId?: string) => {
   }
 };
 
-export const getUserProfile = async (userId: string): Promise<{xp: number, level: number} | null> => {
+export const getUserProfile = async (userId: string): Promise<{xp: number, level: number, credits?: number} | null> => {
   if (!db) return null;
   try {
     const docRef = doc(db, "profiles", userId);
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
-      return docSnap.data() as {xp: number, level: number};
+      return docSnap.data() as {xp: number, level: number, credits?: number};
     }
     return null;
   } catch (e) {
@@ -135,12 +135,13 @@ export const getUserProfile = async (userId: string): Promise<{xp: number, level
   }
 };
 
-export const saveUserProfile = async (userId: string, xp: number, level: number) => {
+export const saveUserProfile = async (userId: string, xp: number, level: number, credits: number) => {
   if (!db) return;
   try {
     await setDoc(doc(db, "profiles", userId), {
-      xp,
-      level,
+      xp: xp || 0,
+      level: level || 1,
+      credits: credits || 0,
       updatedAt: serverTimestamp()
     }, { merge: true });
   } catch (e) {
@@ -165,7 +166,18 @@ export const getPublicSession = async (sessionId: string): Promise<DecisionSessi
     const docSnap = await getDoc(doc(db, "sessions", sessionId));
     if (docSnap.exists()) {
       const data = docSnap.data() as DecisionSession;
-      if (data.isPublic) return data;
+      if (data.isPublic) {
+        // SANITIZATION: Only share the latest state
+        // Remove version history and technical traces for public sharing
+        if (data.result) {
+          data.result = {
+            ...data.result,
+            history: [], // Remove audit trail
+            trace: undefined // Remove technical logs
+          };
+        }
+        return data;
+      }
     }
     return null;
   } catch (e) {
@@ -194,6 +206,16 @@ export const getSessionContributions = async (sessionId: string): Promise<Contri
   } catch (e) {
     console.error("Error fetching contributions:", e);
     return [];
+  }
+};
+
+export const deleteSessionContribution = async (sessionId: string, contributionId: string) => {
+  if (!db) return;
+  try {
+    const docRef = doc(db, "sessions", sessionId, "human_perspectives", contributionId);
+    await deleteDoc(docRef);
+  } catch (e) {
+    console.error("Error deleting contribution:", e);
   }
 };
 

@@ -5,6 +5,24 @@ import { collection, doc, setDoc, deleteDoc, getDocs, query, where, orderBy } fr
 const STORAGE_KEY = 'decision_council_sessions';
 
 /**
+ * FIRESTORE UTILITY: Deeply strips 'undefined' values from an object.
+ * Firestore throws a fatal error if 'undefined' is present in any field.
+ */
+const sanitizeData = (data: any): any => {
+  if (data === null || data === undefined) return null;
+  if (Array.isArray(data)) {
+    return data.map(v => sanitizeData(v));
+  } else if (typeof data === 'object') {
+    return Object.fromEntries(
+      Object.entries(data)
+        .filter(([_, v]) => v !== undefined)
+        .map(([k, v]) => [k, sanitizeData(v)])
+    );
+  }
+  return data;
+};
+
+/**
  * Saves a session both to LocalStorage (for instant feedback/offline)
  * and to Firebase Firestore (if a userId is provided).
  */
@@ -22,8 +40,9 @@ export const saveSession = async (session: DecisionSession): Promise<void> => {
   // 2. Sync to Firebase if user is logged in
   if (db && session.user_id) {
     try {
+      const cleanSession = sanitizeData(session);
       await setDoc(doc(db, "sessions", session.id), {
-        ...session,
+        ...cleanSession,
         updatedAt: Date.now()
       });
     } catch (e) {

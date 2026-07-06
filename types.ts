@@ -37,6 +37,20 @@ export interface AgentResponse {
   chartData?: ChartDataPoint[];
   chartLabel?: string;
   alternativeScenarios?: AlternativeScenario[];
+  changeSummary?: string; // NEW: Brief summary of what changed in this version
+  _rawTrace?: { systemPrompt: string; userPrompt: string }; // Hidden trace for debugging
+}
+
+export enum TriageStatus {
+  ALREADY_COVERED = 'ALREADY_COVERED',
+  NO_RESEARCH_NEEDED = 'NO_RESEARCH_NEEDED',
+  NEW_RESEARCH_NEEDED = 'NEW_RESEARCH_NEEDED'
+}
+
+export interface TriageResult {
+  status: TriageStatus;
+  explanation: string;
+  searchQueries?: string[];
 }
 
 export interface RadarMetrics {
@@ -52,6 +66,36 @@ export interface SynthesisResult {
   recommendation: string;
   metrics: RadarMetrics;
   refinedPaths: string[]; // High-fidelity analyzed options
+  changeLog?: string; // What changed in this version
+}
+
+export interface TraceStep {
+  phase: 'Identification' | 'Research' | 'Supervisor' | 'Agent' | 'Synthesis';
+  agent?: string;
+  query?: string;
+  response?: any;
+  timestamp: number;
+}
+
+export interface CouncilTrace {
+  steps: TraceStep[];
+  fullTranscript: string;
+}
+
+export interface CouncilSnapshot {
+  timestamp: number;
+  input: DecisionInput;
+  analyst: AgentResponse;
+  strategist: AgentResponse;
+  skeptic: AgentResponse;
+  mediator: AgentResponse;
+  synthesis: SynthesisResult;
+  causalSummary?: string; 
+  strategicDataPoints?: string[];
+  researchData?: string;
+  deliberationTime?: number; // Time in ms
+  errorAt?: number; // Time in ms if it failed
+  errorMessage?: string;
 }
 
 export interface CouncilResult {
@@ -60,8 +104,14 @@ export interface CouncilResult {
   skeptic: AgentResponse;
   mediator: AgentResponse;
   synthesis: SynthesisResult;
-  synthesisHistory?: SynthesisResult[]; // To store previous versions
-  feedback?: 'helpful' | 'not-helpful'; // User feedback
+  strategicDataPoints?: string[];
+  researchData?: string;
+  trace?: CouncilTrace;
+  history?: CouncilSnapshot[]; 
+  feedback?: 'helpful' | 'not-helpful';
+  deliberationTime?: number; // Current run time
+  errorAt?: number;
+  errorMessage?: string;
 }
 
 export interface PartialCouncilResult {
@@ -69,6 +119,7 @@ export interface PartialCouncilResult {
   strategist?: AgentResponse;
   skeptic?: AgentResponse;
   mediator?: AgentResponse;
+  researchData?: string;
 }
 
 export interface BrainstormQuestion {
@@ -79,6 +130,11 @@ export interface BrainstormQuestion {
 export interface BrainstormResult {
   structuredQuestions: BrainstormQuestion[];
   suggestions: string[];
+}
+
+export interface DeepInquiryResult {
+  situationalNuances: string[];
+  frictionalRealities: string[];
 }
 
 export interface ChatMessage {
@@ -100,10 +156,11 @@ export interface Notification {
 
 export interface Contribution {
   id: string;
+  authorId: string; // User UID or Guest ID
   name: string;
   content: string;
   timestamp: number;
-  type: 'risk' | 'variable' | 'alternative';
+  type: 'risk' | 'variable' | 'alternative' | 'thought';
   status?: 'pending' | 'accepted' | 'dismissed' | 'revision_requested';
   notified?: boolean;
   feedbackComment?: string; // Feedback from the owner
@@ -115,7 +172,8 @@ export enum AnalysisStatus {
   COMPLETE = 'COMPLETE',
   ERROR = 'ERROR',
   OUT_OF_CREDITS = 'OUT_OF_CREDITS',
-  SHARED_VIEW = 'SHARED_VIEW'
+  SHARED_VIEW = 'SHARED_VIEW',
+  RECRUITMENT_GATE = 'RECRUITMENT_GATE'
 }
 
 export interface DecisionSession {
@@ -128,6 +186,7 @@ export interface DecisionSession {
   chatHistory?: ChatMessage[];
   actionPlan?: ActionPlan;
   decisionTree?: DecisionTree;
+  researchData?: string; // Centralized research findings
   isPublic?: boolean;
   contributions?: Contribution[];
   commitment?: {
@@ -169,6 +228,7 @@ export interface PivotPoint {
 export interface UserProfile {
   id: string;
   email: string;
+  displayName?: string;
   xp: number;
   level: number;
 }

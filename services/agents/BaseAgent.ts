@@ -53,9 +53,10 @@ export const agentResponseSchemaObj = {
         required: ["name", "description", "likelihood", "outcome"]
       },
       description: "Scenarios."
-    }
+    },
+    changeSummary: { type: Type.STRING, description: "A brief summary of what changed in this version compared to the last. If nothing changed, return 'No changes'." }
   },
-  required: ["analysis", "keyPoints", "score", "sequence", "chartLabel", "chartData", "alternativeScenarios"]
+  required: ["analysis", "keyPoints", "score", "sequence", "chartLabel", "chartData", "alternativeScenarios", "changeSummary"]
 };
 
 /**
@@ -66,11 +67,10 @@ export const agentResponseSchemaObj = {
  * - Unified grounding source extraction.
  */
 export abstract class BaseAgent {
-  protected ai: GoogleGenAI;
-  protected modelName: string = "gemini-3-flash-preview";
+  protected modelName: string = "gemini-2.5-flash";
 
   constructor(apiKey: string) {
-    this.ai = new GoogleGenAI({ apiKey });
+    // API key proxy is handled by the backend
   }
 
   /**
@@ -122,7 +122,13 @@ export abstract class BaseAgent {
     }
   }
 
-  abstract run(input: DecisionInput): Promise<AgentResponse>;
+  abstract run(
+    input: DecisionInput, 
+    strategicDataPoints?: string[], 
+    conversationHistory?: string, 
+    researchData?: string,
+    previousResponse?: AgentResponse
+  ): Promise<AgentResponse>;
 
   /**
    * Centralizes the actual call to the Gemini API.
@@ -146,11 +152,22 @@ export abstract class BaseAgent {
     const contents = `${systemPrompt}\n\nUSER INPUT:\n${userPrompt}\n\nOUTPUT INSTRUCTIONS:\nReturn valid JSON adhering to schema. Analysis max 500 words.`;
 
     return this.withRetry(async () => {
-      const response = await this.ai.models.generateContent({
-        model: this.modelName,
-        contents: contents,
-        config: config
+      const fetchResponse = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: this.modelName,
+          contents,
+          config
+        })
       });
+
+      if (!fetchResponse.ok) {
+        const errorData = await fetchResponse.json();
+        throw new Error(errorData.error || fetchResponse.statusText);
+      }
+
+      const response = await fetchResponse.json();
 
       const text = response.text || "";
       let sources: string[] = [];
@@ -167,6 +184,7 @@ export abstract class BaseAgent {
       const data = this.cleanAndParseJSON(text);
       if (!data) throw new Error("Failed to parse agent response");
       data.sources = [...(data.sources || []), ...sources];
+      data._rawTrace = { systemPrompt, userPrompt }; // Attach trace info
       return data;
     });
   }

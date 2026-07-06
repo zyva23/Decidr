@@ -6,9 +6,10 @@ import { UI_CONTENT } from '../src/constants/uiContent';
 
 interface DocumentUploadProps {
   onDocumentsChange: (attachments: Attachment[]) => void;
+  showPrompt: (config: any) => void;
 }
 
-const DocumentUpload: React.FC<DocumentUploadProps> = ({ onDocumentsChange }) => {
+const DocumentUpload: React.FC<DocumentUploadProps> = ({ onDocumentsChange, showPrompt }) => {
   const [isUploading, setIsUploading] = useState(false);
   const [progress, setProgress] = useState<string>('');
   const [attachments, setAttachments] = useState<Attachment[]>([]);
@@ -40,7 +41,11 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ onDocumentsChange }) =>
         );
         text = result.data.text;
       } else {
-        alert(UI_CONTENT.FORM.MESSAGES.UNSUPPORTED_FILE);
+        showPrompt({
+          type: 'alert',
+          title: 'Unsupported File',
+          message: UI_CONTENT.FORM.MESSAGES.UNSUPPORTED_FILE
+        });
         return;
       }
 
@@ -56,7 +61,11 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ onDocumentsChange }) =>
     } catch (error: any) {
       console.error('File processing error:', error);
       const msg = error.message || UI_CONTENT.FORM.MESSAGES.FILE_ERROR;
-      alert(msg.includes('resisted extraction') ? msg : `${UI_CONTENT.FORM.MESSAGES.FILE_ERROR} (${msg})`);
+      showPrompt({
+        type: 'alert',
+        title: 'Upload Error',
+        message: msg.includes('resisted extraction') ? msg : `${UI_CONTENT.FORM.MESSAGES.FILE_ERROR} (${msg})`
+      });
     } finally {
       setIsUploading(false);
       setProgress('');

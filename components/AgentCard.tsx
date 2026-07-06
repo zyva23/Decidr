@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { AgentResponse } from '../types';
+import React, { useState, useEffect } from 'react';
+import { AgentResponse, Contribution } from '../types';
 import SequenceModal from './SequenceModal';
 import SourcesModal from './SourcesModal';
 
@@ -9,6 +9,7 @@ interface AgentCardProps {
   color: 'blue' | 'purple' | 'red' | 'emerald' | 'indigo';
   isLoading?: boolean;
   type?: Contribution['type'];
+  history?: AgentResponse[]; // Full history for versioning
 }
 
 const colorMap = {
@@ -22,7 +23,8 @@ const colorMap = {
 const typeFlagMap = {
   risk: { label: '🚩 Risk', color: 'bg-red-500/20 text-red-400 border-red-500/30' },
   variable: { label: '🧩 Variable', color: 'bg-blue-500/20 text-blue-400 border-blue-500/30' },
-  alternative: { label: '💡 Alternative', color: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' }
+  alternative: { label: '💡 Alternative', color: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' },
+  thought: { label: '🧠 Thought', color: 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30' }
 };
 
 const HumanAvatar = () => (
@@ -60,10 +62,21 @@ const MediatorAvatar = () => (
   </svg>
 );
 
-const AgentCard: React.FC<AgentCardProps> = ({ agent, role, color, isLoading, type }) => {
+const AgentCard: React.FC<AgentCardProps> = ({ agent, role, color, isLoading, type, history = [] }) => {
   const styles = colorMap[color];
+  const [localIndex, setLocalIndex] = useState(-1); // -1 means latest active
   const [isSequenceOpen, setIsSequenceOpen] = useState(false);
   const [isSourcesOpen, setIsSourcesOpen] = useState(false);
+
+  // Auto-reset local index when a new deliberated result comes in
+  useEffect(() => {
+    if (isLoading) setLocalIndex(-1);
+  }, [isLoading]);
+
+  const allVersions = [...history, ...(agent ? [agent] : [])];
+  const totalVersions = allVersions.length;
+  const currentIndex = localIndex === -1 ? totalVersions - 1 : localIndex;
+  const activeAgent = allVersions[currentIndex];
 
   const renderAvatar = () => {
     switch(role) {
@@ -76,15 +89,36 @@ const AgentCard: React.FC<AgentCardProps> = ({ agent, role, color, isLoading, ty
     }
   };
 
-  const hasSources = !!agent?.sources && Array.isArray(agent.sources) && agent.sources.length > 0;
-  const hasKeyPoints = !!agent?.keyPoints && Array.isArray(agent.keyPoints);
+  const hasSources = !!activeAgent?.sources && Array.isArray(activeAgent.sources) && activeAgent.sources.length > 0;
+  const hasKeyPoints = !!activeAgent?.keyPoints && Array.isArray(activeAgent.keyPoints);
 
   return (
     <>
       <div className={`rounded-2xl border ${styles.border} ${styles.bg} p-6 flex flex-col h-full backdrop-blur-md transition-all duration-500 ${styles.hover} shadow-2xl relative group overflow-hidden`}>
         <div className={`absolute -top-24 -right-24 w-48 h-48 ${styles.glow} rounded-full blur-[80px] transition-all duration-700`}></div>
         
-        {isLoading || !agent || !agent.name ? (
+        {/* Local Version Switcher */}
+        {totalVersions > 1 && !isLoading && (
+          <div className="absolute top-4 left-4 flex items-center gap-1 bg-slate-950/60 p-1 rounded-lg border border-white/5 opacity-0 group-hover:opacity-100 transition-all z-20">
+             <button 
+               onClick={(e) => { e.stopPropagation(); setLocalIndex(prev => Math.max(0, (prev === -1 ? totalVersions - 1 : prev) - 1)); }}
+               disabled={currentIndex === 0}
+               className="p-1 text-slate-500 hover:text-white disabled:opacity-20 transition-colors"
+             >
+               <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+             </button>
+             <span className="text-[8px] font-black text-slate-400 uppercase tracking-tighter w-8 text-center">V{currentIndex + 1}</span>
+             <button 
+               onClick={(e) => { e.stopPropagation(); setLocalIndex(prev => prev === totalVersions - 1 ? -1 : prev + 1); }}
+               disabled={localIndex === -1}
+               className="p-1 text-slate-500 hover:text-white disabled:opacity-20 transition-colors"
+             >
+               <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+             </button>
+          </div>
+        )}
+
+        {isLoading || !activeAgent || !activeAgent.name ? (
           <div className="flex flex-col h-full items-center justify-center py-12 animate-pulse">
              <div className="mb-4">{renderAvatar()}</div>
              <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Archetype Deliberating...</div>
@@ -96,7 +130,7 @@ const AgentCard: React.FC<AgentCardProps> = ({ agent, role, color, isLoading, ty
                 <div className="transform group-hover:scale-110 transition-transform duration-500">{renderAvatar()}</div>
                 <div>
                   <div className="flex items-center gap-2 mb-1">
-                    <h3 className={`font-black text-xl tracking-tight ${styles.title}`}>{agent.name}</h3>
+                    <h3 className={`font-black text-xl tracking-tight ${styles.title}`}>{activeAgent.name}</h3>
                     {role === 'Human' && type && (
                       <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border ${typeFlagMap[type].color}`}>
                         {typeFlagMap[type].label}
@@ -110,15 +144,15 @@ const AgentCard: React.FC<AgentCardProps> = ({ agent, role, color, isLoading, ty
               </div>
               {role !== 'Human' && (
                 <div className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-tighter ${styles.badge} shadow-inner`}>
-                  {agent.score || 0} / 100
+                  {activeAgent.score || 0} / 100
                 </div>
               )}
             </div>
-            <div className="mb-6 text-slate-300 text-sm leading-relaxed flex-grow z-10 relative pl-1 whitespace-pre-wrap font-medium h-auto min-h-[100px]">{agent.analysis || "Synthesizing perspectives..."}</div>
+            <div className="mb-6 text-slate-300 text-sm leading-relaxed flex-grow z-10 relative pl-1 whitespace-pre-wrap font-medium h-auto min-h-[100px]">{activeAgent.analysis || "Synthesizing perspectives..."}</div>
             <div className="mt-auto pt-5 border-t border-slate-800/80 z-10 relative">
               <h4 className={`text-[10px] font-black uppercase mb-3 tracking-widest ${styles.text}`}>Strategic Pillars</h4>
               <ul className="space-y-2 mb-6">
-                {hasKeyPoints ? agent.keyPoints.map((point, idx) => (
+                {hasKeyPoints ? activeAgent.keyPoints.map((point, idx) => (
                   <li key={idx} className="text-xs text-slate-400 flex items-start gap-3">
                     <span className={`mt-1.5 w-1 h-1 rounded-full flex-shrink-0 ${styles.text} bg-current`}></span>
                     <span className="group-hover:text-slate-200 transition-colors">{point}</span>
@@ -131,7 +165,7 @@ const AgentCard: React.FC<AgentCardProps> = ({ agent, role, color, isLoading, ty
                 {role !== 'Human' && (
                   <button 
                     onClick={() => setIsSequenceOpen(true)} 
-                    disabled={!agent.sequence}
+                    disabled={!activeAgent.sequence}
                     className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.15em] transition-all duration-300 flex items-center justify-center gap-2 border ${styles.border} hover:bg-slate-800/80 hover:scale-[1.02] active:scale-[0.98] ${styles.text} disabled:opacity-30`}
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
@@ -146,8 +180,8 @@ const AgentCard: React.FC<AgentCardProps> = ({ agent, role, color, isLoading, ty
           </>
         )}
       </div>
-      {agent && agent.sequence && <SequenceModal isOpen={isSequenceOpen} onClose={() => setIsSequenceOpen(false)} agent={agent} colorTheme={styles} />}
-      {agent && hasSources && <SourcesModal isOpen={isSourcesOpen} onClose={() => setIsSourcesOpen(false)} sources={agent.sources || []} role={role} />}
+      {activeAgent && activeAgent.sequence && <SequenceModal isOpen={isSequenceOpen} onClose={() => setIsSequenceOpen(false)} agent={activeAgent} colorTheme={styles} />}
+      {activeAgent && hasSources && <SourcesModal isOpen={isSourcesOpen} onClose={() => setIsSourcesOpen(false)} sources={activeAgent.sources || []} role={role} />}
     </>
   );
 };
