@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zyva Extension — Privacy Policy</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 0 20px;
+            background-color: #f9f9f9;
+        }
+        .container {
+            background-color: #fff;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            border: 1px solid #eaeaea;
+        }
+        h1 {
+            color: #111;
+            font-size: 28px;
+            margin-bottom: 8px;
+            border-bottom: 2px solid #8B5CF6;
+            padding-bottom: 12px;
+        }
+        h2 {
+            color: #444;
+            font-size: 20px;
+            margin-top: 30px;
+            margin-bottom: 12px;
+        }
+        p, li {
+            font-size: 15px;
+            color: #555;
+        }
+        ul {
+            padding-left: 20px;
+        }
+        .footer {
+            margin-top: 40px;
+            font-size: 12px;
+            color: #888;
+            text-align: center;
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+        }
+        .highlight {
+            background-color: #f3f4f6;
+            padding: 15px;
+            border-left: 4px solid #8B5CF6;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Privacy Policy</h1>
+        <p><strong>Effective Date:</strong> July 6, 2026</p>
+        <p>This Privacy Policy describes how the <strong>Zyva</strong> browser extension ("we", "our", or "Zyva") collects, uses, and shares information when you use our extension.</p>
+        
+        <div class="highlight">
+            <strong>TL;DR / Summary:</strong> Zyva is a stateless extension. We do not sell, track, or aggregate your data. The text drafts and email thread contexts you highlight are processed solely to run audits and generate revised copies, and are sent securely to your designated backend Vercel service. Your configurations (settings) are saved locally on your device.
+        </div>
+
+        <h2>1. Information We Collect and Process</h2>
+        <p>To perform critiques and communication audits, Zyva temporarily accesses the following data in direct response to your trigger actions:</p>
+        <ul>
+            <li><strong>Highlighted Text / Drafts:</strong> When you select text and click the trigger button, Zyva captures that text so it can be audited by the AI council.</li>
+            <li><strong>Page Context (URL & Title):</strong> The extension infers the communication platform you are on (e.g. Gmail, LinkedIn, Slack) to adapt the review perspective.</li>
+            <li><strong>Thread Context:</strong> On supported pages (like Gmail, Slack, and LinkedIn), the scraper extracts recent surrounding messages in the active thread to provide context to the advisory council.</li>
+        </ul>
+
+        <h2>2. Data Storage and Transmission</h2>
+        <ul>
+            <li><strong>Local Storage:</strong> Your configuration settings (User Profile Context and Backend URL) are stored locally on your device using Chrome's native storage API. They are never transmitted to us or any third parties.</li>
+            <li><strong>API Transmission:</strong> When you click "Audit Communication" or "Act On It," the highlighted draft and thread context are securely transmitted over HTTPS to your designated Decidr backend endpoint (which you configure in the extension settings). This endpoint proxies requests securely to the LLM (Gemini) API.</li>
+            <li><strong>No Logging:</strong> Zyva does not log, store, or monitor your communication history on any server. Once the browser session or side panel is closed, the temporary selection state is deleted.</li>
+        </ul>
+
+        <h2>3. Third-Party Services</h2>
+        <p>Processing requests are fulfilled using Google's Gemini models through your designated Decidr API endpoint. Data processed by the API is subject to the data privacy and security terms of the provider and your hosting platform (Vercel).</p>
+
+        <h2>4. Chrome Web Store User Data Policy Compliance</h2>
+        <p>In accordance with the Google Chrome Web Store User Data Policy, we declare that:</p>
+        <ul>
+            <li>We do not sell user data to third parties.</li>
+            <li>We do not use or transfer user data for purposes unrelated to the extension's core functionality (auditing and re-drafting text).</li>
+            <li>We do not use user data to determine creditworthiness or for lending purposes.</li>
+        </ul>
+
+        <h2>5. Changes to This Policy</h2>
+        <p>We may update this Privacy Policy from time to time. Any changes will be reflected in a new version of the extension manifest or updated on this page.</p>
+
+        <h2>6. Contact Us</h2>
+        <p>If you have any questions or concerns regarding your privacy while using the Zyva browser extension, please contact us through our official project repository.</p>
+
+        <div class="footer">
+            Zyva Extension &copy; 2026. All rights reserved.
+        </div>
+    </div>
+</body>
+</html>
