@@ -5,6 +5,7 @@ export interface DecisionInput {
   constraints: string;
   options: string;
   parentId?: string; // Links to a previous inquiry session
+  agentRuns?: number; // Expose number of agent runs
 }
 
 export interface SequenceEvent {

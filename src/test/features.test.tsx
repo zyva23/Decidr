@@ -9,7 +9,10 @@ import * as storageService from '../../services/storageService';
 vi.mock('../../services/geminiService', () => ({
   analyzeDecision: vi.fn(),
   generateActionPlan: vi.fn(),
+  generateDecisionTree: vi.fn(),
+  chatWithCouncil: vi.fn(),
   exploreBrainstorm: vi.fn(),
+  extractDeepInquiry: vi.fn().mockResolvedValue({ situationalNuances: [], frictionalRealities: [] }),
 }));
 
 vi.mock('../../services/storageService', () => ({
@@ -49,7 +52,7 @@ describe('Decidr Feature Tests', () => {
     render(<App />);
     const guestBtn = await screen.findByText(/Continue as Guest/i);
     fireEvent.click(guestBtn);
-    await screen.findByText("The Inquiry");
+    await screen.findByText("The Core Inquiry");
   };
 
   describe('Evolutionary Branching', () => {

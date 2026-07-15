@@ -625,7 +625,7 @@ export async function analyzeDecision(
   }
 
   const turnCounts: Record<string, number> = { Analyst: 0, Strategist: 0, Skeptic: 0, Mediator: 0 };
-  const maxTurns = 12; // 2 mandatory rounds (8) + up to 4 optional supervisor turns
+  const maxTurns = input.agentRuns || 12; // 2 mandatory rounds (8) + up to 4 optional supervisor turns
   let currentTurn = 0;
   
   let analyst: any = null;
@@ -811,12 +811,8 @@ export async function chatWithCouncil(history: ChatMessage[], newMessage: string
 
   try {
     const ai = getAI();
-    const response = await ai.models.generateContent({
-      model: MASTER_MODEL,
-      contents: prompt,
-      config: {
-        temperature: 0.7,
-      }
+    const response = await generateWithFallback(ai, prompt, {
+      temperature: 0.7,
     });
 
     return response.text || "The Chairperson is currently unavailable.";
@@ -854,11 +850,7 @@ export async function generateActionPlan(input: DecisionInput, councilResult: Co
   `;
   try {
     const ai = getAI();
-    const response = await ai.models.generateContent({
-      model: MASTER_MODEL,
-      contents: prompt,
-      config: { responseMimeType: "application/json", responseSchema: actionPlanSchema as any, temperature: 0.4 }
-    });
+    const response = await generateWithFallback(ai, prompt, { responseMimeType: "application/json", responseSchema: actionPlanSchema as any, temperature: 0.4 });
     return JSON.parse(response.text || "{}");
   } catch (error) {
     console.error("Action Plan Error:", error);
@@ -889,14 +881,10 @@ export async function generateDecisionTree(problem: string, councilResult?: Coun
   `;
   try {
     const ai = getAI();
-    const response = await ai.models.generateContent({
-      model: MASTER_MODEL,
-      contents: prompt,
-      config: { 
-        responseMimeType: "application/json", 
-        responseSchema: decisionTreeSchema as any, 
-        temperature: 0.6 
-      }
+    const response = await generateWithFallback(ai, prompt, { 
+      responseMimeType: "application/json", 
+      responseSchema: decisionTreeSchema as any, 
+      temperature: 0.6 
     });
     return JSON.parse(response.text || "{}");
   } catch (error) {

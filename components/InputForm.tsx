@@ -139,8 +139,9 @@ const InputForm: React.FC<Props> = ({ initialValues, onSubmit, isLoading, sessio
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setInput(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const val = e.target.name === 'agentRuns' ? parseInt(e.target.value, 10) : e.target.value;
+    setInput(prev => ({ ...prev, [e.target.name]: val }));
     if (activeExample) {
       setHasChangesSinceSelection(true);
     }
@@ -686,6 +687,29 @@ const InputForm: React.FC<Props> = ({ initialValues, onSubmit, isLoading, sessio
         <div className="grid grid-cols-1 gap-6">
           {renderInputWrapper('constraints', UI_CONTENT.FORM.LABELS.CONSTRAINTS, <textarea name="constraints" value={input.constraints} onChange={handleChange} rows={4} placeholder={UI_CONTENT.FORM.PLACEHOLDERS.CONSTRAINTS} className="w-full bg-slate-950/50 border border-slate-700/60 rounded-xl p-4 pb-14 pr-4 text-white placeholder-slate-600 focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 outline-none transition-all shadow-inner resize-none text-sm custom-scrollbar" />, true)}
           {renderInputWrapper('options', UI_CONTENT.FORM.LABELS.OPTIONS, <textarea name="options" value={input.options} onChange={handleChange} rows={4} placeholder={UI_CONTENT.FORM.PLACEHOLDERS.OPTIONS} className="w-full bg-slate-950/50 border border-slate-700/60 rounded-xl p-4 pb-14 pr-4 text-white placeholder-slate-600 focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 outline-none transition-all shadow-inner resize-none text-sm custom-scrollbar" />, true)}
+        </div>
+
+        {/* Deliberation Depth (Agent Runs) Option */}
+        <div className="relative group w-full">
+          <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 ml-1">Deliberation Depth (Agent Runs)</label>
+          <div className="relative">
+            <select
+              name="agentRuns"
+              value={input.agentRuns || 12}
+              onChange={handleChange}
+              disabled={isLocked || isLoading}
+              className="w-full bg-slate-950/50 border border-slate-700/60 rounded-xl p-4 text-white focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 outline-none transition-all shadow-inner text-sm appearance-none cursor-pointer"
+            >
+              <option value={4} className="bg-slate-900 text-white">4 runs (1 Quick Round)</option>
+              <option value={8} className="bg-slate-900 text-white">8 runs (2 Standard Rounds)</option>
+              <option value={12} className="bg-slate-900 text-white">12 runs (2 Standard + 4 Refinements) [Recommended]</option>
+              <option value={16} className="bg-slate-900 text-white">16 runs (2 Standard + 8 Refinements)</option>
+            </select>
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </div>
+          </div>
+          <p className="text-[10px] text-slate-500 mt-1.5 ml-1">Controls how many conversational turns the council agents perform before synthesizing the final recommendation.</p>
         </div>
 
         {/* Evolutionary Linking - Repositioned to Bottom */}

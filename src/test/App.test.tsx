@@ -10,7 +10,10 @@ import { AnalysisStatus } from '../../types';
 vi.mock('../../services/geminiService', () => ({
   analyzeDecision: vi.fn(),
   generateActionPlan: vi.fn(),
+  generateDecisionTree: vi.fn(),
+  chatWithCouncil: vi.fn(),
   exploreBrainstorm: vi.fn(),
+  extractDeepInquiry: vi.fn().mockResolvedValue({ situationalNuances: [], frictionalRealities: [] }),
 }));
 
 vi.mock('../../services/storageService', () => ({

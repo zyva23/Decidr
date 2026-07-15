@@ -76,9 +76,15 @@ const DecidrApp: React.FC = () => {
   const [inputValues, setInputValues] = useState<DecisionInput>(() => {
     try {
       const draft = localStorage.getItem('dc_draft_input');
-      if (draft) return JSON.parse(draft);
+      if (draft) {
+        const parsed = JSON.parse(draft);
+        if (parsed && typeof parsed === 'object' && !parsed.agentRuns) {
+          parsed.agentRuns = 12;
+        }
+        return parsed;
+      }
     } catch (e) {}
-    return { title: '', context: '', constraints: '', options: '' };
+    return { title: '', context: '', constraints: '', options: '', agentRuns: 12 };
   });
   const [status, setStatus] = useState<AnalysisStatus>(AnalysisStatus.IDLE);
   const [result, setResult] = useState<CouncilResult | null>(null);
